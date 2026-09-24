@@ -27,6 +27,7 @@ class UserController extends Controller
         $users = User::query()
             ->subtreeOf($actor)
             ->where('parent_id', $parent->id)
+            ->with(['wallets', 'children'])
             ->withCount('children')
             ->when($request->filled('q'), function ($query) use ($request) {
                 $query->where('username', 'like', '%'.$request->string('q').'%');

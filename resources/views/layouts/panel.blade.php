@@ -28,6 +28,10 @@
             <div>
                 <p class="px-3 text-[11px] font-semibold tracking-wide text-slate-400">{{ __('panel.menu_network') }}</p>
                 <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.users.*') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.users.index') }}">{{ __('panel.users') }}</a>
+                <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.transactions') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.transactions') }}">{{ __('wallet.menu') }}</a>
+                @if (auth()->user()->role->value === 'owner')
+                    <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.mint') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.mint') }}">{{ __('wallet.mint_menu') }}</a>
+                @endif
             </div>
         </nav>
     </aside>
@@ -38,6 +42,11 @@
                 <h1 class="text-lg font-semibold text-start">@yield('heading')</h1>
             </div>
             <div class="flex items-center gap-3">
+                <div class="flex items-center gap-2 text-sm">
+                    @foreach ($headerWallets as $headerWallet)
+                        <span class="font-numeric">{{ $headerWallet->formattedBalance() }}</span>
+                    @endforeach
+                </div>
                 <span class="text-sm text-slate-500">{{ auth()->user()->language->value }}</span>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

@@ -4,6 +4,7 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\UserController;
+use App\Http\Controllers\Panel\WalletController;
 use App\Http\Middleware\EnsurePanelUser;
 use Illuminate\Support\Facades\Route;
 
@@ -31,4 +32,8 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
+    Route::post('/users/{user}/balance', [WalletController::class, 'adjust'])->name('wallets.adjust');
+    Route::get('/transactions', [WalletController::class, 'transactions'])->name('transactions');
+    Route::get('/mint', [WalletController::class, 'mintForm'])->name('mint');
+    Route::post('/mint', [WalletController::class, 'mint'])->name('mint.store');
 });
