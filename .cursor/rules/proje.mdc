@@ -1,0 +1,13 @@
+---
+description: Platform conventions for copy, layout direction, users, money, and time
+alwaysApply: true
+---
+
+- Tüm kullanıcıya görünen metinler `__('key')` ile; Blade, JS, validation, e-posta, Telegram bildirimleri dahil. Hardcoded metin yasak. Yeni anahtar eklenince dört dile de eklenir.
+- Tailwind'de yalnızca mantıksal yön sınıfları (RTL uyumu).
+- Tek users tablosu: role (owner, superadmin, bayi, uye), parent_id, path (materialized path), superadmin_id. Ayrı admins tablosu YOK.
+- Dil ve para birimi süperadmin seviyesinde atanır, alt kullanıcılar miras alır, değiştiremez. Kur dönüşümü yapılmaz.
+- Ayarlar ve site verileri superadmin_id ile izole.
+- Para: decimal(18,2). Bakiye sadece WalletService üzerinden değişir. Her değişiklik wallet_transactions'a değişmez kayıt olarak yazılır (balance_before, amount, balance_after, type, product: sport|slot|live_casino|transfer|bonus|adjustment, idempotency_key UNIQUE, reference, created_by). Kayıtlar update/delete edilmez; düzeltme ters kayıtla. Bakiye işlemleri DB transaction + SELECT ... FOR UPDATE ile.
+- Tarihler UTC saklanır, gösterimde kullanıcının saat dilimine çevrilir.
+- Her anlamlı adımdan sonra git commit.
