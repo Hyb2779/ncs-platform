@@ -10,6 +10,10 @@ class DemoSeeder extends Seeder
 {
     public function run(): void
     {
+        if (app()->isProduction()) {
+            throw new \RuntimeException('DemoSeeder cannot run in production.');
+        }
+
         $this->call(OwnerSeeder::class);
 
         $owner = User::query()->where('role', 'owner')->first();

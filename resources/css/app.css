@@ -10,8 +10,16 @@
     --font-arabic: 'Cairo', 'Manrope', ui-sans-serif, system-ui, sans-serif;
 }
 
+body {
+    font-family: var(--font-sans);
+}
+
 html[dir='rtl'] body {
     font-family: var(--font-arabic);
+}
+
+.font-numeric {
+    font-family: var(--font-numeric);
 }
 
 [x-cloak] {

@@ -33,30 +33,31 @@
     </form>
 
     <div class="hidden overflow-x-auto rounded-lg bg-white md:block">
-        <table class="w-full text-start text-sm">
+        <table class="w-full text-sm">
             <thead class="bg-[#F3F4F6] text-slate-500">
                 <tr>
-                    <th class="px-3 py-2 font-medium">{{ __('panel.fields.username') }}</th>
-                    <th class="px-3 py-2 font-medium">{{ __('panel.fields.role') }}</th>
-                    <th class="px-3 py-2 font-medium">{{ __('panel.fields.status') }}</th>
-                    <th class="px-3 py-2 font-medium">{{ __('panel.fields.commission_rate') }}</th>
-                    <th class="px-3 py-2 font-medium">{{ __('panel.fields.user_limit') }}</th>
-                    <th class="px-3 py-2 font-medium">{{ __('panel.fields.last_login') }}</th>
+                    <th class="px-3 py-2 text-start font-medium">{{ __('panel.fields.username') }}</th>
+                    <th class="px-3 py-2 text-start font-medium">{{ __('panel.fields.role') }}</th>
+                    <th class="px-3 py-2 text-start font-medium">{{ __('panel.fields.status') }}</th>
+                    <th class="px-3 py-2 text-end font-medium">{{ __('panel.fields.commission_rate') }}</th>
+                    <th class="px-3 py-2 text-end font-medium">{{ __('panel.fields.user_limit') }}</th>
+                    <th class="px-3 py-2 text-start font-medium">{{ __('panel.fields.last_login') }}</th>
+                    <th class="px-3 py-2 text-start font-medium">{{ __('panel.fields.actions') }}</th>
                 </tr>
             </thead>
             <tbody>
                 @forelse ($users as $user)
                     <tr class="border-b border-[#E3E6EB]">
-                        <td class="px-3 py-2"><a href="{{ route('panel.users.index', ['parent' => $user->id]) }}">{{ $user->username }}</a></td>
-                        <td class="px-3 py-2">{{ __('panel.roles.'.$user->role->value) }}</td>
-                        <td class="px-3 py-2">{{ __('panel.statuses.'.$user->status->value) }}</td>
-                        <td class="px-3 py-2 font-numeric">{{ $user->commission_rate }}</td>
-                        <td class="px-3 py-2 font-numeric">{{ $user->children_count }} / {{ $user->user_limit ?? __('panel.unlimited') }}</td>
-                        <td class="px-3 py-2">{{ $user->last_login_at?->timezone($user->timezone)->format('Y-m-d H:i') }}</td>
-                        <td class="px-3 py-2"><a href="{{ route('panel.users.edit', $user) }}">{{ __('panel.edit') }}</a></td>
+                        <td class="px-3 py-2 text-start"><a href="{{ route('panel.users.index', ['parent' => $user->id]) }}">{{ $user->username }}</a></td>
+                        <td class="px-3 py-2 text-start">{{ __('panel.roles.'.$user->role->value) }}</td>
+                        <td class="px-3 py-2 text-start">{{ __('panel.statuses.'.$user->status->value) }}</td>
+                        <td class="px-3 py-2 text-end font-numeric">{{ $user->formattedCommissionRate() }}</td>
+                        <td class="px-3 py-2 text-end font-numeric">{{ $user->formattedChildLimit() }}</td>
+                        <td class="px-3 py-2 text-start">{{ $user->formattedLastLogin() }}</td>
+                        <td class="px-3 py-2 text-start"><a href="{{ route('panel.users.edit', $user) }}">{{ __('panel.edit') }}</a></td>
                     </tr>
                 @empty
-                    <tr><td class="px-3 py-4" colspan="7">{{ __('panel.empty_users') }}</td></tr>
+                    <tr><td class="px-3 py-4 text-start" colspan="7">{{ __('panel.empty_users') }}</td></tr>
                 @endforelse
             </tbody>
         </table>
@@ -67,9 +68,9 @@
             <article class="rounded-md bg-white p-3 text-start">
                 <a class="font-medium" href="{{ route('panel.users.index', ['parent' => $user->id]) }}">{{ $user->username }}</a>
                 <p class="text-sm">{{ __('panel.roles.'.$user->role->value) }} · {{ __('panel.statuses.'.$user->status->value) }}</p>
-                <p class="text-sm">{{ __('panel.fields.commission_rate') }}: {{ $user->commission_rate }}</p>
-                <p class="text-sm">{{ $user->children_count }} / {{ $user->user_limit ?? __('panel.unlimited') }}</p>
-                <p class="text-sm">{{ $user->last_login_at?->timezone($user->timezone)->format('Y-m-d H:i') }}</p>
+                <p class="text-sm">{{ __('panel.fields.commission_rate') }}: <span class="font-numeric">{{ $user->formattedCommissionRate() }}</span></p>
+                <p class="text-sm font-numeric">{{ $user->formattedChildLimit() }}</p>
+                <p class="text-sm">{{ $user->formattedLastLogin() }}</p>
                 <a class="text-sm" href="{{ route('panel.users.edit', $user) }}">{{ __('panel.edit') }}</a>
             </article>
         @empty

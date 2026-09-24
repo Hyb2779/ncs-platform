@@ -127,14 +127,17 @@ class UserController extends Controller
     private function breadcrumb(User $actor, User $node): array
     {
         $ids = array_map('intval', array_values(array_filter(explode('/', trim($node->path, '/')))));
-        $actorIds = array_map('intval', array_values(array_filter(explode('/', trim($actor->path, '/')))));
+        $start = array_search($actor->id, $ids, true);
+
+        if ($start === false) {
+            abort(404);
+        }
+
+        $ids = array_slice($ids, $start);
 
         return User::query()
+            ->subtreeOf($actor)
             ->whereIn('id', $ids)
-            ->where(function ($query) use ($actor, $actorIds) {
-                $query->whereIn('id', $actorIds)
-                    ->orWhere('path', 'like', $actor->path.'%');
-            })
             ->get()
             ->sortBy(fn (User $user) => array_search($user->id, $ids, true))
             ->values()

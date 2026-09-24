@@ -145,10 +145,40 @@ class HierarchyTest extends TestCase
         $this->assertTrue(ActivityLog::query()->where('action', 'auth.login')->where('actor_id', $superadmin->id)->exists());
     }
 
-    private function owner(): User
+    public function test_descendants_cannot_see_or_open_ancestors(): void
+    {
+        $owner = $this->owner('root-alpha');
+        $hierarchy = app(HierarchyService::class);
+        $superadmin = $hierarchy->create($owner, $this->payload('sa-alpha', [
+            'language' => 'tr',
+            'currency' => 'TRY',
+            'timezone' => 'UTC',
+        ]));
+        $bayi = $hierarchy->create($superadmin, $this->payload('bayi-alpha'));
+
+        $this->actingAs($bayi)
+            ->get('/panel/users')
+            ->assertOk()
+            ->assertSee('bayi-alpha', false)
+            ->assertDontSee('root-alpha', false)
+            ->assertDontSee('sa-alpha', false);
+
+        $this->actingAs($bayi)->get('/panel/users?parent='.$owner->id)->assertNotFound();
+        $this->actingAs($bayi)->get('/panel/users?parent='.$superadmin->id)->assertNotFound();
+
+        $this->actingAs($superadmin)
+            ->get('/panel/users')
+            ->assertOk()
+            ->assertSee('sa-alpha', false)
+            ->assertDontSee('root-alpha', false);
+
+        $this->actingAs($superadmin)->get('/panel/users?parent='.$owner->id)->assertNotFound();
+    }
+
+    private function owner(string $username = 'owner'): User
     {
         $owner = User::query()->create([
-            'username' => 'owner',
+            'username' => $username,
             'password' => 'password',
             'role' => UserRole::Owner,
             'parent_id' => null,

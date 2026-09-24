@@ -87,4 +87,51 @@ class User extends Authenticatable
     {
         return $this->role === UserRole::Uye ? '/' : '/panel';
     }
+
+    public function formattedCommissionRate(): string
+    {
+        $rate = (float) $this->commission_rate;
+
+        return match (app()->getLocale()) {
+            'tr' => '%'.number_format($rate, 2, ',', '.'),
+            'de' => number_format($rate, 2, ',', '.').' %',
+            'ar' => $this->arabicPercent($rate),
+            default => number_format($rate, 2, '.', ',').'%',
+        };
+    }
+
+    public function formattedLastLogin(): string
+    {
+        if ($this->last_login_at === null) {
+            return __('panel.empty_value');
+        }
+
+        $date = $this->last_login_at->timezone($this->timezone);
+        $locale = app()->getLocale();
+
+        return match ($locale) {
+            'tr', 'de' => $date->locale($locale)->translatedFormat('d.m.Y H:i'),
+            'ar' => $date->locale('ar')->translatedFormat('d M Y H:i'),
+            default => $date->locale('en')->translatedFormat('M j, Y H:i'),
+        };
+    }
+
+    public function formattedChildLimit(): string
+    {
+        if ($this->role === UserRole::Uye) {
+            return __('panel.empty_value');
+        }
+
+        $count = $this->children_count ?? $this->children()->count();
+
+        return $count.' / '.($this->user_limit ?? __('panel.unlimited'));
+    }
+
+    private function arabicPercent(float $rate): string
+    {
+        $western = number_format($rate, 2, '.', '');
+        $digits = ['0' => '٠', '1' => '١', '2' => '٢', '3' => '٣', '4' => '٤', '5' => '٥', '6' => '٦', '7' => '٧', '8' => '٨', '9' => '٩', '.' => '٫'];
+
+        return strtr($western, $digits).'٪';
+    }
 }
