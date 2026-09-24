@@ -10,6 +10,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('wallet_transactions', function (Blueprint $table) {
+            $table->engine('InnoDB');
             $table->uuid('id')->primary();
             $table->foreignId('wallet_id')->constrained('wallets');
             $table->foreignId('user_id')->constrained('users');

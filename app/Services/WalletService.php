@@ -208,17 +208,27 @@ class WalletService
             return $existing;
         }
 
-        return DB::transaction(function () use ($wallet, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id) {
-            $again = WalletTransaction::query()->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
+        for ($attempt = 0; $attempt < 8; $attempt++) {
+            try {
+                return DB::transaction(function () use ($wallet, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id) {
+                    $again = WalletTransaction::query()->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
 
-            if ($again !== null) {
-                return $again;
+                    if ($again !== null) {
+                        return $again;
+                    }
+
+                    $locked = Wallet::query()->whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+
+                    return $this->write($locked, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id);
+                });
+            } catch (WalletException $exception) {
+                if ($exception->translationKey !== 'wallet.conflict' || $attempt === 7) {
+                    throw $exception;
+                }
             }
+        }
 
-            $locked = Wallet::query()->whereKey($wallet->id)->lockForUpdate()->firstOrFail();
-
-            return $this->write($locked, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id);
-        });
+        throw new WalletException('wallet.conflict');
     }
 
     private function write(
@@ -242,8 +252,19 @@ class WalletService
             throw new WalletException('wallet.insufficient_balance');
         }
 
+        $updated = Wallet::query()
+            ->whereKey($wallet->id)
+            ->where('balance', $before)
+            ->update([
+                'balance' => $after,
+                'updated_at' => now(),
+            ]);
+
+        if ($updated !== 1) {
+            throw new WalletException('wallet.conflict');
+        }
+
         $wallet->balance = $after;
-        $wallet->save();
 
         $transaction = WalletTransaction::query()->create([
             'id' => $id ?? (string) Str::uuid(),
