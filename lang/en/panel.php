@@ -2,6 +2,11 @@
 
 return [
     'title' => 'Administration',
+    'brand' => 'Platform',
+    'badge' => 'ADMIN',
+    'menu_general' => 'GENERAL',
+    'menu_network' => 'NETWORK',
+    'open_menu' => 'Menu',
     'overview' => 'Overview',
     'users' => 'Users',
     'logout' => 'Sign out',
