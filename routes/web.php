@@ -67,6 +67,8 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::get('/sport/status', [SportAdminController::class, 'status'])->name('sport.status');
     Route::get('/sport/leagues', [SportAdminController::class, 'leagues'])->name('sport.leagues');
     Route::put('/sport/leagues/{league}', [SportAdminController::class, 'updateLeague'])->name('sport.leagues.update');
+    Route::get('/sport/translations', [SportAdminController::class, 'translations'])->name('sport.translations');
+    Route::put('/sport/translations', [SportAdminController::class, 'updateTranslation'])->name('sport.translations.update');
     Route::get('/sport/margins', [SportAdminController::class, 'margins'])->name('sport.margins');
     Route::post('/sport/margins', [SportAdminController::class, 'storeMargin'])->name('sport.margins.store');
 });

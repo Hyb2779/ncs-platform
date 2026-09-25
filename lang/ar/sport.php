@@ -96,5 +96,18 @@ return [
         'layer_league' => 'دوري',
         'layer_fixture' => 'مباراة',
         'layer_market' => 'سوق',
+        'translations' => 'ترجمات الرياضة',
+        'pending' => 'أسماء بانتظار الترجمة: :count',
+        'missing' => 'الترجمات الناقصة',
+        'search' => 'بحث',
+        'types' => [
+            'team' => 'فريق',
+            'league' => 'دوري',
+            'country' => 'بلد',
+        ],
+    ],
+    'translate' => [
+        'waiting' => ':count اسم بانتظار الترجمة.',
+        'done' => 'استُخدم :requests طلب. بالانتظار: :waiting.',
     ],
 ];

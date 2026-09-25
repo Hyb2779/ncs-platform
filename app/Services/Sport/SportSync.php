@@ -2,6 +2,7 @@
 
 namespace App\Services\Sport;
 
+use App\Jobs\TranslateSportNames;
 use App\Models\SportCountry;
 use App\Models\SportFixture;
 use App\Models\SportLeague;
@@ -50,6 +51,8 @@ class SportSync
                 $count++;
             }
 
+            TranslateSportNames::dispatch();
+
             return $count;
         });
     }
@@ -74,6 +77,8 @@ class SportSync
                     $count++;
                 }
             }
+
+            TranslateSportNames::dispatch();
 
             return $count;
         });

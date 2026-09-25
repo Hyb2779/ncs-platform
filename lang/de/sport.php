@@ -96,5 +96,18 @@ return [
         'layer_league' => 'Liga',
         'layer_fixture' => 'Spiel',
         'layer_market' => 'Markt',
+        'translations' => 'Sportübersetzungen',
+        'pending' => 'Namen warten auf Übersetzung: :count',
+        'missing' => 'Fehlende Übersetzungen',
+        'search' => 'Suchen',
+        'types' => [
+            'team' => 'Mannschaft',
+            'league' => 'Liga',
+            'country' => 'Land',
+        ],
+    ],
+    'translate' => [
+        'waiting' => ':count Namen warten auf Übersetzung.',
+        'done' => ':requests Anfragen verwendet. Wartend: :waiting.',
     ],
 ];

@@ -1,6 +1,6 @@
 @extends('layouts.site')
 
-@section('heading', $fixture->home->name.' - '.$fixture->away->name)
+@section('heading', sport_name($fixture->home).' - '.sport_name($fixture->away))
 
 @section('mainClass', 'mx-auto w-full max-w-[90rem] px-4 py-4 md:px-6')
 
@@ -27,9 +27,9 @@
             @include('site.sport._sports', ['variant' => 'chips'])
             <a class="text-[13px] text-[#9AA4B5]" href="{{ route('site.sport') }}">{{ __('site.sport') }}</a>
             <div class="rounded-xl bg-[#151A23] p-4">
-                <p class="text-[11px] font-semibold text-[#9AA4B5]">{{ $fixture->league->country->name }} · {{ $fixture->league->name }}</p>
-                <h1 class="mt-1 text-xl font-bold text-white">{{ $fixture->home->name }} <span class="text-[#6E7889]">–</span> {{ $fixture->away->name }}</h1>
-                <p class="mt-1 font-numeric text-sm text-[#9AA4B5]">{{ $kickoff->format('d.m.Y H:i') }} · {{ __('sport.code_prefix', ['code' => $fixture->bulletin_code]) }}</p>
+                <p class="text-[11px] font-semibold text-[#9AA4B5]">{{ sport_name($fixture->league->country) }} · {{ sport_name($fixture->league) }}</p>
+                <h1 class="mt-1 text-xl font-bold text-white">{{ sport_name($fixture->home) }} <span class="text-[#6E7889]">–</span> {{ sport_name($fixture->away) }}</h1>
+                <p class="mt-1 font-numeric text-sm text-[#9AA4B5]">{{ sport_date($kickoff, 'j F Y H:i') }} · {{ __('sport.code_prefix', ['code' => $fixture->bulletin_code]) }}</p>
             </div>
             <div class="no-scrollbar flex gap-2 overflow-x-auto">
                 @foreach (['result', 'half', 'btts', 'ou'] as $key)

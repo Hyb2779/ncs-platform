@@ -18,3 +18,4 @@ Schedule::command('sport:sync-fixtures')->everyThreeHours();
 Schedule::command('sport:sync-odds')->everyThreeHours();
 Schedule::command('sport:sync-odds --soon')->everyThirtyMinutes();
 Schedule::command('sport:sync-results')->everyTenMinutes();
+Schedule::command('sport:translate')->hourly();

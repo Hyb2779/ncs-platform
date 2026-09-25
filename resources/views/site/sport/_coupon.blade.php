@@ -14,7 +14,7 @@
         <div class="px-2 pt-2">
             <div class="flex gap-2.5 rounded-[10px] bg-[#1A2029] p-3">
                 <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <p class="truncate text-[13px] font-bold" title="{{ $row['odd']->fixture->home->name }} - {{ $row['odd']->fixture->away->name }}">{{ $row['odd']->fixture->home->name }} - {{ $row['odd']->fixture->away->name }}</p>
+                    <p class="truncate text-[13px] font-bold" title="{{ sport_name($row['odd']->fixture->home) }} - {{ sport_name($row['odd']->fixture->away) }}">{{ sport_name($row['odd']->fixture->home) }} - {{ sport_name($row['odd']->fixture->away) }}</p>
                     <p class="text-xs text-[#9AA4B5]">{{ __($row['odd']->market->name_key) }}: <span class="font-bold text-[#E8ECF3]">{{ __('sport.outcomes.'.$row['odd']->outcome) }}</span></p>
                 </div>
                 <div class="flex flex-col items-end gap-1">

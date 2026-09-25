@@ -13,7 +13,7 @@
             type="submit"
             data-outcome="{{ $outcome }}"
             data-odd="{{ $odd->shown_odd }}"
-            aria-label="{{ $fixture->home->name }} - {{ $fixture->away->name }} {{ __('sport.outcomes.'.$outcome) }} {{ $odd->shown_odd }}"
+            aria-label="{{ sport_name($fixture->home) }} - {{ sport_name($fixture->away) }} {{ __('sport.outcomes.'.$outcome) }} {{ $odd->shown_odd }}"
         >
             @if ($labeled)
                 <span class="text-xs font-bold opacity-80">{{ $head ?? __('sport.outcomes.'.$outcome) }}</span>

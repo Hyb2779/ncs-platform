@@ -45,7 +45,7 @@ class Money
         return match (app()->getLocale()) {
             'tr' => self::grouped($value, ',', '.').' '.$symbol,
             'de' => self::grouped($value, ',', '.').' '.$symbol,
-            'ar' => self::arabic($value).' '.$symbol,
+            'ar' => self::grouped($value, '.', ',').' '.$symbol,
             default => $symbol.self::grouped($value, '.', ','),
         };
     }

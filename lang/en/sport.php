@@ -96,5 +96,18 @@ return [
         'layer_league' => 'League',
         'layer_fixture' => 'Match',
         'layer_market' => 'Market',
+        'translations' => 'Sport translations',
+        'pending' => 'Names waiting for translation: :count',
+        'missing' => 'Missing translations',
+        'search' => 'Search',
+        'types' => [
+            'team' => 'Team',
+            'league' => 'League',
+            'country' => 'Country',
+        ],
+    ],
+    'translate' => [
+        'waiting' => ':count names are waiting for translation.',
+        'done' => ':requests requests used. Waiting: :waiting.',
     ],
 ];

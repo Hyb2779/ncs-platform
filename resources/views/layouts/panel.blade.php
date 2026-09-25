@@ -34,6 +34,7 @@
                 @if (auth()->user()->role->value === 'owner')
                     <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm" href="{{ route('panel.sport.status') }}">{{ __('sport.panel.status') }}</a>
                     <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm" href="{{ route('panel.sport.leagues') }}">{{ __('sport.panel.leagues') }}</a>
+                    <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm" href="{{ route('panel.sport.translations') }}">{{ __('sport.panel.translations') }}</a>
                     <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm" href="{{ route('panel.casino.providers') }}">{{ __('site.panel_providers') }}</a>
                     <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm" href="{{ route('panel.casino.games') }}">{{ __('site.panel_games') }}</a>
                 @endif

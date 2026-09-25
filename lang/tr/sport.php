@@ -96,5 +96,18 @@ return [
         'layer_league' => 'Lig',
         'layer_fixture' => 'Maç',
         'layer_market' => 'Market',
+        'translations' => 'Spor Çevirileri',
+        'pending' => 'Çeviri bekleyen isim: :count',
+        'missing' => 'Çevirisi eksikler',
+        'search' => 'Ara',
+        'types' => [
+            'team' => 'Takım',
+            'league' => 'Lig',
+            'country' => 'Ülke',
+        ],
+    ],
+    'translate' => [
+        'waiting' => ':count isim çeviri bekliyor.',
+        'done' => ':requests istek kullanıldı. Bekleyen: :waiting.',
     ],
 ];

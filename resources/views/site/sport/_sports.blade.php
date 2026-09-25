@@ -29,7 +29,7 @@
         <p class="px-3 pb-2 pt-2.5 text-[11px] font-extrabold tracking-wider text-[#9AA4B5]">{{ __('sport.popular_leagues') }}</p>
         @foreach ($leagues as $league)
             <a class="flex items-center justify-between px-3 py-2 text-[13px] {{ (string) request('league') === (string) $league->id ? 'font-bold text-white' : 'text-[#C9D1DD]' }}" href="{{ route('site.sport', ['league' => $league->id, 'when' => $when ?? request('when', 'today'), 'market' => request('market', 'result'), 'q' => request('q')]) }}">
-                <span class="truncate" title="{{ $league->name }}">{{ $league->name }}</span>
+                <span class="truncate" title="{{ sport_name($league) }}">{{ sport_name($league) }}</span>
                 <span class="ms-2 font-numeric text-xs text-[#9AA4B5]">{{ $league->bulletin_count }}</span>
             </a>
         @endforeach
