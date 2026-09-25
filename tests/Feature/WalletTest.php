@@ -14,6 +14,7 @@ use App\Models\WalletTransaction;
 use App\Services\HierarchyService;
 use App\Services\WalletException;
 use App\Services\WalletService;
+use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -26,7 +27,6 @@ class WalletTest extends TestCase
     {
         [$owner, $child] = $this->pair();
         $wallets = app(WalletService::class);
-        $wallets->mint($owner, Currency::Try, '100.00', 'mint-1');
 
         [$out, $in] = $wallets->transfer($owner, $child, '40.00', 'move-1', $owner, 'load');
 
@@ -34,9 +34,9 @@ class WalletTest extends TestCase
         $this->assertSame(WalletTransactionType::TransferIn, $in->type);
         $this->assertSame($in->id, $out->reference);
         $this->assertSame($out->id, $in->reference);
-        $this->assertSame('60.00', $owner->wallets()->where('currency', 'TRY')->first()->balance);
+        $this->assertSame('-40.00', $owner->wallets()->where('currency', 'TRY')->first()->balance);
         $this->assertSame('40.00', $child->wallet()->first()->balance);
-        $this->assertSame('100.00', bcadd(
+        $this->assertSame('0.00', bcadd(
             (string) $owner->wallets()->where('currency', 'TRY')->first()->balance,
             (string) $child->wallet()->first()->balance,
             2,
@@ -45,8 +45,8 @@ class WalletTest extends TestCase
 
     public function test_debit_rejects_insufficient_balance_without_a_row(): void
     {
-        [$owner] = $this->pair();
-        $wallet = $owner->wallets()->where('currency', 'TRY')->first();
+        [$owner, $child] = $this->pair();
+        $wallet = $child->wallet()->first();
 
         try {
             app(WalletService::class)->debit($wallet, '1.00', WalletTransactionType::Adjustment, WalletProduct::Adjustment, 'nope');
@@ -98,8 +98,6 @@ class WalletTest extends TestCase
         $tryAdmin = $hierarchy->create($owner, $this->locale('sa-try', 'TRY'));
         $eurAdmin = $hierarchy->create($owner, $this->locale('sa-eur', 'EUR'));
         $service = app(WalletService::class);
-        $service->mint($owner, Currency::Eur, '30.00', 'mint-eur');
-        $service->mint($owner, Currency::Try, '10.00', 'mint-try');
 
         try {
             $service->transfer($tryAdmin, $eurAdmin, '1.00', 'cross');
@@ -109,8 +107,8 @@ class WalletTest extends TestCase
         }
 
         $service->transfer($owner, $eurAdmin, '12.50', 'owner-eur', $owner);
-        $this->assertSame('17.50', $owner->wallets()->where('currency', 'EUR')->first()->balance);
-        $this->assertSame('10.00', $owner->wallets()->where('currency', 'TRY')->first()->balance);
+        $this->assertSame('-12.50', $owner->wallets()->where('currency', 'EUR')->first()->balance);
+        $this->assertSame('0.00', $owner->wallets()->where('currency', 'TRY')->first()->balance);
         $this->assertSame('12.50', $eurAdmin->wallet()->first()->balance);
     }
 
@@ -192,7 +190,6 @@ class WalletTest extends TestCase
         $superadmin = $hierarchy->create($owner, $this->locale('sa-ledger', 'EUR', 'de'));
         $bayi = $hierarchy->create($superadmin, $this->locale('bayi-ledger'));
         $service = app(WalletService::class);
-        $service->mint($owner, Currency::Eur, '20.00', 'mint-ledger');
         $service->transfer($owner, $superadmin, '20.00', 'to-sa', $owner, 'down');
         $service->transfer($superadmin, $bayi, '8.00', 'to-bayi', $superadmin, 'down');
 
@@ -211,13 +208,151 @@ class WalletTest extends TestCase
     public function test_wallet_verify_exit_codes(): void
     {
         [$owner] = $this->pair();
-        app(WalletService::class)->mint($owner, Currency::Try, '4.00', 'verify-mint');
+        $wallet = $owner->wallets()->where('currency', 'TRY')->first();
+        app(WalletService::class)->credit($wallet, '4.00', WalletTransactionType::Adjustment, WalletProduct::Adjustment, 'verify-credit');
 
         $this->artisan('wallet:verify')->assertOk();
 
         Wallet::query()->where('user_id', $owner->id)->where('currency', 'TRY')->update(['balance' => '9.00']);
 
         $this->artisan('wallet:verify')->assertFailed();
+    }
+
+
+    public function test_owner_can_fund_superadmin_from_zero_and_go_negative(): void
+    {
+        [$owner, $child] = $this->pair();
+        app(WalletService::class)->transfer($owner, $child, '5000.00', 'load-5000', $owner);
+
+        $this->assertSame('-5000.00', $owner->wallets()->where('currency', 'TRY')->first()->balance);
+        $this->assertSame('5000.00', $child->wallet()->first()->balance);
+        $this->assertTrue((bool) $owner->wallets()->where('currency', 'TRY')->first()->allow_negative);
+        $this->assertFalse((bool) $child->wallet()->first()->allow_negative);
+    }
+
+    public function test_superadmin_and_bayi_cannot_go_negative(): void
+    {
+        $owner = $this->owner('owner-neg');
+        $hierarchy = app(HierarchyService::class);
+        $superadmin = $hierarchy->create($owner, $this->locale('sa-neg', 'TRY'));
+        $bayi = $hierarchy->create($superadmin, $this->locale('bayi-neg'));
+        $service = app(WalletService::class);
+
+        try {
+            $service->transfer($superadmin, $bayi, '1.00', 'sa-empty', $superadmin);
+            $this->fail('superadmin should not go negative');
+        } catch (WalletException $exception) {
+            $this->assertSame('wallet.insufficient_balance', $exception->translationKey);
+        }
+
+        $service->transfer($owner, $superadmin, '10.00', 'fund-sa', $owner);
+        $service->transfer($superadmin, $bayi, '10.00', 'fund-bayi', $superadmin);
+
+        try {
+            $service->transfer($bayi, $superadmin, '11.00', 'bayi-over', $bayi);
+            $this->fail('bayi should not go negative');
+        } catch (WalletException $exception) {
+            $this->assertSame('wallet.insufficient_balance', $exception->translationKey);
+        }
+
+        $this->assertSame('10.00', $bayi->wallet()->first()->balance);
+        $this->assertSame('0.00', $superadmin->wallet()->first()->balance);
+    }
+
+    public function test_allow_negative_cannot_be_changed_via_a_form(): void
+    {
+        [$owner, $child] = $this->pair();
+        $ownerWallet = $owner->wallets()->where('currency', 'TRY')->first();
+        $childWallet = $child->wallet()->first();
+
+        $this->assertTrue((bool) $ownerWallet->allow_negative);
+        $this->assertFalse((bool) $childWallet->allow_negative);
+
+        $this->actingAs($owner)
+            ->post('/panel/users/'.$child->id.'/balance', [
+                'amount' => '1.00',
+                'direction' => 'add',
+                'note' => 'x',
+                'idempotency_key' => '11111111-1111-1111-1111-111111111112',
+                'allow_negative' => '1',
+            ])
+            ->assertRedirect();
+
+        $this->actingAs($owner)
+            ->put('/panel/users/'.$child->id, [
+                'status' => 'active',
+                'commission_rate' => '0',
+                'allow_negative' => '1',
+            ])
+            ->assertRedirect();
+
+        $this->assertFalse((bool) $childWallet->fresh()->allow_negative);
+        $this->assertTrue((bool) $ownerWallet->fresh()->allow_negative);
+
+        $ownerWallet->fill(['allow_negative' => false])->save();
+        $this->assertTrue((bool) $ownerWallet->fresh()->allow_negative);
+    }
+
+    public function test_owner_screens_hide_minus_and_empty_ledger_shows_zero_cards(): void
+    {
+        [$owner, $child] = $this->pair();
+
+        $this->actingAs($owner)
+            ->get('/panel/transactions')
+            ->assertOk()
+            ->assertSee(__('wallet.added'))
+            ->assertSee(__('wallet.removed'))
+            ->assertSee(__('wallet.difference'))
+            ->assertSee(Money::format('0.00', Currency::Try), false);
+
+        app(WalletService::class)->transfer($owner, $child, '5000.00', 'ui-load', $owner);
+
+        $this->actingAs($owner)
+            ->get('/panel')
+            ->assertOk()
+            ->assertSee(__('wallet.distributed_credit'))
+            ->assertSee(Money::format('5000.00', Currency::Try), false)
+            ->assertDontSee('-5.000', false)
+            ->assertDontSee('-5000', false);
+
+        $this->actingAs($owner)
+            ->get('/panel/transactions')
+            ->assertOk()
+            ->assertSee(__('wallet.given'))
+            ->assertSee(Money::format('5000.00', Currency::Try), false)
+            ->assertDontSee('-5.000', false);
+    }
+
+    public function test_balance_form_shows_success_and_error_messages(): void
+    {
+        [$owner, $child] = $this->pair();
+
+        $this->actingAs($owner)
+            ->from('/panel/users')
+            ->followingRedirects()
+            ->post('/panel/users/'.$child->id.'/balance', [
+                'direction' => 'add',
+                'idempotency_key' => '22222222-2222-2222-2222-222222222222',
+            ])
+            ->assertSee(__('wallet.validation.amount_required'));
+
+        $this->actingAs($owner)
+            ->from('/panel/users')
+            ->followingRedirects()
+            ->post('/panel/users/'.$child->id.'/balance', [
+                'amount' => '5.00',
+                'direction' => 'add',
+                'idempotency_key' => '33333333-3333-3333-3333-333333333333',
+            ])
+            ->assertSee(__('wallet.adjusted'));
+    }
+
+    public function test_mint_routes_are_removed(): void
+    {
+        [$owner] = $this->pair();
+
+        $this->actingAs($owner)->get('/panel/mint')->assertNotFound();
+        $this->actingAs($owner)->post('/panel/mint', [])->assertNotFound();
     }
 
     /**

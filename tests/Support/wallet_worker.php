@@ -63,8 +63,24 @@ if ($mode === 'setup') {
     $owner->path = '/'.$owner->id.'/';
     $owner->save();
 
-    $wallet = $owner->wallets()->where('currency', 'TRY')->firstOrFail();
-    app(WalletService::class)->mint($owner, App\Enums\Currency::Try, '50.00', 'conc-mint');
+    $superadmin = app(App\Services\HierarchyService::class)->create($owner, [
+        'username' => 'conc-sa',
+        'password' => 'password',
+        'commission_rate' => 0,
+        'user_limit' => null,
+        'note' => null,
+        'language' => 'tr',
+        'currency' => 'TRY',
+        'timezone' => 'UTC',
+    ]);
+    $wallet = $superadmin->wallets()->where('currency', 'TRY')->firstOrFail();
+    app(WalletService::class)->credit(
+        $wallet,
+        '50.00',
+        WalletTransactionType::Bonus,
+        WalletProduct::Adjustment,
+        'conc-seed',
+    );
     echo $wallet->id;
     exit(0);
 }
