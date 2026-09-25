@@ -210,6 +210,7 @@ return [
         'cancel_closed' => 'Oyuncu iptali kapalı.',
         'cancel_started' => 'Maç başladığı için iptal edilemez.',
         'cancel_forbidden' => 'Bu kuponu iptal edemezsiniz.',
+        'request' => 'İstek tamamlanamadı. Tekrar deneyin.',
     ],
     'translate' => [
         'waiting' => ':count isim çeviri bekliyor.',

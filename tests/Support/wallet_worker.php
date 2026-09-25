@@ -92,30 +92,19 @@ if ($mode === 'setup') {
 if ($mode === 'debit') {
     $wallet = Wallet::query()->findOrFail((int) $argv[2]);
 
-    for ($attempt = 0; $attempt < 8; $attempt++) {
-        try {
-            app(WalletService::class)->debit(
-                $wallet,
-                '10.00',
-                WalletTransactionType::Adjustment,
-                WalletProduct::Adjustment,
-                $argv[3],
-            );
-            echo "RESULT 0\n";
-            exit(0);
-        } catch (WalletException) {
-            echo "RESULT 2\n";
-            exit(2);
-        } catch (Illuminate\Database\QueryException $exception) {
-            $deadlock = str_contains($exception->getMessage(), '1213')
-                || str_contains($exception->getMessage(), '40001');
-
-            if (! $deadlock || $attempt === 7) {
-                throw $exception;
-            }
-
-            Illuminate\Support\Facades\DB::reconnect();
-        }
+    try {
+        app(WalletService::class)->debit(
+            $wallet,
+            '10.00',
+            WalletTransactionType::Adjustment,
+            WalletProduct::Adjustment,
+            $argv[3],
+        );
+        echo "RESULT 0\n";
+        exit(0);
+    } catch (WalletException) {
+        echo "RESULT 2\n";
+        exit(2);
     }
 }
 

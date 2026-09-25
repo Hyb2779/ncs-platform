@@ -12,6 +12,7 @@ use App\Models\WalletTransaction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Throwable;
 
 class WalletService
 {
@@ -84,7 +85,7 @@ class WalletService
             return [$existingOut, $existingIn];
         }
 
-        return DB::transaction(function () use ($from, $to, $fromWallet, $toWallet, $amount, $idempotencyKey, $actor, $note, $ip) {
+        return $this->within(function () use ($from, $to, $fromWallet, $toWallet, $amount, $idempotencyKey, $actor, $note, $ip) {
             $again = WalletTransaction::query()->where('idempotency_key', $idempotencyKey.':out')->first();
 
             if ($again !== null) {
@@ -195,7 +196,7 @@ class WalletService
 
         for ($attempt = 0; $attempt < 8; $attempt++) {
             try {
-                return DB::transaction(function () use ($wallet, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $createdAt) {
+                return $this->within(function () use ($wallet, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $createdAt) {
                     $again = WalletTransaction::query()->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
 
                     if ($again !== null) {
@@ -214,6 +215,54 @@ class WalletService
         }
 
         throw new WalletException('wallet.conflict');
+    }
+
+    /**
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    public function within(callable $callback): mixed
+    {
+        if (DB::transactionLevel() > 0) {
+            return DB::transaction($callback);
+        }
+
+        return $this->retry(fn () => DB::transaction($callback));
+    }
+
+    /**
+     * @template T
+     *
+     * @param  callable(): T  $callback
+     * @return T
+     */
+    private function retry(callable $callback): mixed
+    {
+        for ($attempt = 1; $attempt <= 3; $attempt++) {
+            try {
+                return $callback();
+            } catch (Throwable $exception) {
+                if ($attempt === 3 || ! $this->retryable($exception)) {
+                    throw $exception;
+                }
+
+                usleep(random_int(10_000, 50_000));
+            }
+        }
+
+        throw new \LogicException('Wallet lock retry ended without a result.');
+    }
+
+    private function retryable(Throwable $exception): bool
+    {
+        $message = $exception->getMessage();
+
+        return str_contains($message, '1213')
+            || str_contains($message, '1205')
+            || str_contains($message, 'Deadlock found when trying to get lock')
+            || str_contains($message, 'Lock wait timeout exceeded');
     }
 
     private function write(

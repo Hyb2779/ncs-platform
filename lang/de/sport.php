@@ -191,6 +191,7 @@ return [
         'cancel_closed' => 'Spieler-Storno ist geschlossen.',
         'cancel_started' => 'Das Spiel hat begonnen, Storno nicht möglich.',
         'cancel_forbidden' => 'Sie können diesen Schein nicht stornieren.',
+        'request' => 'Die Anfrage konnte nicht abgeschlossen werden. Bitte erneut versuchen.',
     ],
     'translate' => [
         'waiting' => ':count Namen warten auf Übersetzung.',

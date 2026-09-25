@@ -4,6 +4,13 @@
         <button class="js-mode sport-tab h-12 flex-1 text-[13px] font-extrabold tracking-wide {{ $coupon['mode'] !== 'single' ? 'sport-tab-on bg-[#1E2533] text-white' : 'bg-transparent text-[#9AA4B5]' }}" type="button" data-mode="combo">{{ __('sport.coupon.combo') }}</button>
         <button class="js-mode sport-tab h-12 flex-1 text-[13px] font-extrabold tracking-wide {{ $coupon['mode'] === 'single' ? 'sport-tab-on bg-[#1E2533] text-white' : 'bg-transparent text-[#9AA4B5]' }}" type="button" data-mode="single">{{ __('sport.coupon.single') }}</button>
     </div>
+    @if (session('status'))
+        <p class="px-4 pt-3 text-sm font-semibold text-[#3DD68C]" role="status">{{ session('status') }}</p>
+    @endif
+    @if ($errors->has('coupon'))
+        <p class="px-4 pt-3 text-sm text-red-400" role="alert">{{ $errors->first('coupon') }}</p>
+    @endif
+    <p class="js-request-error hidden px-4 pt-3 text-sm text-red-400">{{ __('sport.errors.request') }}</p>
     @if (in_array('suspended', $coupon['warnings'], true))
         <p class="px-4 pt-3 text-sm text-red-400">{{ __('sport.coupon.suspended') }}</p>
     @endif
@@ -71,11 +78,37 @@
     <form id="{{ $clearId }}" method="POST" action="{{ route('site.sport.coupon.clear') }}">
         @csrf
     </form>
+    @if (count($coupon['rows']) > 0)
+        <div class="px-4 pb-4">
+            @auth
+                <form class="js-place" method="POST" action="{{ route('site.sport.coupon.place') }}">
+                    @csrf
+                    <input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
+                    <input type="hidden" name="stake" value="{{ $coupon['stake'] }}">
+                    <input type="hidden" name="mode" value="{{ $coupon['mode'] }}">
+                    <input type="hidden" name="accept" value="{{ $coupon['accept'] ? '1' : '0' }}">
+                    <button class="inline-flex h-[52px] w-full items-center justify-center rounded-[10px] bg-[var(--accent)] text-base font-extrabold tracking-wide text-[#1A1305]" type="submit">{{ __('sport.coupon.confirm') }}</button>
+                </form>
+            @else
+                <a class="inline-flex h-[52px] w-full items-center justify-center rounded-[10px] bg-[var(--accent)] text-base font-extrabold tracking-wide text-[#1A1305]" href="{{ route('login') }}">{{ __('site.login') }}</a>
+            @endauth
+        </div>
+    @endif
     <script>
         document.querySelectorAll('.js-coupon').forEach((root) => {
             if (root.dataset.ready) return;
             root.dataset.ready = '1';
             const stake = root.querySelector('.js-stake');
+            const syncPlace = () => {
+                const form = root.querySelector('.js-place');
+                if (! form) return;
+                const stakeField = form.querySelector('[name=stake]');
+                const modeField = form.querySelector('[name=mode]');
+                const acceptField = form.querySelector('[name=accept]');
+                if (stakeField) stakeField.value = stake?.value ?? '';
+                if (modeField) modeField.value = root.dataset.mode;
+                if (acceptField) acceptField.value = root.querySelector('.js-accept')?.checked ? '1' : '0';
+            };
             const paint = () => {
                 if (! stake) return;
                 root.querySelectorAll('.js-quick').forEach((button) => {
@@ -88,6 +121,7 @@
                 });
             };
             const persist = () => {
+                syncPlace();
                 if (! stake) return;
                 const form = root.querySelector('.js-coupon-form');
                 if (! form) return;
@@ -96,12 +130,21 @@
                 body.set('mode', root.dataset.mode);
                 if (root.querySelector('.js-accept')?.checked) body.set('accept', '1');
                 fetch(form.action, { method: 'POST', body, headers: { Accept: 'application/json' } })
-                    .then((response) => response.json())
+                    .then((response) => {
+                        if (! response.ok) throw new Error('request');
+                        return response.json();
+                    })
                     .then((data) => {
                         const totalNode = root.querySelector('.js-total');
                         const payoutNode = root.querySelector('.js-payout');
                         if (totalNode && data.total) totalNode.textContent = data.total;
                         if (payoutNode && data.payout) payoutNode.textContent = data.payout;
+                    })
+                    .catch(() => {
+                        const node = root.querySelector('.js-request-error');
+                        if (! node) return;
+                        node.classList.remove('hidden');
+                        node.setAttribute('role', 'alert');
                     });
             };
             stake?.addEventListener('input', () => { paint(); persist(); });
@@ -123,29 +166,9 @@
                 persist();
             }));
             root.querySelector('.js-accept')?.addEventListener('change', persist);
-            root.querySelector('.js-place')?.addEventListener('submit', () => {
-                const form = root.querySelector('.js-place');
-                form.querySelector('[name=stake]').value = stake?.value ?? '';
-                form.querySelector('[name=mode]').value = root.dataset.mode;
-                form.querySelector('[name=accept]').value = root.querySelector('.js-accept')?.checked ? '1' : '0';
-            });
+            root.querySelector('.js-place')?.addEventListener('submit', syncPlace);
             paint();
+            syncPlace();
         });
     </script>
-    @if (count($coupon['rows']) > 0)
-        <div class="px-4 pb-4">
-            @auth
-                <form class="js-place" method="POST" action="{{ route('site.sport.coupon.place') }}">
-                    @csrf
-                    <input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
-                    <input type="hidden" name="stake" value="{{ $coupon['stake'] }}">
-                    <input type="hidden" name="mode" value="{{ $coupon['mode'] }}">
-                    <input type="hidden" name="accept" value="{{ $coupon['accept'] ? '1' : '0' }}">
-                    <button class="inline-flex h-[52px] w-full items-center justify-center rounded-[10px] bg-[var(--accent)] text-base font-extrabold tracking-wide text-[#1A1305]" type="submit">{{ __('sport.coupon.confirm') }}</button>
-                </form>
-            @else
-                <a class="inline-flex h-[52px] w-full items-center justify-center rounded-[10px] bg-[var(--accent)] text-base font-extrabold tracking-wide text-[#1A1305]" href="{{ route('login') }}">{{ __('site.login') }}</a>
-            @endauth
-        </div>
-    @endif
 </section>

@@ -16,6 +16,7 @@ use App\Services\WalletException;
 use App\Services\WalletService;
 use App\Support\Money;
 use Carbon\Carbon;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -71,6 +72,74 @@ class WalletTest extends TestCase
         $this->assertSame($first->id, $second->id);
         $this->assertSame(1, WalletTransaction::query()->count());
         $this->assertSame('5.00', $wallet->refresh()->balance);
+    }
+
+    public function test_lock_retry_keeps_one_row_for_the_same_key(): void
+    {
+        [$owner] = $this->pair();
+        $wallet = $owner->wallets()->where('currency', 'TRY')->first();
+        $service = app(WalletService::class);
+        $retry = new \ReflectionMethod($service, 'retry');
+        $runs = 0;
+
+        $retry->invoke($service, function () use (&$runs, $service, $wallet) {
+            $runs++;
+
+            if ($runs === 1) {
+                throw new QueryException(
+                    'sqlite',
+                    'insert into wallet_transactions',
+                    [],
+                    new \PDOException('SQLSTATE[40001]: Serialization failure: 1213 Deadlock found when trying to get lock; try restarting transaction', '40001'),
+                );
+            }
+
+            return $service->credit($wallet, '4.00', WalletTransactionType::Adjustment, WalletProduct::Adjustment, 'retry-key');
+        });
+        $service->credit($wallet, '4.00', WalletTransactionType::Adjustment, WalletProduct::Adjustment, 'retry-key');
+
+        $this->assertSame(2, $runs);
+        $this->assertSame(1, WalletTransaction::query()->where('idempotency_key', 'retry-key')->count());
+        $this->assertSame('4.00', $wallet->refresh()->balance);
+    }
+
+    public function test_lock_wait_is_retried_and_other_errors_are_not(): void
+    {
+        $service = app(WalletService::class);
+        $retry = new \ReflectionMethod($service, 'retry');
+        $runs = 0;
+
+        $retry->invoke($service, function () use (&$runs) {
+            $runs++;
+
+            if ($runs === 1) {
+                throw new QueryException(
+                    'sqlite',
+                    'select 1',
+                    [],
+                    new \PDOException('SQLSTATE[HY000]: General error: 1205 Lock wait timeout exceeded; try restarting transaction', 1205),
+                );
+            }
+
+            return 'ok';
+        });
+
+        $this->assertSame(2, $runs);
+
+        $runs = 0;
+
+        try {
+            $retry->invoke($service, function () use (&$runs) {
+                $runs++;
+
+                throw new \RuntimeException('other');
+            });
+            $this->fail('A non-lock error should escape.');
+        } catch (\RuntimeException $exception) {
+            $this->assertSame('other', $exception->getMessage());
+        }
+
+        $this->assertSame(1, $runs);
     }
 
     public function test_agent_cannot_fund_another_branch(): void

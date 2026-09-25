@@ -12,7 +12,6 @@ use App\Models\User;
 use App\Services\WalletException;
 use App\Services\WalletService;
 use Illuminate\Database\UniqueConstraintViolationException;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
 class CouponPlacer
@@ -42,7 +41,7 @@ class CouponPlacer
         $this->guardLimits($user, $mode, $stake, $rows);
 
         try {
-            return DB::transaction(function () use ($user, $clientKey, $stake, $mode, $accept, $rows, $ip, $device) {
+            return $this->wallets->within(function () use ($user, $clientKey, $stake, $mode, $accept, $rows, $ip, $device) {
                 $again = $this->existing($user, $clientKey);
                 if ($again !== []) {
                     return $again;

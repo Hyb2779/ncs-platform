@@ -65,7 +65,14 @@
     @yield('afterHeader')
     <main class="@yield('mainClass', 'mx-auto max-w-6xl px-4 py-6')">
         @if (session('status'))
-            <p class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</p>
+            <p class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800" role="status">{{ session('status') }}</p>
+        @endif
+        @if ($errors->any())
+            <div class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-800" role="alert">
+                @foreach ($errors->all() as $error)
+                    <p>{{ $error }}</p>
+                @endforeach
+            </div>
         @endif
         @yield('content')
     </main>

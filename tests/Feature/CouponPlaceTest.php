@@ -263,6 +263,27 @@ class CouponPlaceTest extends TestCase
         $this->assertLimitRejected(['min_odd' => '2.00'], '10', 'single', ['1.40'], 'sport.errors.min_odd', ['odd' => '2.00']);
     }
 
+    public function test_rejected_place_shows_the_error_on_the_slip(): void
+    {
+        [$user] = $this->player('100.00');
+        $this->actingAs($user)->post('/sport/odds/'.$this->odd('1.80')->id);
+        app()->setLocale('tr');
+
+        $this->actingAs($user)
+            ->followingRedirects()
+            ->from('/sport')
+            ->post('/sport/coupon/place', [
+                'stake' => '',
+                'mode' => 'combo',
+                'accept' => '0',
+                'idempotency_key' => (string) \Illuminate\Support\Str::uuid(),
+            ])
+            ->assertOk()
+            ->assertSee(__('sport.errors.stake'), false)
+            ->assertSee(__('sport.coupon.confirm'), false)
+            ->assertSee('name="idempotency_key"', false);
+    }
+
     public function test_daily_stake_cap_is_rejected(): void
     {
         $this->assertLimitRejected(['daily_max' => '5.00'], '10', 'single', ['1.50'], 'sport.errors.daily_max', ['amount' => '5.00']);

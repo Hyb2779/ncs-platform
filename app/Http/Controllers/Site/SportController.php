@@ -14,7 +14,9 @@ use App\Services\Sport\CouponException;
 use App\Services\Sport\CouponPlacer;
 use App\Services\Sport\MarginEngine;
 use App\Support\Money;
+use Illuminate\Database\DeadlockException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -169,6 +171,10 @@ class SportController extends Controller
             }
 
             return back()->withErrors(['coupon' => __($exception->translationKey, $exception->replace)]);
+        } catch (QueryException|DeadlockException $exception) {
+            report($exception);
+
+            return back()->withErrors(['coupon' => __('sport.errors.request')]);
         }
 
         $book->clear();

@@ -210,6 +210,7 @@ return [
         'cancel_closed' => 'Player cancellation is closed.',
         'cancel_started' => 'The match has started, so the coupon cannot be cancelled.',
         'cancel_forbidden' => 'You cannot cancel this coupon.',
+        'request' => 'The request could not be completed. Try again.',
     ],
     'translate' => [
         'waiting' => ':count names are waiting for translation.',
