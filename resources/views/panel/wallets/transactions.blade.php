@@ -25,11 +25,11 @@
         @foreach ($totals as $total)
             <div class="flex gap-3">
                 <article class="flex-1 rounded-lg bg-white p-4 text-start">
-                    <p class="text-sm text-slate-500">{{ __('wallet.added') }}</p>
+                    <p class="text-sm text-slate-500">{{ $ownAccount ? __('wallet.from_upper') : __('wallet.added') }}</p>
                     <p class="font-numeric text-lg">{{ $total['added'] }}</p>
                 </article>
                 <article class="flex-1 rounded-lg bg-white p-4 text-start">
-                    <p class="text-sm text-slate-500">{{ __('wallet.removed') }}</p>
+                    <p class="text-sm text-slate-500">{{ $ownAccount ? __('wallet.to_upper') : __('wallet.removed') }}</p>
                     <p class="font-numeric text-lg">{{ $total['removed'] }}</p>
                 </article>
                 <article class="flex-1 rounded-lg bg-white p-4 text-start">
@@ -54,7 +54,7 @@
             </thead>
             <tbody>
                 @forelse ($rows as $row)
-                    <tr class="border-b border-[#E3E6EB]">
+                    <tr class="border-b border-[#E3E6EB]" data-before="{{ $row['raw_before'] }}" data-amount="{{ $row['raw_amount'] }}" data-after="{{ $row['raw_after'] }}">
                         <td class="px-3 py-2 text-start">{{ $row['when'] }}</td>
                         <td class="px-3 py-2 text-start">{{ $row['parties'] }}</td>
                         <td class="px-3 py-2 text-end font-numeric">{{ $row['before'] }}</td>

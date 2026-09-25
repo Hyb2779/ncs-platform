@@ -89,7 +89,8 @@ class WalletController extends Controller
         return view('panel.wallets.transactions', [
             'rows' => $entries,
             'subjects' => User::query()->subtreeOf($actor)->whereKeyNot($actor->id)->orderBy('username')->get(['id', 'username']),
-            'totals' => $this->viewerTotals($actor, $request),
+            'totals' => $this->viewerTotals($actor, $request, $ownAccount),
+            'ownAccount' => $ownAccount,
             'selectedUser' => $request->query('user'),
         ]);
     }
@@ -156,20 +157,21 @@ class WalletController extends Controller
      */
     private function presentTransfer(WalletTransaction $out, WalletTransaction $in, User $actor, ?int $focusedId): array
     {
-        $subordinate = $out->user->depth >= $in->user->depth ? $out : $in;
-        $signed = bcadd((string) $subordinate->amount, '0', 2);
+        $subject = $this->subjectLeg($out, $in, $actor, $focusedId);
+        $signed = bcadd((string) $subject->amount, '0', 2);
+        $before = bcadd((string) $subject->balance_before, '0', 2);
+        $after = bcadd((string) $subject->balance_after, '0', 2);
         $positive = bccomp($signed, '0', 2) === 1;
-        $balanceLeg = $focusedId === null
-            ? $in
-            : ($out->user_id === $focusedId ? $out : $in);
-        $balance = $this->balanceAmount($balanceLeg, $actor);
 
         return [
-            'when' => $in->created_at->timezone($actor->timezone)->locale(app()->getLocale())->translatedFormat('d.m.Y H:i'),
+            'when' => $subject->created_at->timezone($actor->timezone)->locale(app()->getLocale())->translatedFormat('d.m.Y H:i'),
             'parties' => $this->visibleName($out->user, $actor).' → '.$this->visibleName($in->user, $actor),
-            'before' => $balance((string) $balanceLeg->balance_before),
-            'amount' => Money::formatSigned($signed, $subordinate->wallet->currency),
-            'after' => $balance((string) $balanceLeg->balance_after),
+            'before' => Money::format($before, $subject->wallet->currency),
+            'amount' => Money::formatSigned($signed, $subject->wallet->currency),
+            'after' => Money::format($after, $subject->wallet->currency),
+            'raw_before' => $before,
+            'raw_amount' => $signed,
+            'raw_after' => $after,
             'tone' => $positive ? 'text-emerald-800' : 'text-red-700',
             'movement' => $actor->role === UserRole::Owner && ($out->user_id === $actor->id || $in->user_id === $actor->id)
                 ? ($positive ? __('wallet.given') : __('wallet.taken_back'))
@@ -185,15 +187,19 @@ class WalletController extends Controller
     private function presentSingle(WalletTransaction $row, User $actor): array
     {
         $signed = bcadd((string) $row->amount, '0', 2);
+        $before = bcadd((string) $row->balance_before, '0', 2);
+        $after = bcadd((string) $row->balance_after, '0', 2);
         $positive = bccomp($signed, '0', 2) !== -1;
-        $balance = $this->balanceAmount($row, $actor);
 
         return [
             'when' => $row->created_at->timezone($actor->timezone)->locale(app()->getLocale())->translatedFormat('d.m.Y H:i'),
             'parties' => $this->visibleName($row->creator, $actor).' → '.$this->visibleName($row->user, $actor),
-            'before' => $balance((string) $row->balance_before),
+            'before' => Money::format($before, $row->wallet->currency),
             'amount' => Money::formatSigned($signed, $row->wallet->currency),
-            'after' => $balance((string) $row->balance_after),
+            'after' => Money::format($after, $row->wallet->currency),
+            'raw_before' => $before,
+            'raw_amount' => $signed,
+            'raw_after' => $after,
             'tone' => $positive ? 'text-emerald-800' : 'text-red-700',
             'movement' => null,
             'note' => $row->note ?: __('panel.empty_value'),
@@ -201,20 +207,46 @@ class WalletController extends Controller
         ];
     }
 
-    private function balanceAmount(WalletTransaction $row, User $actor): \Closure
+    private function subjectLeg(WalletTransaction $out, WalletTransaction $in, User $actor, ?int $focusedId): WalletTransaction
     {
-        $currency = $row->wallet->currency;
-        $hide = $actor->role === UserRole::Owner && $row->user_id === $actor->id;
+        $fromIsAncestor = $this->isAncestor($actor, $out->user);
+        $toIsAncestor = $this->isAncestor($actor, $in->user);
 
-        return fn (string $amount) => $hide
-            ? Money::formatAbsolute($amount, $currency)
-            : Money::format($amount, $currency);
+        if ($fromIsAncestor && ! $toIsAncestor) {
+            return $in;
+        }
+
+        if ($toIsAncestor && ! $fromIsAncestor) {
+            return $out;
+        }
+
+        if ($focusedId === $actor->id) {
+            if ($out->user_id === $actor->id) {
+                return $out;
+            }
+
+            if ($in->user_id === $actor->id) {
+                return $in;
+            }
+        }
+
+        if ($focusedId !== null) {
+            if ($out->user_id === $focusedId) {
+                return $out;
+            }
+
+            if ($in->user_id === $focusedId) {
+                return $in;
+            }
+        }
+
+        return $out->user->depth >= $in->user->depth ? $out : $in;
     }
 
-    private function viewerTotals(User $actor, Request $request)
+    private function viewerTotals(User $actor, Request $request, bool $ownAccount)
     {
         $query = WalletTransaction::query()
-            ->with('wallet')
+            ->with(['wallet', 'counterparty'])
             ->where('user_id', $actor->id)
             ->whereIn('type', [WalletTransactionType::TransferOut, WalletTransactionType::TransferIn]);
 
@@ -229,12 +261,33 @@ class WalletController extends Controller
         $totals = [];
 
         foreach ($query->get() as $row) {
+            $other = $row->counterparty;
+
+            if ($other === null) {
+                continue;
+            }
+
+            $withAncestor = $this->isAncestor($actor, $other);
+            $withDescendant = ! $withAncestor && $other->id !== $actor->id && $other->isInSubtreeOf($actor);
+
+            if ($ownAccount && ! $withAncestor) {
+                continue;
+            }
+
+            if (! $ownAccount && ! $withDescendant) {
+                continue;
+            }
+
             $code = $row->wallet->currency->value;
             $totals[$code] ??= ['added' => '0.00', 'removed' => '0.00', 'currency' => $row->wallet->currency];
             $amount = bcadd((string) $row->amount, '0', 2);
             $absolute = bccomp($amount, '0', 2) < 0 ? bcsub('0', $amount, 2) : $amount;
 
-            if ($row->type === WalletTransactionType::TransferOut) {
+            $countsAsAdded = $ownAccount
+                ? $row->type === WalletTransactionType::TransferIn
+                : $row->type === WalletTransactionType::TransferOut;
+
+            if ($countsAsAdded) {
                 $totals[$code]['added'] = bcadd($totals[$code]['added'], $absolute, 2);
             } else {
                 $totals[$code]['removed'] = bcadd($totals[$code]['removed'], $absolute, 2);

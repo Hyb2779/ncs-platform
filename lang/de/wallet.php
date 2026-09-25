@@ -30,6 +30,8 @@ return [
     'date_to' => 'Bis',
     'type' => 'Vorgangsart',
     'all_types' => 'Alle Arten',
+    'from_upper' => 'Vom oberen Konto',
+    'to_upper' => 'An das obere Konto',
     'added' => 'Hinzugefügt',
     'removed' => 'Abgezogen',
     'difference' => 'Differenz',

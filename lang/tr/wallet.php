@@ -30,6 +30,8 @@ return [
     'date_to' => 'Bitiş',
     'type' => 'İşlem tipi',
     'all_types' => 'Tüm tipler',
+    'from_upper' => 'Üstten gelen',
+    'to_upper' => 'Üste giden',
     'added' => 'Eklenen',
     'removed' => 'Çıkarılan',
     'difference' => 'Fark',

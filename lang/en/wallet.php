@@ -30,6 +30,8 @@ return [
     'date_to' => 'To',
     'type' => 'Transaction type',
     'all_types' => 'All types',
+    'from_upper' => 'Received from upper',
+    'to_upper' => 'Sent to upper',
     'added' => 'Added',
     'removed' => 'Removed',
     'difference' => 'Difference',

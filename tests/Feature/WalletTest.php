@@ -420,6 +420,66 @@ class WalletTest extends TestCase
         $this->actingAs($owner)->get('/panel/transactions')->assertSee('Form notu', false);
     }
 
+    public function test_ledger_never_reveals_ancestor_balances(): void
+    {
+        $owner = $this->owner('owner-hide-bal');
+        $hierarchy = app(HierarchyService::class);
+        $superadmin = $hierarchy->create($owner, $this->locale('sa-hide', 'TRY'));
+        $bayi = $hierarchy->create($superadmin, $this->locale('bayi-hide'));
+        $uye = $hierarchy->create($bayi, $this->locale('uye-hide'));
+        $service = app(WalletService::class);
+        $service->transfer($owner, $superadmin, '8000.00', 'hide-fund', $owner);
+        $service->transfer($superadmin, $bayi, '1000.00', 'hide-down', $superadmin);
+        $service->transfer($bayi, $superadmin, '200.00', 'hide-back', $bayi);
+        $service->transfer($bayi, $uye, '500.00', 'hide-uye', $bayi);
+        $service->transfer($uye, $bayi, '200.00', 'hide-uye-back', $uye);
+
+        $upper = __('wallet.upper_account');
+        $page = $this->actingAs($bayi)->get('/panel/transactions');
+        $page->assertOk();
+        $html = $page->getContent();
+        $page->assertDontSee('7.000', false);
+        $page->assertDontSee('7.200', false);
+        $page->assertDontSee('8.000', false);
+        $page->assertDontSee($superadmin->username, false);
+        $page->assertDontSee($owner->username, false);
+        $page->assertSee($upper.' → '.$bayi->username, false);
+        $page->assertSee($bayi->username.' → '.$upper, false);
+        $page->assertSee($bayi->username.' → '.$uye->username, false);
+        $page->assertSee($uye->username.' → '.$bayi->username, false);
+        $page->assertSee(Money::format('500.00', Currency::Try), false);
+        $page->assertSee(Money::format('200.00', Currency::Try), false);
+        $page->assertSee(Money::format('300.00', Currency::Try), false);
+        $this->assertLedgerBalances($html);
+
+        $own = $this->actingAs($bayi)->get('/panel/transactions?user=self');
+        $own->assertOk();
+        $own->assertDontSee('7.000', false);
+        $own->assertDontSee('7.200', false);
+        $own->assertSee(__('wallet.from_upper'), false);
+        $own->assertSee(__('wallet.to_upper'), false);
+        $own->assertSee(Money::format('1000.00', Currency::Try), false);
+        $own->assertSee(Money::format('200.00', Currency::Try), false);
+        $own->assertSee(Money::format('800.00', Currency::Try), false);
+        $this->assertLedgerBalances($own->getContent());
+
+        $parentView = $this->actingAs($superadmin)->get('/panel/transactions');
+        $parentView->assertOk();
+        $parentView->assertDontSee($owner->username, false);
+        $parentView->assertDontSee('-8.000', false);
+        $this->assertLedgerBalances($parentView->getContent());
+    }
+
+    private function assertLedgerBalances(string $html): void
+    {
+        preg_match_all('/data-before="([^"]+)" data-amount="([^"]+)" data-after="([^"]+)"/', $html, $rows, PREG_SET_ORDER);
+        $this->assertNotEmpty($rows);
+
+        foreach ($rows as $row) {
+            $this->assertSame(0, bccomp(bcadd($row[1], $row[2], 2), $row[3], 2));
+        }
+    }
+
     public function test_balance_form_shows_success_and_error_messages(): void
     {
         [$owner, $child] = $this->pair();
