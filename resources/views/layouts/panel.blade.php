@@ -29,6 +29,12 @@
                 <p class="px-3 text-[11px] font-semibold tracking-wide text-slate-400">{{ __('panel.menu_network') }}</p>
                 <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.users.*') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.users.index') }}">{{ __('panel.users') }}</a>
                 <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.transactions') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.transactions') }}">{{ __('wallet.menu') }}</a>
+                <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.casino.rounds') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.casino.rounds') }}">{{ __('site.panel_rounds') }}</a>
+                <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.casino.sessions') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.casino.sessions') }}">{{ __('site.panel_sessions') }}</a>
+                @if (auth()->user()->role->value === 'owner')
+                    <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm" href="{{ route('panel.casino.providers') }}">{{ __('site.panel_providers') }}</a>
+                    <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm" href="{{ route('panel.casino.games') }}">{{ __('site.panel_games') }}</a>
+                @endif
             </div>
         </nav>
     </aside>
