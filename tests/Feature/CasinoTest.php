@@ -80,7 +80,10 @@ class CasinoTest extends TestCase
     {
         $member = $this->fundedMember();
         $this->postJson('/api/casino/demo/callback', $this->demoBody($member, 'bet', 'x', '1.00'), ['X-Demo-Signature' => 'nope'])->assertStatus(401);
-        $this->postJson('/api/casino/goldpalace/callback', ['user_code' => 'np_'.$member->id, 'transaction_type' => 1, 'transaction_id' => 'g1', 'amount' => 1], ['Callback-Token' => 'wrong'])->assertOk()->assertJsonPath('message', 'ERROR');
+        $this->postJson('/api/casino/goldpalace/callback', [
+            'command' => 'bet',
+            'data' => ['account' => 'np_'.$member->id, 'trans_guid' => 'g1', 'amount' => 1],
+        ], ['Callback-Token' => 'wrong'])->assertStatus(401)->assertJsonPath('status', 'INVALID_TOKEN');
         $this->postJson('/api/casino/onegamex/callback', ['action' => 'bet', 'user_code' => 'np_'.$member->id, 'transaction_id' => 'o1', 'amount' => '1.00'], ['X-Token-Id' => 'ogx-test-id', 'X-Signature' => 'nope'])->assertStatus(401);
         $this->assertSame(0, WalletTransaction::query()->where('type', 'bet')->count());
     }
@@ -98,30 +101,35 @@ class CasinoTest extends TestCase
     {
         $member = $this->fundedMember();
         $this->withHeaders(['Callback-Token' => 'gp-test-token'])->postJson('/api/casino/goldpalace/callback', [
-            'user_code' => 'np_'.$member->id,
-            'transaction_type' => 1,
-            'transaction_id' => 'gp-bet',
-            'bet_transaction_id' => null,
-            'amount' => 10,
-            'round_id' => 'r1',
-            'game_code' => 'slot-1',
-        ])->assertJsonPath('code', 0);
+            'command' => 'bet',
+            'data' => [
+                'account' => 'np_'.$member->id,
+                'trans_guid' => 'gp-bet',
+                'amount' => 10,
+                'round_id' => 'r1',
+                'game_code' => 'slot-1',
+            ],
+        ])->assertJsonPath('result', 0)->assertJsonPath('status', 'OK');
         $this->withHeaders(['Callback-Token' => 'gp-test-token'])->postJson('/api/casino/goldpalace/callback', [
-            'user_code' => 'np_'.$member->id,
-            'transaction_type' => 2,
-            'transaction_id' => 'gp-win',
-            'amount' => 4,
-            'round_id' => 'r1',
-            'game_code' => 'slot-1',
-        ])->assertJsonPath('code', 0);
+            'command' => 'win',
+            'data' => [
+                'account' => 'np_'.$member->id,
+                'trans_guid' => 'gp-win',
+                'amount' => 4,
+                'round_id' => 'r1',
+                'game_code' => 'slot-1',
+            ],
+        ])->assertJsonPath('result', 0)->assertJsonPath('status', 'OK');
         $this->withHeaders(['Callback-Token' => 'gp-test-token'])->postJson('/api/casino/goldpalace/callback', [
-            'user_code' => 'np_'.$member->id,
-            'transaction_type' => 16,
-            'transaction_id' => 'gp-cancel',
-            'bet_transaction_id' => 'gp-bet',
-            'amount' => 10,
-            'round_id' => 'r1',
-        ])->assertJsonPath('code', 0);
+            'command' => 'cancel',
+            'data' => [
+                'account' => 'np_'.$member->id,
+                'trans_guid' => 'gp-cancel',
+                'cancel_trans_guid' => 'gp-bet',
+                'amount' => 10,
+                'round_id' => 'r1',
+            ],
+        ])->assertJsonPath('result', 0)->assertJsonPath('status', 'OK');
 
         $payload = json_encode(['action' => 'bet', 'user_code' => 'np_'.$member->id, 'transaction_id' => 'ogx-bet', 'amount' => '1.00', 'round_id' => 'r2'], JSON_THROW_ON_ERROR);
         $this->call('POST', '/api/casino/onegamex/callback', [], [], [], [
@@ -155,11 +163,14 @@ class CasinoTest extends TestCase
         $this->withHeaders(['Callback-Token' => 'gp-test-token'])->postJson('/api/casino/goldpalace/callback', [
             'command' => 'authenticate',
             'data' => ['account' => 'np_'.$member->id],
-            'timestamp' => 1,
-            'check' => 'x',
-        ])->assertJsonPath('code', 0)
-            ->assertJsonPath('data.account', 'np_'.$member->id)
-            ->assertJsonPath('data.balance', 100);
+        ])->assertExactJson([
+            'result' => 0,
+            'status' => 'OK',
+            'data' => [
+                'account' => 'np_'.$member->id,
+                'balance' => 100,
+            ],
+        ]);
     }
 
     public function test_goldpalace_launch_redirects_to_provider_url(): void
@@ -188,6 +199,13 @@ class CasinoTest extends TestCase
         ]);
 
         $this->actingAs($member)->get('/play/'.$game->id)->assertRedirect('https://games.example/play');
+
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/v4/user/create')
+            && ($request->data()['name'] ?? null) === 'np_'.$member->id);
+        Http::assertSent(fn ($request) => str_contains($request->url(), '/v4/game/game-url')
+            && (int) ($request->data()['user_code'] ?? 0) === 400000001
+            && (int) ($request->data()['lang'] ?? 0) === 7
+            && ($request->data()['game_symbol'] ?? null) === 'vs20fruitsw');
     }
 
     public function test_bayi_cannot_see_another_branch_rounds(): void
