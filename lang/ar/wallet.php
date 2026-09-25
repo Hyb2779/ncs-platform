@@ -23,6 +23,8 @@ return [
     'ledger_title' => 'حركات الحساب',
     'user' => 'المستخدم',
     'all_users' => 'الشجرة التابعة بالكامل',
+    'own_account' => 'حسابي',
+    'parties' => 'من → إلى',
     'when' => 'التاريخ',
     'date_from' => 'من',
     'date_to' => 'إلى',

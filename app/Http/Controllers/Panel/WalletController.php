@@ -51,19 +51,22 @@ class WalletController extends Controller
     public function transactions(Request $request): View
     {
         $actor = $request->user();
+        $ownAccount = $request->query('user') === 'self';
         $subject = $actor;
 
-        if ($request->filled('user')) {
+        if ($request->filled('user') && ! $ownAccount) {
             $subject = User::query()->subtreeOf($actor)->whereKey((int) $request->query('user'))->first();
             abort_if($subject === null, 404);
         }
 
-        $scopeIds = $request->filled('user')
-            ? [$subject->id]
+        $focusedId = $ownAccount ? $actor->id : ($request->filled('user') ? $subject->id : null);
+
+        $scopeIds = $focusedId !== null
+            ? [$focusedId]
             : User::query()->subtreeOf($actor)->pluck('id');
 
         $query = WalletTransaction::query()
-            ->with(['user', 'creator', 'wallet'])
+            ->with(['user', 'creator', 'wallet', 'counterparty'])
             ->whereIn('user_id', $scopeIds)
             ->orderByDesc('created_at')
             ->orderByDesc('id');
@@ -80,66 +83,186 @@ class WalletController extends Controller
             $query->where('created_at', '<=', Carbon::parse($request->query('to'), $actor->timezone)->endOfDay()->utc());
         }
 
-        $rows = $query->get();
-        $totals = [];
-        $hideSign = $actor->role === UserRole::Owner;
-        $format = $hideSign
-            ? fn (string $amount, $currency) => Money::formatAbsolute($amount, $currency)
-            : fn (string $amount, $currency) => Money::format($amount, $currency);
+        $rows = $this->withTransferPartners($query->get());
+        $entries = $this->ledgerEntries($rows, $actor, $focusedId);
 
-        foreach ($rows as $row) {
+        return view('panel.wallets.transactions', [
+            'rows' => $entries,
+            'subjects' => User::query()->subtreeOf($actor)->whereKeyNot($actor->id)->orderBy('username')->get(['id', 'username']),
+            'totals' => $this->viewerTotals($actor, $request),
+            'selectedUser' => $request->query('user'),
+        ]);
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, WalletTransaction>  $rows
+     * @return \Illuminate\Support\Collection<int, WalletTransaction>
+     */
+    private function withTransferPartners($rows)
+    {
+        $known = $rows->pluck('id');
+        $missing = $rows->pluck('reference')->filter()->reject(fn ($id) => $known->contains($id))->values();
+
+        if ($missing->isEmpty()) {
+            return $rows;
+        }
+
+        return $rows->concat(
+            WalletTransaction::query()->with(['user', 'creator', 'wallet', 'counterparty'])->whereIn('id', $missing)->get(),
+        );
+    }
+
+    /**
+     * @param  \Illuminate\Support\Collection<int, WalletTransaction>  $rows
+     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     */
+    private function ledgerEntries($rows, User $actor, ?int $focusedId)
+    {
+        $byId = $rows->keyBy('id');
+        $seen = [];
+        $entries = [];
+
+        foreach ($rows->sortByDesc(fn (WalletTransaction $row) => $row->created_at->getTimestamp().$row->id) as $row) {
+            if (isset($seen[$row->id])) {
+                continue;
+            }
+
+            $partner = $row->reference ? $byId->get($row->reference) : null;
+            $isPair = $partner !== null && in_array($row->type, [WalletTransactionType::TransferIn, WalletTransactionType::TransferOut], true);
+
+            if ($isPair) {
+                $seen[$row->id] = true;
+                $seen[$partner->id] = true;
+                $out = $row->type === WalletTransactionType::TransferOut ? $row : $partner;
+                $in = $row->type === WalletTransactionType::TransferIn ? $row : $partner;
+                $entries[] = $this->presentTransfer($out, $in, $actor, $focusedId);
+
+                continue;
+            }
+
+            if ($focusedId !== null && $row->user_id !== $focusedId) {
+                continue;
+            }
+
+            $seen[$row->id] = true;
+            $entries[] = $this->presentSingle($row, $actor);
+        }
+
+        return collect($entries);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function presentTransfer(WalletTransaction $out, WalletTransaction $in, User $actor, ?int $focusedId): array
+    {
+        $subordinate = $out->user->depth >= $in->user->depth ? $out : $in;
+        $signed = bcadd((string) $subordinate->amount, '0', 2);
+        $positive = bccomp($signed, '0', 2) === 1;
+        $balanceLeg = $focusedId === null
+            ? $in
+            : ($out->user_id === $focusedId ? $out : $in);
+        $balance = $this->balanceAmount($balanceLeg, $actor);
+
+        return [
+            'when' => $in->created_at->timezone($actor->timezone)->locale(app()->getLocale())->translatedFormat('d.m.Y H:i'),
+            'parties' => $this->visibleName($out->user, $actor).' → '.$this->visibleName($in->user, $actor),
+            'before' => $balance((string) $balanceLeg->balance_before),
+            'amount' => Money::formatSigned($signed, $subordinate->wallet->currency),
+            'after' => $balance((string) $balanceLeg->balance_after),
+            'tone' => $positive ? 'text-emerald-800' : 'text-red-700',
+            'movement' => $actor->role === UserRole::Owner && ($out->user_id === $actor->id || $in->user_id === $actor->id)
+                ? ($positive ? __('wallet.given') : __('wallet.taken_back'))
+                : null,
+            'note' => ($out->note ?: $in->note) ?: __('panel.empty_value'),
+            'ip' => ($out->ip ?: $in->ip) ?: __('panel.empty_value'),
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function presentSingle(WalletTransaction $row, User $actor): array
+    {
+        $signed = bcadd((string) $row->amount, '0', 2);
+        $positive = bccomp($signed, '0', 2) !== -1;
+        $balance = $this->balanceAmount($row, $actor);
+
+        return [
+            'when' => $row->created_at->timezone($actor->timezone)->locale(app()->getLocale())->translatedFormat('d.m.Y H:i'),
+            'parties' => $this->visibleName($row->creator, $actor).' → '.$this->visibleName($row->user, $actor),
+            'before' => $balance((string) $row->balance_before),
+            'amount' => Money::formatSigned($signed, $row->wallet->currency),
+            'after' => $balance((string) $row->balance_after),
+            'tone' => $positive ? 'text-emerald-800' : 'text-red-700',
+            'movement' => null,
+            'note' => $row->note ?: __('panel.empty_value'),
+            'ip' => $row->ip ?: __('panel.empty_value'),
+        ];
+    }
+
+    private function balanceAmount(WalletTransaction $row, User $actor): \Closure
+    {
+        $currency = $row->wallet->currency;
+        $hide = $actor->role === UserRole::Owner && $row->user_id === $actor->id;
+
+        return fn (string $amount) => $hide
+            ? Money::formatAbsolute($amount, $currency)
+            : Money::format($amount, $currency);
+    }
+
+    private function viewerTotals(User $actor, Request $request)
+    {
+        $query = WalletTransaction::query()
+            ->with('wallet')
+            ->where('user_id', $actor->id)
+            ->whereIn('type', [WalletTransactionType::TransferOut, WalletTransactionType::TransferIn]);
+
+        if ($request->filled('from')) {
+            $query->where('created_at', '>=', Carbon::parse($request->query('from'), $actor->timezone)->startOfDay()->utc());
+        }
+
+        if ($request->filled('to')) {
+            $query->where('created_at', '<=', Carbon::parse($request->query('to'), $actor->timezone)->endOfDay()->utc());
+        }
+
+        $totals = [];
+
+        foreach ($query->get() as $row) {
             $code = $row->wallet->currency->value;
             $totals[$code] ??= ['added' => '0.00', 'removed' => '0.00', 'currency' => $row->wallet->currency];
             $amount = bcadd((string) $row->amount, '0', 2);
+            $absolute = bccomp($amount, '0', 2) < 0 ? bcsub('0', $amount, 2) : $amount;
 
-            if (bccomp($amount, '0', 2) === 1) {
-                $totals[$code]['added'] = bcadd($totals[$code]['added'], $amount, 2);
+            if ($row->type === WalletTransactionType::TransferOut) {
+                $totals[$code]['added'] = bcadd($totals[$code]['added'], $absolute, 2);
             } else {
-                $totals[$code]['removed'] = bcadd($totals[$code]['removed'], bcsub('0', $amount, 2), 2);
+                $totals[$code]['removed'] = bcadd($totals[$code]['removed'], $absolute, 2);
             }
         }
 
-        $mappedTotals = collect($totals)->map(fn (array $total) => [
-            'added' => $format($total['added'], $total['currency']),
-            'removed' => $format($total['removed'], $total['currency']),
-            'difference' => $format(bcsub($total['added'], $total['removed'], 2), $total['currency']),
-        ])->values();
-
-        if ($mappedTotals->isEmpty()) {
-            $mappedTotals = collect([[
-                'added' => $format('0.00', $actor->currency),
-                'removed' => $format('0.00', $actor->currency),
-                'difference' => $format('0.00', $actor->currency),
-            ]]);
+        if ($totals === []) {
+            $totals[$actor->currency->value] = ['added' => '0.00', 'removed' => '0.00', 'currency' => $actor->currency];
         }
 
-        return view('panel.wallets.transactions', [
-            'rows' => $rows->map(function (WalletTransaction $row) use ($actor, $format, $hideSign) {
-                $amount = bcadd((string) $row->amount, '0', 2);
-                $movement = null;
+        $own = $actor->currency->value;
+        uksort($totals, function (string $left, string $right) use ($own): int {
+            if ($left === $own) {
+                return -1;
+            }
 
-                if ($hideSign && $row->user_id === $actor->id) {
-                    $movement = bccomp($amount, '0', 2) === 1
-                        ? __('wallet.taken_back')
-                        : __('wallet.given');
-                }
+            if ($right === $own) {
+                return 1;
+            }
 
-                return [
-                    'when' => $row->created_at->timezone($actor->timezone)->locale(app()->getLocale())->translatedFormat('d.m.Y H:i'),
-                    'actor' => $this->visibleName($row->creator, $actor),
-                    'user' => $this->visibleName($row->user, $actor),
-                    'before' => $format((string) $row->balance_before, $row->wallet->currency),
-                    'amount' => $format($amount, $row->wallet->currency),
-                    'after' => $format((string) $row->balance_after, $row->wallet->currency),
-                    'movement' => $movement,
-                    'note' => $row->note ?: __('panel.empty_value'),
-                    'ip' => $row->ip ?: __('panel.empty_value'),
-                ];
-            }),
-            'subjects' => User::query()->subtreeOf($actor)->orderBy('username')->get(['id', 'username']),
-            'totals' => $mappedTotals,
-            'selectedUser' => $request->query('user'),
-        ]);
+            return strcmp($left, $right);
+        });
+
+        return collect($totals)->map(fn (array $total) => [
+            'added' => Money::format($total['added'], $total['currency']),
+            'removed' => Money::format($total['removed'], $total['currency']),
+            'difference' => Money::format(bcsub($total['added'], $total['removed'], 2), $total['currency']),
+        ])->values();
     }
 
     private function visibleName(?User $person, User $viewer): string

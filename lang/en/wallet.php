@@ -23,6 +23,8 @@ return [
     'ledger_title' => 'Account movements',
     'user' => 'User',
     'all_users' => 'Entire subtree',
+    'own_account' => 'My account',
+    'parties' => 'From → To',
     'when' => 'Date',
     'date_from' => 'From',
     'date_to' => 'To',

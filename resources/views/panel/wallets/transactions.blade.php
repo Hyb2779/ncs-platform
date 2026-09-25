@@ -6,6 +6,7 @@
     <form class="mb-4 flex flex-wrap gap-2" method="GET">
         <select class="rounded-md border border-[#E3E6EB] px-3 py-2 text-sm" name="user">
             <option value="">{{ __('wallet.all_users') }}</option>
+            <option value="self" @selected((string) $selectedUser === 'self')>{{ __('wallet.own_account') }}</option>
             @foreach ($subjects as $subject)
                 <option value="{{ $subject->id }}" @selected((string) $selectedUser === (string) $subject->id)>{{ $subject->username }}</option>
             @endforeach
@@ -43,7 +44,7 @@
             <thead class="bg-[#F3F4F6] text-slate-500">
                 <tr>
                     <th class="px-3 py-2 text-start font-medium">{{ __('wallet.when') }}</th>
-                    <th class="px-3 py-2 text-start font-medium">{{ __('wallet.actor_user') }}</th>
+                    <th class="px-3 py-2 text-start font-medium">{{ __('wallet.parties') }}</th>
                     <th class="px-3 py-2 text-end font-medium">{{ __('wallet.balance_before') }}</th>
                     <th class="px-3 py-2 text-end font-medium">{{ __('wallet.amount') }}</th>
                     <th class="px-3 py-2 text-end font-medium">{{ __('wallet.balance_after') }}</th>
@@ -55,9 +56,9 @@
                 @forelse ($rows as $row)
                     <tr class="border-b border-[#E3E6EB]">
                         <td class="px-3 py-2 text-start">{{ $row['when'] }}</td>
-                        <td class="px-3 py-2 text-start">{{ $row['actor'] }} › {{ $row['user'] }}</td>
+                        <td class="px-3 py-2 text-start">{{ $row['parties'] }}</td>
                         <td class="px-3 py-2 text-end font-numeric">{{ $row['before'] }}</td>
-                        <td class="px-3 py-2 text-end font-numeric">
+                        <td class="px-3 py-2 text-end font-numeric {{ $row['tone'] }}">
                             @if ($row['movement'])
                                 <span>{{ $row['movement'] }}</span>
                             @endif
@@ -77,8 +78,8 @@
         @forelse ($rows as $row)
             <article class="rounded-md bg-white p-3 text-start">
                 <p>{{ $row['when'] }}</p>
-                <p>{{ $row['actor'] }} › {{ $row['user'] }}</p>
-                <p class="font-numeric">
+                <p>{{ $row['parties'] }}</p>
+                <p class="font-numeric {{ $row['tone'] }}">
                     @if ($row['movement'])
                         <span>{{ $row['movement'] }}</span>
                     @endif

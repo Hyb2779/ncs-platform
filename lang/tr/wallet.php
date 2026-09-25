@@ -23,6 +23,8 @@ return [
     'ledger_title' => 'Hesap hareketleri',
     'user' => 'Kullanıcı',
     'all_users' => 'Tüm alt ağaç',
+    'own_account' => 'Kendi hesabım',
+    'parties' => 'Kimden → Kime',
     'when' => 'Tarih',
     'date_from' => 'Başlangıç',
     'date_to' => 'Bitiş',

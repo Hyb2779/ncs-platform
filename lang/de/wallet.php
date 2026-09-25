@@ -23,6 +23,8 @@ return [
     'ledger_title' => 'Kontobewegungen',
     'user' => 'Benutzer',
     'all_users' => 'Gesamter Unterbaum',
+    'own_account' => 'Mein Konto',
+    'parties' => 'Von → An',
     'when' => 'Datum',
     'date_from' => 'Von',
     'date_to' => 'Bis',

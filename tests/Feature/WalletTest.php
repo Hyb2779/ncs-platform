@@ -371,6 +371,55 @@ class WalletTest extends TestCase
             ->assertDontSee('-5.000', false);
     }
 
+    public function test_ledger_collapses_transfers_and_summarizes_from_the_viewer(): void
+    {
+        $owner = $this->owner('owner-ledger-sum');
+        $hierarchy = app(HierarchyService::class);
+        $child = $hierarchy->create($owner, $this->locale('sa-ledger-sum', 'TRY'));
+        $bayi = $hierarchy->create($child, $this->locale('bayi-ledger-sum'));
+        $service = app(WalletService::class);
+        $service->transfer($owner, $child, '10000.00', 'sum-load', $owner, 'Test kredisi');
+        $service->transfer($child, $owner, '2000.00', 'sum-back', $owner, 'Geri çekim');
+        $service->transfer($child, $bayi, '500.00', 'sum-down', $child, 'İç transfer');
+
+        $page = $this->actingAs($owner)->get('/panel/transactions');
+        $page->assertOk();
+        $html = $page->getContent();
+        $load = $owner->username.' → '.$child->username;
+        $back = $child->username.' → '.$owner->username;
+
+        $this->assertSame(2, substr_count($html, $load));
+        $this->assertSame(2, substr_count($html, $back));
+        $page->assertDontSee($owner->username.' › '.$owner->username, false);
+        $page->assertSee('Test kredisi', false);
+        $page->assertSee('Geri çekim', false);
+        $page->assertSee(Money::format('10000.00', Currency::Try), false);
+        $page->assertSee(Money::format('2000.00', Currency::Try), false);
+        $page->assertSee(Money::format('8000.00', Currency::Try), false);
+        $page->assertSee('text-emerald-800', false);
+        $page->assertSee('text-red-700', false);
+        $page->assertSee(__('wallet.given'), false);
+        $page->assertSee(__('wallet.taken_back'), false);
+
+        $own = $this->actingAs($owner)->get('/panel/transactions?user=self');
+        $own->assertOk();
+        $own->assertDontSee($child->username.' → '.$bayi->username, false);
+        $own->assertSee($load, false);
+
+        $this->actingAs($owner)
+            ->post('/panel/users/'.$child->id.'/balance', [
+                'amount' => '25.00',
+                'direction' => 'add',
+                'note' => 'Form notu',
+                'idempotency_key' => '66666666-6666-4666-8666-666666666601',
+            ])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+
+        $this->assertSame('Form notu', WalletTransaction::query()->where('note', 'Form notu')->value('note'));
+        $this->actingAs($owner)->get('/panel/transactions')->assertSee('Form notu', false);
+    }
+
     public function test_balance_form_shows_success_and_error_messages(): void
     {
         [$owner, $child] = $this->pair();

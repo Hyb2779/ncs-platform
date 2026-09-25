@@ -17,6 +17,22 @@ class Money
         return self::format($value, $currency);
     }
 
+    public static function formatSigned(string $amount, Currency $currency): string
+    {
+        $value = bcadd($amount, '0', 2);
+        $formatted = self::formatAbsolute($value, $currency);
+
+        if (bccomp($value, '0', 2) === -1) {
+            return '-'.$formatted;
+        }
+
+        if (bccomp($value, '0', 2) === 1) {
+            return '+'.$formatted;
+        }
+
+        return $formatted;
+    }
+
     public static function format(string $amount, Currency $currency): string
     {
         $value = number_format((float) $amount, 2, '.', '');
