@@ -9,14 +9,16 @@ use Illuminate\Contracts\Console\Kernel;
 
 require __DIR__.'/../../vendor/autoload.php';
 
+$username = getenv('DB_USERNAME');
+
+if (! is_string($username) || $username === '' || $username === 'root') {
+    fwrite(STDERR, "DB_USERNAME must be the application database user\n");
+    exit(1);
+}
+
 foreach ([
     'DB_CONNECTION' => 'mysql',
-    'DB_HOST' => '127.0.0.1',
-    'DB_PORT' => '3306',
     'DB_DATABASE' => 'wallet_conc_test',
-    'DB_USERNAME' => 'root',
-    'DB_PASSWORD' => '',
-    'DB_SOCKET' => '/run/mysqld/mysqld.sock',
 ] as $name => $value) {
     putenv($name.'='.$value);
     $_ENV[$name] = $value;
@@ -32,10 +34,12 @@ $kernel->bootstrap();
 
 config([
     'database.default' => 'mysql',
+    'database.connections.mysql.host' => env('DB_HOST', '127.0.0.1'),
+    'database.connections.mysql.port' => env('DB_PORT', '3306'),
     'database.connections.mysql.database' => 'wallet_conc_test',
-    'database.connections.mysql.username' => 'root',
-    'database.connections.mysql.password' => '',
-    'database.connections.mysql.unix_socket' => '/run/mysqld/mysqld.sock',
+    'database.connections.mysql.username' => $username,
+    'database.connections.mysql.password' => env('DB_PASSWORD', ''),
+    'database.connections.mysql.unix_socket' => '',
 ]);
 
 Illuminate\Support\Facades\DB::purge('mysql');
@@ -44,7 +48,7 @@ Illuminate\Support\Facades\DB::reconnect('mysql');
 $mode = $argv[1] ?? '';
 
 if ($mode === 'setup') {
-    $kernel->call('migrate', ['--force' => true]);
+    $kernel->call('migrate:fresh', ['--force' => true]);
 
     $owner = App\Models\User::query()->create([
         'username' => 'conc-owner',
@@ -88,19 +92,30 @@ if ($mode === 'setup') {
 if ($mode === 'debit') {
     $wallet = Wallet::query()->findOrFail((int) $argv[2]);
 
-    try {
-        app(WalletService::class)->debit(
-            $wallet,
-            '10.00',
-            WalletTransactionType::Adjustment,
-            WalletProduct::Adjustment,
-            $argv[3],
-        );
-        echo "RESULT 0\n";
-        exit(0);
-    } catch (WalletException) {
-        echo "RESULT 2\n";
-        exit(2);
+    for ($attempt = 0; $attempt < 8; $attempt++) {
+        try {
+            app(WalletService::class)->debit(
+                $wallet,
+                '10.00',
+                WalletTransactionType::Adjustment,
+                WalletProduct::Adjustment,
+                $argv[3],
+            );
+            echo "RESULT 0\n";
+            exit(0);
+        } catch (WalletException) {
+            echo "RESULT 2\n";
+            exit(2);
+        } catch (Illuminate\Database\QueryException $exception) {
+            $deadlock = str_contains($exception->getMessage(), '1213')
+                || str_contains($exception->getMessage(), '40001');
+
+            if (! $deadlock || $attempt === 7) {
+                throw $exception;
+            }
+
+            Illuminate\Support\Facades\DB::reconnect();
+        }
     }
 }
 

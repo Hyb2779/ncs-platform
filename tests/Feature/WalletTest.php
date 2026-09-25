@@ -185,15 +185,9 @@ class WalletTest extends TestCase
 
     public function test_parallel_debits_never_go_negative(): void
     {
-        $socket = '/run/mysqld/mysqld.sock';
-
-        if (! file_exists($socket)) {
-            $this->markTestSkipped('MariaDB socket is not available.');
-        }
-
-        $pdo = new \PDO('mysql:unix_socket='.$socket, 'root', '');
-        $pdo->exec('DROP DATABASE IF EXISTS wallet_conc_test');
-        $pdo->exec('CREATE DATABASE wallet_conc_test CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci');
+        $username = $this->dbEnv('DB_USERNAME');
+        $this->assertNotSame('', (string) $username);
+        $this->assertNotSame('root', $username);
 
         $setup = $this->worker(['setup']);
         $this->assertSame(0, $setup['code'], $setup['output']);
@@ -214,19 +208,20 @@ class WalletTest extends TestCase
         unset($process);
 
         $success = substr_count($output, 'RESULT 0');
-        $check = new \PDO('mysql:unix_socket='.$socket.';dbname=wallet_conc_test', 'root', '');
+        $rejected = substr_count($output, 'RESULT 2');
+        $check = $this->concPdo();
         $balance = $check->query('SELECT balance FROM wallets WHERE id = '.(int) $walletId)->fetchColumn();
         $debits = $check->query("SELECT COUNT(*) FROM wallet_transactions WHERE type = 'adjustment'")->fetchColumn();
         $lowest = $check->query('SELECT MIN(balance_after) FROM wallet_transactions')->fetchColumn();
-
-        $pdo->exec('DROP DATABASE IF EXISTS wallet_conc_test');
 
         $this->assertSame(
             '5',
             (string) $debits,
             'codes='.implode(',', $codes).' balance='.$balance.' lowest='.$lowest,
         );
+        $this->assertCount(10, $codes);
         $this->assertSame(5, $success);
+        $this->assertSame(5, $rejected, 'codes='.implode(',', $codes).' '.$output);
         $this->assertSame('0.00', number_format((float) $balance, 2, '.', ''));
         $this->assertGreaterThanOrEqual(0, (float) $lowest);
     }
@@ -611,6 +606,42 @@ class WalletTest extends TestCase
             }
         }
 
+        foreach (['DB_USERNAME', 'DB_PASSWORD', 'DB_HOST', 'DB_PORT'] as $key) {
+            $value = $this->dbEnv($key);
+
+            if ($value !== null) {
+                $env[$key] = $value;
+            }
+        }
+
+        $env['DB_CONNECTION'] = 'mysql';
+        $env['DB_DATABASE'] = 'wallet_conc_test';
+        $env['DB_SOCKET'] = '';
+        unset($env['DB_URL']);
+
         return $env;
+    }
+
+    private function dbEnv(string $key): ?string
+    {
+        $value = $_ENV[$key] ?? $_SERVER[$key] ?? getenv($key);
+
+        if ($value === false || $value === null) {
+            return null;
+        }
+
+        return (string) $value;
+    }
+
+    private function concPdo(): \PDO
+    {
+        $host = $this->dbEnv('DB_HOST') ?: '127.0.0.1';
+        $port = $this->dbEnv('DB_PORT') ?: '3306';
+
+        return new \PDO(
+            'mysql:host='.$host.';port='.$port.';dbname=wallet_conc_test',
+            (string) $this->dbEnv('DB_USERNAME'),
+            (string) $this->dbEnv('DB_PASSWORD'),
+        );
     }
 }
