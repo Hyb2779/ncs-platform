@@ -54,7 +54,7 @@
                 @php $league = $group->first()->league; @endphp
                 <p class="text-xs font-bold text-[#9AA4B5] md:hidden">{{ sport_name($league->country) }} · {{ sport_name($league) }}</p>
                 <section class="hidden overflow-x-auto overflow-hidden rounded-xl bg-[#151A23] md:block">
-                    <div class="grid items-center gap-x-1 bg-[#1A2029] px-3" style="grid-template-columns: 4.75rem 3.25rem minmax(0,1fr) repeat({{ count($columns) }}, 3.625rem) 3.5rem; height: 44px">
+                    <div class="grid items-center gap-x-1 bg-[#1A2029] px-3" style="grid-template-columns: 4.75rem 3.25rem minmax(12rem,1fr) repeat({{ count($columns) }}, 3.625rem) 3.5rem; height: 44px">
                         <div class="col-span-3 flex flex-col">
                             <span class="text-[11px] font-semibold text-[#9AA4B5]">{{ sport_name($league->country) }}</span>
                             <span class="text-sm font-bold text-white">{{ sport_name($league) }}</span>

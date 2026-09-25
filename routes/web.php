@@ -23,8 +23,11 @@ Route::get('/', function () {
 })->name('site.home');
 
 Route::get('/slots', [SiteController::class, 'slots'])->name('site.slots');
-Route::get('/live', [SiteController::class, 'live'])->name('site.live');
+Route::get('/live-casino', [SiteController::class, 'live'])->name('site.live_casino');
+Route::redirect('/live', '/live-casino');
 Route::get('/sport', [SportController::class, 'index'])->name('site.sport');
+Route::get('/sport/live', [SportController::class, 'live'])->name('site.sport.live');
+Route::get('/sport/results', [SportController::class, 'results'])->name('site.sport.results');
 Route::get('/sport/fixtures/{fixture}', [SportController::class, 'show'])->name('site.sport.show');
 Route::post('/sport/odds/{odd}', [SportController::class, 'add'])->name('site.sport.add');
 Route::post('/sport/coupon', [SportController::class, 'update'])->name('site.sport.coupon');

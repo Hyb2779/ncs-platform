@@ -167,7 +167,49 @@ class SportTest extends TestCase
         $page = $this->get('/sport')->assertOk();
         $page->assertSee($visible->league->name, false);
         $page->assertDontSee($empty->name, false);
-        $page->assertSee('title="'.$visible->home->name.' – '.$visible->away->name.'"', false);
+        $page->assertSee($visible->home->name, false);
+        $page->assertSee($visible->away->name, false);
+        $page->assertDontSee('title="'.$visible->home->name.' – '.$visible->away->name.'"', false);
+    }
+
+    public function test_live_and_results_pages_have_their_own_urls(): void
+    {
+        $live = $this->fixture();
+        $live->update(['status' => '2H', 'starts_at' => now()->subHour(), 'score_home' => 1, 'score_away' => 0]);
+        $done = $this->fixture();
+        $done->update([
+            'status' => 'FT',
+            'starts_at' => now()->subDay(),
+            'score_home' => 2,
+            'score_away' => 1,
+            'ht_home' => 1,
+            'ht_away' => 0,
+        ]);
+
+        $this->get('/sport/live')->assertOk()
+            ->assertSee(__('site.live'), false)
+            ->assertSee($live->home->name, false)
+            ->assertSee('2H', false)
+            ->assertSee(__('sport.live_odds_soon'), false);
+        $this->get('/sport/results')->assertOk()
+            ->assertSee(__('site.results'), false)
+            ->assertSee($done->home->name, false)
+            ->assertSee(__('sport.half_time'), false);
+        $this->get('/live-casino')->assertOk();
+        $this->get('/live')->assertRedirect('/live-casino');
+
+        $html = $this->get('/sport?lang=tr')->assertOk()->getContent();
+        $this->assertStringContainsString(__('site.live', [], 'tr'), $html);
+        $this->assertStringContainsString('/sport/live', $html);
+        $this->assertStringContainsString('/live-casino', $html);
+        $this->assertStringContainsString('/sport/results', $html);
+        $this->assertStringNotContainsString('href="'.url('/live').'"', $html);
+
+        $this->assertStringNotContainsString('truncate', file_get_contents(resource_path('views/site/sport/_row.blade.php')));
+        $this->assertStringNotContainsString('truncate', file_get_contents(resource_path('views/site/sport/_card.blade.php')));
+        $this->assertStringNotContainsString('truncate', file_get_contents(resource_path('views/site/sport/_coupon.blade.php')));
+        $this->assertStringNotContainsString('truncate', file_get_contents(resource_path('views/site/sport/_live.blade.php')));
+        $this->assertStringNotContainsString('truncate', file_get_contents(resource_path('views/site/sport/show.blade.php')));
     }
 
     public function test_second_selection_from_the_same_match_replaces_the_first(): void

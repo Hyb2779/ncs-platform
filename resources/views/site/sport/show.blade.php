@@ -28,7 +28,10 @@
             <a class="text-[13px] text-[#9AA4B5]" href="{{ route('site.sport') }}">{{ __('site.sport') }}</a>
             <div class="rounded-xl bg-[#151A23] p-4">
                 <p class="text-[11px] font-semibold text-[#9AA4B5]">{{ sport_name($fixture->league->country) }} · {{ sport_name($fixture->league) }}</p>
-                <h1 class="mt-1 text-xl font-bold text-white">{{ sport_name($fixture->home) }} <span class="text-[#6E7889]">–</span> {{ sport_name($fixture->away) }}</h1>
+                <h1 class="mt-1 flex flex-col gap-0.5 text-xl font-bold text-white">
+                    <span class="break-words">{{ sport_name($fixture->home) }}</span>
+                    <span class="break-words">{{ sport_name($fixture->away) }}</span>
+                </h1>
                 <p class="mt-1 font-numeric text-sm text-[#9AA4B5]">{{ sport_date($kickoff, 'j F Y H:i') }} · {{ __('sport.code_prefix', ['code' => $fixture->bulletin_code]) }}</p>
             </div>
             <div class="no-scrollbar flex gap-2 overflow-x-auto">

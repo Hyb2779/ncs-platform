@@ -57,10 +57,7 @@ class AppServiceProvider extends ServiceProvider
             $wallet = $user?->wallet()->first();
             $view->with('headerBalance', $wallet === null ? '' : Money::format((string) $wallet->balance, $wallet->currency));
             $view->with('couponCount', count(app(CouponBook::class)->get()['selections']));
-            $view->with('liveCount', SportFixture::query()->whereNotIn('status', [
-                ...config('football.open_statuses'),
-                'FT', 'AET', 'PEN', 'CANC', 'PST', 'ABD', 'AWD', 'WO',
-            ])->count());
+            $view->with('liveCount', SportFixture::query()->inPlay()->count());
         });
 
         View::composer('layouts.panel', function ($view): void {

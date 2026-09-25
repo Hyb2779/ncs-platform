@@ -4,7 +4,7 @@
     $day = $kickoff->isToday() ? __('sport.today') : ($kickoff->isTomorrow() ? __('sport.tomorrow') : sport_date($kickoff, 'j F'));
     $count = count($columns);
 @endphp
-<div class="grid items-center gap-x-1 border-b border-[#1D2430] px-3" style="grid-template-columns: 4.75rem 3.25rem minmax(0,1fr) repeat({{ $count }}, 3.625rem) 3.5rem; min-height: 52px">
+<div class="grid items-center gap-x-1 border-b border-[#1D2430] px-3 py-1.5" style="grid-template-columns: 4.75rem 3.25rem minmax(12rem,1fr) repeat({{ $count }}, 3.625rem) 3.5rem; min-height: 52px">
     <div class="flex flex-col">
         @if (in_array($when ?? request('when', 'today'), ['all', 'tomorrow'], true))
             <span class="text-[11px] font-semibold text-[#9AA4B5]">{{ $day }}</span>
@@ -12,7 +12,10 @@
         <span class="text-sm font-bold">{{ $kickoff->format('H:i') }}</span>
     </div>
     <span class="font-numeric text-xs font-bold text-[var(--accent)]">{{ $fixture->bulletin_code }}</span>
-    <a class="truncate text-sm font-semibold" href="{{ route('site.sport.show', $fixture) }}" title="{{ sport_name($fixture->home) }} – {{ sport_name($fixture->away) }}">{{ sport_name($fixture->home) }} <span class="text-[#6E7889]">–</span> {{ sport_name($fixture->away) }}</a>
+    <a class="flex flex-col gap-0.5 text-sm font-semibold" href="{{ route('site.sport.show', $fixture) }}">
+        <span class="break-words">{{ sport_name($fixture->home) }}</span>
+        <span class="break-words">{{ sport_name($fixture->away) }}</span>
+    </a>
     @foreach ($columns as $column)
         @include('site.sport._odd', ['market' => $column['market'], 'outcome' => $column['outcome'], 'compact' => true])
     @endforeach

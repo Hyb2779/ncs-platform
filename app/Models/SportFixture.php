@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -45,9 +46,27 @@ class SportFixture extends Model
 
     public function isInPlay(): bool
     {
-        return ! in_array($this->status, [
+        return ! in_array($this->status, self::closedStatuses(), true);
+    }
+
+    public function scopeInPlay(Builder $query): Builder
+    {
+        return $query->whereNotIn('status', self::closedStatuses());
+    }
+
+    public function scopeFinished(Builder $query): Builder
+    {
+        return $query->whereIn('status', ['FT', 'AET', 'PEN']);
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function closedStatuses(): array
+    {
+        return [
             ...config('football.open_statuses'),
             'FT', 'AET', 'PEN', 'CANC', 'PST', 'ABD', 'AWD', 'WO',
-        ], true);
+        ];
     }
 }

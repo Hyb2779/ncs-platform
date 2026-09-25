@@ -16,13 +16,13 @@
             <a class="font-numeric text-2xl font-bold tracking-wide text-white md:text-[28px]" href="{{ route('site.home') }}">{{ brand()->name() }}<span class="text-[var(--accent)]">.</span></a>
             <nav class="hidden flex-1 items-center gap-1 text-sm md:flex" aria-label="{{ __('site.sport') }}">
                 @foreach ([
-                    ['route' => 'site.sport', 'match' => 'site.sport*', 'label' => __('site.sport')],
-                    ['route' => 'site.live', 'match' => 'site.live', 'label' => __('site.live'), 'badge' => 'live'],
+                    ['route' => 'site.sport', 'match' => ['site.sport', 'site.sport.show'], 'label' => __('site.sport')],
+                    ['route' => 'site.sport.live', 'match' => 'site.sport.live', 'label' => __('site.live'), 'badge' => 'live'],
                     ['route' => 'site.slots', 'match' => 'site.slots', 'label' => __('site.slots')],
-                    ['route' => 'site.live', 'match' => 'site.live', 'label' => __('site.live_casino')],
-                    ['route' => 'site.sport', 'match' => 'site.results', 'label' => __('site.results')],
+                    ['route' => 'site.live_casino', 'match' => 'site.live_casino', 'label' => __('site.live_casino')],
+                    ['route' => 'site.sport.results', 'match' => 'site.sport.results', 'label' => __('site.results')],
                 ] as $item)
-                    <a class="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 font-semibold {{ request()->routeIs($item['match']) ? 'bg-[#1E2533] font-bold text-white' : 'text-[#B7C0CE]' }}" href="{{ route($item['route']) }}">
+                    <a class="sport-tab inline-flex items-center gap-2 px-4 py-2.5 font-semibold {{ request()->routeIs(...(array) $item['match']) ? 'sport-tab-on font-bold text-white' : 'text-[#B7C0CE]' }}" href="{{ route($item['route']) }}">
                         {{ $item['label'] }}
                         @if (($item['badge'] ?? null) === 'live' && ($liveCount ?? 0) > 0)
                             <span class="rounded bg-[#C9303A] px-1.5 py-0.5 text-[11px] font-extrabold text-white">{{ $liveCount }}</span>
@@ -68,16 +68,19 @@
     </main>
     <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[#232B39] bg-[#121720] md:hidden" aria-label="{{ __('site.sport') }}">
         @foreach ([
-            ['route' => 'site.sport', 'match' => 'site.sport*', 'label' => __('site.sport'), 'path' => 'M12 3l8 6v12H4V9z'],
-            ['route' => 'site.live', 'match' => 'site.live', 'label' => __('site.live'), 'path' => 'M5.6 5.6a9 9 0 000 12.8M18.4 5.6a9 9 0 010 12.8M12 12a3 3 0 100-6 3 3 0 000 6z'],
+            ['route' => 'site.sport', 'match' => ['site.sport', 'site.sport.show'], 'label' => __('site.sport'), 'path' => 'M12 3l8 6v12H4V9z'],
+            ['route' => 'site.sport.live', 'match' => 'site.sport.live', 'label' => __('site.live'), 'path' => 'M5.6 5.6a9 9 0 000 12.8M18.4 5.6a9 9 0 010 12.8M12 12a3 3 0 100-6 3 3 0 000 6z', 'badge' => 'live'],
             ['route' => 'site.slots', 'match' => 'site.slots', 'label' => __('site.casino'), 'path' => 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'],
             ['route' => 'site.account', 'match' => 'site.account', 'label' => __('site.account'), 'path' => 'M12 8a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0'],
         ] as $item)
-            <a class="inline-flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-bold {{ request()->routeIs($item['match']) ? 'text-[var(--accent)]' : 'text-[#9AA4B5]' }}" href="{{ route($item['route']) }}">
+            <a class="relative inline-flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-bold {{ request()->routeIs(...(array) $item['match']) ? 'text-[var(--accent)]' : 'text-[#9AA4B5]' }}" href="{{ route($item['route']) }}">
                 <svg class="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="{{ $item['path'] }}"></path></svg>
                 {{ $item['label'] }}
+                @if (($item['badge'] ?? null) === 'live' && ($liveCount ?? 0) > 0)
+                    <span class="absolute top-1.5 start-1/2 ms-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-[#C9303A] px-1 text-[11px] font-extrabold text-white">{{ $liveCount }}</span>
+                @endif
             </a>
-            @if ($item['route'] === 'site.live')
+            @if ($item['route'] === 'site.sport.live')
                 <button class="relative inline-flex h-16 flex-col items-center justify-center gap-1 text-[11px] font-semibold text-[#9AA4B5]" type="button" aria-label="{{ __('sport.coupon.title') }}" onclick="const sheet = document.getElementById('coupon-sheet'); sheet ? sheet.showModal() : (window.location.href = '{{ route('site.sport') }}')">
                     <svg class="h-[22px] w-[22px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h16v4a2 2 0 010 4v4H4v-4a2 2 0 010-4z"></path></svg>
                     {{ __('sport.coupon.title') }}

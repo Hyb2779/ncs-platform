@@ -7,8 +7,8 @@
 <article class="flex flex-col gap-2.5 rounded-xl bg-[#151A23] p-3">
     <div class="flex items-center justify-between gap-3">
         <a class="flex min-w-0 flex-col gap-0.5" href="{{ route('site.sport.show', $fixture) }}">
-            <span class="truncate text-sm font-bold" title="{{ sport_name($fixture->home) }}">{{ sport_name($fixture->home) }}</span>
-            <span class="truncate text-sm font-bold" title="{{ sport_name($fixture->away) }}">{{ sport_name($fixture->away) }}</span>
+            <span class="break-words text-sm font-bold">{{ sport_name($fixture->home) }}</span>
+            <span class="break-words text-sm font-bold">{{ sport_name($fixture->away) }}</span>
         </a>
         <div class="flex flex-col items-end gap-0.5">
             <span class="text-[13px] font-bold">

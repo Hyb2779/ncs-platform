@@ -65,6 +65,36 @@ class SportController extends Controller
         ]);
     }
 
+    public function live(Request $request): View
+    {
+        return view('site.sport.live', [
+            'fixtures' => SportFixture::query()
+                ->with(['league.country', 'home', 'away'])
+                ->inPlay()
+                ->orderBy('starts_at')
+                ->get()
+                ->groupBy('league_id'),
+            ...$this->sportFrame($request),
+        ]);
+    }
+
+    public function results(Request $request): View
+    {
+        $zone = $request->user()?->timezone ?? 'UTC';
+
+        return view('site.sport.results', [
+            'days' => SportFixture::query()
+                ->with(['league.country', 'home', 'away'])
+                ->finished()
+                ->where('starts_at', '>=', now()->utc()->subDays(3)->startOfDay())
+                ->orderByDesc('starts_at')
+                ->get()
+                ->groupBy(fn (SportFixture $fixture) => $fixture->starts_at->timezone($zone)->toDateString())
+                ->map(fn ($fixtures) => $fixtures->groupBy('league_id')),
+            ...$this->sportFrame($request),
+        ]);
+    }
+
     public function show(Request $request, SportFixture $fixture): View
     {
         $fixture->load(['league.country', 'home', 'away', 'odds.market']);
@@ -169,10 +199,7 @@ class SportController extends Controller
             'coupon' => $this->couponView($request),
             'liveFixtures' => SportFixture::query()
                 ->with(['home', 'away'])
-                ->whereNotIn('status', [
-                    ...config('football.open_statuses'),
-                    'FT', 'AET', 'PEN', 'CANC', 'PST', 'ABD', 'AWD', 'WO',
-                ])
+                ->inPlay()
                 ->orderBy('starts_at')
                 ->limit(16)
                 ->get(),

@@ -2,7 +2,7 @@
 
 return [
     'sport' => 'Sport',
-    'live' => 'Live',
+    'live' => 'Live Betting',
     'slots' => 'Slots',
     'live_casino' => 'Live Casino',
     'results' => 'Results',

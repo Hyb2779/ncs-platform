@@ -2,7 +2,7 @@
 
 return [
     'sport' => 'Spor',
-    'live' => 'Canlı',
+    'live' => 'Canlı Bahis',
     'slots' => 'Slot',
     'live_casino' => 'Canlı Casino',
     'results' => 'Sonuçlar',
