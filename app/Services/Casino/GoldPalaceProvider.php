@@ -72,8 +72,13 @@ class GoldPalaceProvider implements CasinoProvider
             'lang' => $this->lang($user->language),
             'return_url' => url('/slots'),
         ]);
+        $url = (string) ($result['data']['game_url'] ?? '');
 
-        return (string) ($result['data']['game_url'] ?? '');
+        if ($url === '') {
+            throw new \RuntimeException('goldpalace game-url returned no url');
+        }
+
+        return $url;
     }
 
     public function handleCallback(Request $request): Response
@@ -86,29 +91,44 @@ class GoldPalaceProvider implements CasinoProvider
         }
 
         $body = $request->json()->all();
-        $user = $this->resolveUser((string) ($body['user_code'] ?? ''));
+        $command = isset($body['command']) ? (string) $body['command'] : '';
+        $payload = $command !== '' && is_array($body['data'] ?? null) ? $body['data'] : $body;
+        Log::info('casino.goldpalace.callback', [
+            'command' => $command !== '' ? $command : null,
+            'data_keys' => array_keys($payload),
+        ]);
+        $user = $this->resolveUser((string) ($payload['user_code'] ?? $payload['account'] ?? ''));
 
         if ($user === null) {
             return $this->error(2002, 'ERROR');
         }
 
-        $game = isset($body['game_code'])
-            ? CasinoGame::query()->where('external_id', $body['game_code'])->first()
+        if ($command === 'authenticate') {
+            $account = (string) ($payload['account'] ?? $this->codes->forUser($user));
+
+            return $this->ok($this->wallet->balance($user), [
+                'account' => $account,
+                'name' => $account,
+            ]);
+        }
+
+        $game = isset($payload['game_code'])
+            ? CasinoGame::query()->where('external_id', $payload['game_code'])->first()
             : null;
-        $type = isset($body['transaction_type']) ? (int) $body['transaction_type'] : 0;
+        $type = isset($payload['transaction_type']) ? (int) $payload['transaction_type'] : 0;
 
         try {
             $balance = match ($type) {
-                1 => $this->wallet->bet($user, 'goldpalace', (string) $body['transaction_id'], $this->amount($body), $body['round_id'] ?? null, $game, $body, $request->ip())['balance'],
-                2 => $this->wallet->win($user, 'goldpalace', (string) $body['transaction_id'], $this->amount($body), $body['round_id'] ?? null, $game, $body, $request->ip())['balance'],
-                16 => $this->wallet->refund($user, 'goldpalace', (string) $body['transaction_id'], $body['bet_transaction_id'] ?? null, $this->amount($body), $body['round_id'] ?? null, $game, $body, $request->ip())['balance'],
+                1 => $this->wallet->bet($user, 'goldpalace', (string) $payload['transaction_id'], $this->amount($payload), $payload['round_id'] ?? null, $game, $payload, $request->ip())['balance'],
+                2 => $this->wallet->win($user, 'goldpalace', (string) $payload['transaction_id'], $this->amount($payload), $payload['round_id'] ?? null, $game, $payload, $request->ip())['balance'],
+                16 => $this->wallet->refund($user, 'goldpalace', (string) $payload['transaction_id'], $payload['bet_transaction_id'] ?? null, $this->amount($payload), $payload['round_id'] ?? null, $game, $payload, $request->ip())['balance'],
                 default => $this->wallet->balance($user),
             };
         } catch (InsufficientFunds) {
             return $this->error(2006, 'BALANCE_NOT_ENOUGH');
         }
 
-        return response()->json(['code' => 0, 'message' => 'OK', 'data' => ['balance' => (float) $balance]]);
+        return $this->ok($balance);
     }
 
     private function externalUser(User $user): int
@@ -120,11 +140,16 @@ class GoldPalaceProvider implements CasinoProvider
         }
 
         $created = $this->post('/v4/user/create', ['name' => $this->codes->forUser($user)]);
-        $code = (string) $created['data']['user_code'];
+        $code = $created['data']['user_code'] ?? null;
+
+        if ($code === null || $code === '') {
+            throw new \RuntimeException('goldpalace user create returned no user_code');
+        }
+
         CasinoProviderUser::query()->create([
             'provider' => 'goldpalace',
             'user_id' => $user->id,
-            'external_code' => $code,
+            'external_code' => (string) $code,
         ]);
 
         return (int) $code;
@@ -180,7 +205,33 @@ class GoldPalaceProvider implements CasinoProvider
             throw $exception;
         }
 
-        return is_array($response) ? $response : [];
+        if (! is_array($response)) {
+            return [];
+        }
+
+        if (($response['code'] ?? null) !== 0) {
+            Log::error('casino.goldpalace.http', [
+                'path' => $path,
+                'code' => $response['code'] ?? null,
+                'message' => SecretMask::mask((string) ($response['message'] ?? '')),
+            ]);
+
+            throw new \RuntimeException('goldpalace request failed');
+        }
+
+        return $response;
+    }
+
+    /**
+     * @param  array<string, mixed>  $extra
+     */
+    private function ok(string $balance, array $extra = []): JsonResponse
+    {
+        return response()->json([
+            'code' => 0,
+            'message' => 'OK',
+            'data' => array_merge($extra, ['balance' => (float) $balance]),
+        ]);
     }
 
     private function error(int $code, string $message): JsonResponse

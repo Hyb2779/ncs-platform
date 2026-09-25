@@ -7,6 +7,7 @@ use App\Enums\Language;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\CasinoGame;
+use App\Models\CasinoProvider;
 use App\Models\GameRound;
 use App\Models\User;
 use App\Models\WalletTransaction;
@@ -15,6 +16,7 @@ use App\Services\HierarchyService;
 use App\Services\WalletService;
 use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 class CasinoTest extends TestCase
@@ -144,6 +146,48 @@ class CasinoTest extends TestCase
         $game->provider->status = 'passive';
         $game->provider->save();
         $this->actingAs($member)->get('/play/'.$game->id)->assertNotFound();
+    }
+
+    public function test_goldpalace_authenticate_resolves_account_name(): void
+    {
+        $member = $this->fundedMember();
+
+        $this->withHeaders(['Callback-Token' => 'gp-test-token'])->postJson('/api/casino/goldpalace/callback', [
+            'command' => 'authenticate',
+            'data' => ['account' => 'np_'.$member->id],
+            'timestamp' => 1,
+            'check' => 'x',
+        ])->assertJsonPath('code', 0)
+            ->assertJsonPath('data.account', 'np_'.$member->id)
+            ->assertJsonPath('data.balance', 100);
+    }
+
+    public function test_goldpalace_launch_redirects_to_provider_url(): void
+    {
+        config(['casino.goldpalace.url' => 'https://agent.example']);
+        Http::fake([
+            'https://agent.example/v4/user/create' => Http::response(['code' => 0, 'data' => ['user_code' => 400000001]], 200),
+            'https://agent.example/v4/game/game-url' => Http::response(['code' => 0, 'data' => ['game_url' => 'https://games.example/play']], 200),
+        ]);
+        $member = $this->fundedMember();
+        $provider = CasinoProvider::query()->create([
+            'code' => 'goldpalace',
+            'name' => 'GoldPalace',
+            'status' => 'active',
+            'is_live' => false,
+        ]);
+        $game = CasinoGame::query()->create([
+            'provider_id' => $provider->id,
+            'external_id' => '1:vs20fruitsw',
+            'name' => 'Sweet Bonanza',
+            'category' => 'Slots',
+            'is_live' => false,
+            'is_active' => true,
+            'sort_order' => 0,
+            'is_popular' => true,
+        ]);
+
+        $this->actingAs($member)->get('/play/'.$game->id)->assertRedirect('https://games.example/play');
     }
 
     public function test_bayi_cannot_see_another_branch_rounds(): void

@@ -11,3 +11,4 @@ alwaysApply: true
 - Para: decimal(18,2). Bakiye sadece WalletService üzerinden değişir. Her değişiklik wallet_transactions'a değişmez kayıt olarak yazılır (balance_before, amount, balance_after, type, product: sport|slot|live_casino|transfer|bonus|adjustment, idempotency_key UNIQUE, reference, created_by). Kayıtlar update/delete edilmez; düzeltme ters kayıtla. Bakiye işlemleri DB transaction + SELECT ... FOR UPDATE ile.
 - Tarihler UTC saklanır, gösterimde kullanıcının saat dilimine çevrilir.
 - Her anlamlı adımdan sonra git commit.
+- Artisan komutları (migrate, cache, sync, tinker dahil) her zaman `sudo -u www-data php artisan ...` ile çalıştırılır. Root veya mevcut kullanıcı olarak artisan çalıştırılmaz; aksi halde storage/log dosyaları root olur ve web istekleri Permission denied verir.
