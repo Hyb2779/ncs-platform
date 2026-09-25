@@ -11,7 +11,7 @@
 @section('content')
     @php
         $query = fn (array $extra = []) => array_filter([
-            'when' => $extra['when'] ?? request('when', 'all'),
+            'when' => $extra['when'] ?? ($when ?? 'today'),
             'q' => $extra['q'] ?? request('q'),
             'league' => $extra['league'] ?? request('league'),
             'market' => $extra['market'] ?? request('market', 'result'),
@@ -25,7 +25,7 @@
             @include('site.sport._sports', ['variant' => 'chips'])
             <form class="flex flex-col gap-3" method="GET">
                 <input type="hidden" name="market" value="{{ $market }}">
-                <input type="hidden" name="when" value="{{ request('when', 'all') }}">
+                <input type="hidden" name="when" value="{{ $when }}">
                 @if (request()->filled('league'))
                     <input type="hidden" name="league" value="{{ request('league') }}">
                 @endif
@@ -36,12 +36,12 @@
                         <input class="min-w-0 flex-1 bg-transparent text-sm text-[#E8ECF3] outline-none" name="q" value="{{ request('q') }}" placeholder="{{ __('sport.search') }}">
                     </label>
                     @foreach (['all' => __('sport.all'), 'today' => __('sport.today'), 'tomorrow' => __('sport.tomorrow'), '3h' => __('sport.hours')] as $key => $label)
-                        <a class="inline-flex h-11 items-center rounded-[10px] px-4 text-[13px] {{ request('when', 'all') === $key ? 'bg-[#E8ECF3] font-bold text-[#0E1117]' : 'border border-[#232B39] bg-[#151A23] font-semibold text-[#C9D1DD]' }}" href="{{ route('site.sport', $query(['when' => $key])) }}">{{ $label }}</a>
+                        <a class="inline-flex h-11 items-center rounded-[10px] px-4 text-[13px] {{ $when === $key ? 'bg-[#E8ECF3] font-bold text-[#0E1117]' : 'border border-[#232B39] bg-[#151A23] font-semibold text-[#C9D1DD]' }}" href="{{ route('site.sport', $query(['when' => $key])) }}">{{ $label }}</a>
                     @endforeach
                 </div>
                 <div class="flex gap-5 border-b border-[#1D2430] md:hidden">
                     @foreach (['today' => __('sport.today'), 'tomorrow' => __('sport.tomorrow'), '3h' => __('sport.hours'), 'all' => __('sport.all')] as $key => $label)
-                        <a class="py-2.5 text-[13px] {{ request('when', 'all') === $key ? 'sport-tab-on font-bold text-white' : 'font-semibold text-[#9AA4B5]' }}" href="{{ route('site.sport', $query(['when' => $key])) }}">{{ $label }}</a>
+                        <a class="py-2.5 text-[13px] {{ $when === $key ? 'sport-tab-on font-bold text-white' : 'font-semibold text-[#9AA4B5]' }}" href="{{ route('site.sport', $query(['when' => $key])) }}">{{ $label }}</a>
                     @endforeach
                 </div>
             </form>

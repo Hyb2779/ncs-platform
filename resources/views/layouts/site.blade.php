@@ -17,32 +17,34 @@
             <nav class="hidden flex-1 items-center gap-1 text-sm md:flex" aria-label="{{ __('site.sport') }}">
                 @foreach ([
                     ['route' => 'site.sport', 'match' => 'site.sport*', 'label' => __('site.sport')],
-                    ['route' => 'site.live', 'match' => 'site.live', 'label' => __('site.live')],
+                    ['route' => 'site.live', 'match' => 'site.live', 'label' => __('site.live'), 'badge' => 'live'],
                     ['route' => 'site.slots', 'match' => 'site.slots', 'label' => __('site.slots')],
                     ['route' => 'site.live', 'match' => 'site.live', 'label' => __('site.live_casino')],
                     ['route' => 'site.sport', 'match' => 'site.results', 'label' => __('site.results')],
                 ] as $item)
                     <a class="inline-flex items-center gap-2 rounded-lg px-4 py-2.5 font-semibold {{ request()->routeIs($item['match']) ? 'bg-[#1E2533] font-bold text-white' : 'text-[#B7C0CE]' }}" href="{{ route($item['route']) }}">
                         {{ $item['label'] }}
-                        @if ($item['route'] === 'site.live' && ($liveCount ?? 0) > 0)
+                        @if (($item['badge'] ?? null) === 'live' && ($liveCount ?? 0) > 0)
                             <span class="rounded bg-[#C9303A] px-1.5 py-0.5 text-[11px] font-extrabold text-white">{{ $liveCount }}</span>
                         @endif
                     </a>
                 @endforeach
             </nav>
             <div class="ms-auto flex items-center gap-2 md:gap-3">
-                <div class="relative" x-data="{ open: false }">
-                    <button class="inline-flex h-9 items-center gap-2 rounded-lg border border-[#2A3342] px-2.5 text-xs font-bold md:h-10 md:px-3 md:text-[13px] md:font-semibold" type="button" aria-label="{{ __('site.language') }}" @click="open = !open">
-                        <svg class="hidden h-4 w-4 md:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"></path></svg>
-                        <span class="md:hidden">{{ strtoupper(app()->getLocale()) }}</span>
-                        <span class="hidden md:inline">{{ __('panel.languages.'.app()->getLocale()) }}</span>
-                    </button>
-                    <div class="absolute end-0 z-30 mt-2 min-w-36 rounded-lg border border-[#232B39] bg-[#151A23] py-1 text-sm" x-show="open" x-cloak @click.outside="open = false" style="display: none;">
-                        @foreach (['tr', 'en', 'de', 'ar'] as $locale)
-                            <a class="block px-3 py-2 {{ app()->getLocale() === $locale ? 'text-white' : 'text-[#C9D1DD]' }}" href="{{ request()->fullUrlWithQuery(['lang' => $locale]) }}">{{ __('panel.languages.'.$locale) }}</a>
-                        @endforeach
+                @guest
+                    <div class="relative" x-data="{ open: false }">
+                        <button class="inline-flex h-9 items-center gap-2 rounded-lg border border-[#2A3342] px-2.5 text-xs font-bold md:h-10 md:px-3 md:text-[13px] md:font-semibold" type="button" aria-label="{{ __('site.language') }}" @click="open = !open">
+                            <svg class="hidden h-4 w-4 md:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"></path></svg>
+                            <span class="md:hidden">{{ strtoupper(app()->getLocale()) }}</span>
+                            <span class="hidden md:inline">{{ __('panel.languages.'.app()->getLocale()) }}</span>
+                        </button>
+                        <div class="absolute end-0 z-30 mt-2 min-w-36 rounded-lg border border-[#232B39] bg-[#151A23] py-1 text-sm" x-show="open" x-cloak @click.outside="open = false" style="display: none;">
+                            @foreach (['tr', 'en', 'de', 'ar'] as $locale)
+                                <a class="block px-3 py-2 {{ app()->getLocale() === $locale ? 'text-white' : 'text-[#C9D1DD]' }}" href="{{ request()->fullUrlWithQuery(['lang' => $locale]) }}">{{ __('panel.languages.'.$locale) }}</a>
+                            @endforeach
+                        </div>
                     </div>
-                </div>
+                @endguest
                 @auth
                     <div class="flex items-center rounded-lg bg-[#1E2533] px-3 py-1.5 md:bg-transparent md:px-1">
                         <div class="flex flex-col items-end">

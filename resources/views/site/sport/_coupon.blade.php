@@ -14,7 +14,7 @@
         <div class="px-2 pt-2">
             <div class="flex gap-2.5 rounded-[10px] bg-[#1A2029] p-3">
                 <div class="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <p class="truncate text-[13px] font-bold">{{ $row['odd']->fixture->home->name }} - {{ $row['odd']->fixture->away->name }}</p>
+                    <p class="truncate text-[13px] font-bold" title="{{ $row['odd']->fixture->home->name }} - {{ $row['odd']->fixture->away->name }}">{{ $row['odd']->fixture->home->name }} - {{ $row['odd']->fixture->away->name }}</p>
                     <p class="text-xs text-[#9AA4B5]">{{ __($row['odd']->market->name_key) }}: <span class="font-bold text-[#E8ECF3]">{{ __('sport.outcomes.'.$row['odd']->outcome) }}</span></p>
                 </div>
                 <div class="flex flex-col items-end gap-1">
@@ -63,7 +63,7 @@
             </div>
             <div class="flex min-w-0 flex-1 flex-col gap-0.5 rounded-lg bg-[#13261D] px-3 py-2.5">
                 <p class="text-[11px] font-bold text-[#8FD9B3]">{{ __('sport.coupon.payout') }}</p>
-                <p class="js-payout font-numeric text-[22px] font-bold text-[#3DD68C]">{{ $coupon['payout'] }} {{ $coupon['currency'] }}</p>
+                <p class="js-payout font-numeric text-[22px] font-bold text-[#3DD68C]">{{ $coupon['payout'] }}</p>
             </div>
         </div>
     </form>
@@ -77,18 +77,6 @@
             const stake = root.querySelector('.js-stake');
             const paint = () => {
                 if (! stake) return;
-                const odds = [...root.querySelectorAll('[data-selection-odd]')].map((node) => Number(node.dataset.selectionOdd));
-                const amount = Number(stake.value) || 0;
-                const total = root.dataset.mode === 'single'
-                    ? odds.reduce((sum, odd) => sum + odd, 0)
-                    : odds.reduce((product, odd) => product * odd, odds.length ? 1 : 0);
-                const payout = root.dataset.mode === 'single'
-                    ? odds.reduce((sum, odd) => sum + (amount * odd), 0)
-                    : amount * total;
-                const totalNode = root.querySelector('.js-total');
-                const payoutNode = root.querySelector('.js-payout');
-                if (totalNode) totalNode.textContent = total.toFixed(2);
-                if (payoutNode) payoutNode.textContent = payout.toFixed(2) + ' ' + root.dataset.currency;
                 root.querySelectorAll('.js-quick').forEach((button) => {
                     const on = button.dataset.amount === stake.value;
                     button.classList.toggle('bg-[var(--accent)]', on);
@@ -106,7 +94,14 @@
                 body.set('stake', stake.value);
                 body.set('mode', root.dataset.mode);
                 if (root.querySelector('.js-accept')?.checked) body.set('accept', '1');
-                fetch(form.action, { method: 'POST', body, headers: { Accept: 'application/json' } });
+                fetch(form.action, { method: 'POST', body, headers: { Accept: 'application/json' } })
+                    .then((response) => response.json())
+                    .then((data) => {
+                        const totalNode = root.querySelector('.js-total');
+                        const payoutNode = root.querySelector('.js-payout');
+                        if (totalNode && data.total) totalNode.textContent = data.total;
+                        if (payoutNode && data.payout) payoutNode.textContent = data.payout;
+                    });
             };
             stake?.addEventListener('input', () => { paint(); persist(); });
             root.querySelectorAll('.js-quick').forEach((button) => button.addEventListener('click', () => {

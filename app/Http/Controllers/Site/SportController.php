@@ -2,12 +2,17 @@
 
 namespace App\Http\Controllers\Site;
 
+use App\Enums\Currency;
 use App\Http\Controllers\Controller;
 use App\Models\SportFixture;
 use App\Models\SportLeague;
 use App\Models\SportOdd;
 use App\Services\Sport\CouponBook;
+use App\Services\Sport\CouponCalculator;
 use App\Services\Sport\MarginEngine;
+use App\Support\Money;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -16,20 +21,22 @@ class SportController extends Controller
 {
     public function index(Request $request): View
     {
-        $filter = (string) $request->query('when', 'all');
-        $query = SportFixture::query()
-            ->with(['league.country', 'home', 'away', 'odds.market'])
-            ->whereHas('league', fn ($q) => $q->where('is_active', true))
-            ->whereHas('odds')
-            ->where('starts_at', '>=', now()->utc()->startOfDay())
-            ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
-            ->orderBy('starts_at');
+        $when = (string) $request->query('when', '');
+        if (! in_array($when, ['all', 'today', 'tomorrow', '3h'], true)) {
+            $when = 'today';
+        }
 
-        if ($filter === 'today') {
+        $query = $this->bulletinQuery();
+
+        if ($when === 'today' && ! $request->has('when') && ! (clone $query)->whereBetween('starts_at', [now()->utc()->startOfDay(), now()->utc()->endOfDay()])->exists()) {
+            $when = 'all';
+        }
+
+        if ($when === 'today') {
             $query->whereBetween('starts_at', [now()->utc()->startOfDay(), now()->utc()->endOfDay()]);
-        } elseif ($filter === 'tomorrow') {
+        } elseif ($when === 'tomorrow') {
             $query->whereBetween('starts_at', [now()->utc()->addDay()->startOfDay(), now()->utc()->addDay()->endOfDay()]);
-        } elseif ($filter === '3h') {
+        } elseif ($when === '3h') {
             $query->whereBetween('starts_at', [now(), now()->addHours(3)]);
         }
 
@@ -52,6 +59,7 @@ class SportController extends Controller
             'fixtures' => $query->limit(200)->get()->groupBy('league_id'),
             ...$this->sportFrame($request),
             'market' => $market,
+            'when' => $when,
             'columns' => $this->bulletinColumns($market),
             'cardColumns' => $this->cardColumns($market),
         ]);
@@ -76,9 +84,18 @@ class SportController extends Controller
         return back();
     }
 
-    public function update(Request $request, CouponBook $coupon): RedirectResponse
+    public function update(Request $request, CouponBook $coupon): RedirectResponse|JsonResponse
     {
         $coupon->update((string) $request->input('stake', ''), $request->boolean('accept'), (string) $request->input('mode', 'combo'));
+
+        if ($request->expectsJson()) {
+            $view = $this->couponView($request);
+
+            return response()->json([
+                'total' => $view['total'],
+                'payout' => $view['payout'],
+            ]);
+        }
 
         return back();
     }
@@ -108,7 +125,6 @@ class SportController extends Controller
         $superadminId = $request->user()?->superadmin_id;
         $margins = app(MarginEngine::class);
         $rows = [];
-        $total = '1.00';
         $warnings = [];
 
         foreach ($coupon['selections'] as $selection) {
@@ -122,23 +138,25 @@ class SportController extends Controller
             } elseif (bccomp($shown, (string) $selection['shown'], 2) !== 0) {
                 $warnings[] = 'changed';
             }
-            $total = bcmul($total, $shown, 2);
             $rows[] = ['odd' => $odd, 'shown' => $shown, 'saved' => $selection['shown']];
         }
 
-        $stake = is_numeric($coupon['stake']) ? bcadd((string) $coupon['stake'], '0', 2) : '0.00';
-        $currency = $request->user()?->currency->value ?? 'TRY';
+        $stake = is_numeric($coupon['stake']) ? (string) $coupon['stake'] : '0';
+        $currency = $request->user()?->currency ?? Currency::Try;
+        $prices = array_column($rows, 'shown');
+        $calculator = app(CouponCalculator::class);
+        $total = $calculator->total($coupon['mode'], $prices);
 
         return [
             'rows' => $rows,
             'stake' => $coupon['stake'],
             'accept' => $coupon['accept'],
             'mode' => $coupon['mode'],
-            'total' => $rows === [] ? '0.00' : $total,
-            'payout' => bcmul($stake, $rows === [] ? '0' : $total, 2),
+            'total' => $total,
+            'payout' => Money::format($calculator->payout($coupon['mode'], $stake, $prices), $currency),
             'warnings' => array_unique($warnings),
-            'currency' => $currency,
-            'quick' => $currency === 'TRY' ? [50, 100, 250, 500, 1000] : [10, 25, 50, 100, 250],
+            'currency' => $currency->value,
+            'quick' => $currency === Currency::Try ? [50, 100, 250, 500, 1000] : [10, 25, 50, 100, 250],
         ];
     }
 
@@ -162,7 +180,11 @@ class SportController extends Controller
                 $query->where('starts_at', '>=', now()->utc()->startOfDay())
                     ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
                     ->whereHas('odds');
-            }])->where('is_active', true)->orderByDesc('is_featured')->orderBy('sort_order')->get(),
+            }])->where('is_active', true)->whereHas('fixtures', function ($query): void {
+                $query->where('starts_at', '>=', now()->utc()->startOfDay())
+                    ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
+                    ->whereHas('odds');
+            })->orderByDesc('is_featured')->orderBy('sort_order')->get(),
             'footballCount' => SportFixture::query()
                 ->whereHas('league', fn ($q) => $q->where('is_active', true))
                 ->whereHas('odds')
@@ -170,6 +192,17 @@ class SportController extends Controller
                 ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
                 ->count(),
         ];
+    }
+
+    private function bulletinQuery(): Builder
+    {
+        return SportFixture::query()
+            ->with(['league.country', 'home', 'away', 'odds.market'])
+            ->whereHas('league', fn ($q) => $q->where('is_active', true))
+            ->whereHas('odds')
+            ->where('starts_at', '>=', now()->utc()->startOfDay())
+            ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
+            ->orderBy('starts_at');
     }
 
     private function marketFilter(Request $request): string

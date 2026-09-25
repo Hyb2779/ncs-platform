@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\Currency;
 use App\Models\SportCountry;
 use App\Models\SportFixture;
 use App\Models\SportLeague;
@@ -9,10 +10,12 @@ use App\Models\SportMargin;
 use App\Models\SportMarket;
 use App\Models\SportOdd;
 use App\Models\SportTeam;
+use App\Services\Sport\CouponCalculator;
 use App\Services\Sport\FootballBudget;
 use App\Services\Sport\MarginEngine;
 use App\Services\Sport\OddsMapper;
 use App\Services\Sport\SportSync;
+use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Tests\TestCase;
@@ -130,6 +133,43 @@ class SportTest extends TestCase
         $this->assertSame('1.57', $selection['shown']);
     }
 
+    public function test_combo_payout_uses_the_rounded_total_odd(): void
+    {
+        $calculator = app(CouponCalculator::class);
+
+        $this->assertSame('2.64', $calculator->total('combo', ['1.44', '1.83']));
+        $this->assertSame('264.00', $calculator->payout('combo', '100', ['1.44', '1.83']));
+        $this->assertSame('327.00', $calculator->payout('single', '100', ['1.44', '1.83']));
+
+        $first = $this->pricedFixture('1.44');
+        $second = $this->pricedFixture('1.83');
+        $this->post('/sport/odds/'.$first->id);
+        $this->post('/sport/odds/'.$second->id);
+        $this->post('/sport/coupon', ['stake' => '100', 'mode' => 'combo']);
+
+        $this->get('/sport?lang=tr')
+            ->assertOk()
+            ->assertSee('2.64', false)
+            ->assertSee(Money::format('264.00', Currency::Try), false);
+    }
+
+    public function test_empty_today_bulletin_falls_back_to_all_and_hides_empty_leagues(): void
+    {
+        $visible = $this->fixture();
+        $market = SportMarket::query()->where('code', '1X2')->first();
+        SportOdd::query()->create([
+            'fixture_id' => $visible->id, 'market_id' => $market->id, 'outcome' => 'home', 'raw_odd' => '1.50', 'shown_odd' => '1.50',
+        ]);
+        $empty = SportLeague::query()->create([
+            'api_id' => random_int(1000, 9999), 'country_id' => $visible->league->country_id, 'name' => 'Empty League', 'season' => 2026, 'is_active' => true,
+        ]);
+
+        $page = $this->get('/sport')->assertOk();
+        $page->assertSee($visible->league->name, false);
+        $page->assertDontSee($empty->name, false);
+        $page->assertSee('title="'.$visible->home->name.' – '.$visible->away->name.'"', false);
+    }
+
     public function test_second_selection_from_the_same_match_replaces_the_first(): void
     {
         $fixture = $this->fixture();
@@ -146,6 +186,16 @@ class SportTest extends TestCase
         $coupon = session('sport.coupon');
         $this->assertCount(1, $coupon['selections']);
         $this->assertSame($draw->id, $coupon['selections'][0]['odd_id']);
+    }
+
+    private function pricedFixture(string $price): SportOdd
+    {
+        $fixture = $this->fixture();
+        $market = SportMarket::query()->where('code', '1X2')->first();
+
+        return SportOdd::query()->create([
+            'fixture_id' => $fixture->id, 'market_id' => $market->id, 'outcome' => 'home', 'raw_odd' => $price, 'shown_odd' => $price,
+        ]);
     }
 
     private function fixture(): SportFixture

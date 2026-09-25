@@ -4,9 +4,9 @@
         @foreach ($liveFixtures as $live)
             <a class="flex shrink-0 items-center gap-2 whitespace-nowrap rounded-md bg-[#151A23] px-3 py-1.5 text-[13px]" href="{{ route('site.sport.show', $live) }}">
                 <span class="text-xs font-extrabold text-[var(--accent)]">{{ $live->status }}</span>
-                <span class="text-[#C9D1DD]">{{ $live->home->name }}</span>
+                <span class="max-w-40 truncate text-[#C9D1DD]" title="{{ $live->home->name }}">{{ $live->home->name }}</span>
                 <span class="font-numeric text-base font-bold text-white">{{ $live->score_home ?? '0' }} : {{ $live->score_away ?? '0' }}</span>
-                <span class="text-[#C9D1DD]">{{ $live->away->name }}</span>
+                <span class="max-w-40 truncate text-[#C9D1DD]" title="{{ $live->away->name }}">{{ $live->away->name }}</span>
             </a>
         @endforeach
     </div>
