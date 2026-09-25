@@ -12,3 +12,9 @@ Schedule::command('wallet:verify')
     ->dailyAt('03:30')
     ->timezone('UTC')
     ->appendOutputTo(storage_path('logs/wallet-verify.log'));
+
+Schedule::command('sport:sync-leagues')->dailyAt('04:00')->timezone('UTC');
+Schedule::command('sport:sync-fixtures')->everyThreeHours();
+Schedule::command('sport:sync-odds')->everyThreeHours();
+Schedule::command('sport:sync-odds --soon')->everyThirtyMinutes();
+Schedule::command('sport:sync-results')->everyTenMinutes();
