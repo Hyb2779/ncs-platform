@@ -22,3 +22,26 @@ window.makeUuid = function makeUuid() {
 };
 
 Alpine.start();
+
+const balanceNode = document.querySelector('[data-balance]');
+const balanceUrl = document.body?.dataset.balanceUrl;
+
+async function refreshBalance() {
+    if (!balanceNode || !balanceUrl) {
+        return;
+    }
+
+    const response = await fetch(balanceUrl, { headers: { Accept: 'application/json' } });
+
+    if (!response.ok) {
+        return;
+    }
+
+    const payload = await response.json();
+    balanceNode.textContent = payload.balance;
+}
+
+if (balanceUrl) {
+    setInterval(refreshBalance, 30000);
+    window.addEventListener('focus', refreshBalance);
+}
