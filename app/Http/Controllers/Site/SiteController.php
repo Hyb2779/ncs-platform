@@ -39,11 +39,6 @@ class SiteController extends Controller
         return view('site.lobby', $this->lobby($request, true));
     }
 
-    public function sport(): View
-    {
-        return view('site.sport');
-    }
-
     public function account(Request $request): View
     {
         $user = $request->user();
