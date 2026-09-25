@@ -1,7 +1,6 @@
 <?php
 
 return [
-    'brand' => 'Winox',
     'sport' => 'رياضة',
     'live' => 'مباشر',
     'slots' => 'سلوت',

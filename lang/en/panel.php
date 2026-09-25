@@ -2,7 +2,6 @@
 
 return [
     'title' => 'Administration',
-    'brand' => 'Platform',
     'badge' => 'ADMIN',
     'menu_general' => 'GENERAL',
     'menu_network' => 'NETWORK',

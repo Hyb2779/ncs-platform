@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('heading', __('site.brand'))</title>
+    <title>@yield('heading', brand()->name())</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Cairo:wght@400;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
 <body class="min-h-screen bg-[#0E1117] pb-20 font-sans text-[#E8ECF3] md:pb-0" @auth data-balance-url="{{ route('site.balance') }}" @endauth>
     <header class="sticky top-0 z-20 border-b border-[#232B39] bg-[#151A23]">
         <div class="mx-auto flex h-16 max-w-6xl items-center justify-between gap-4 px-4">
-            <a class="text-lg font-semibold" href="{{ route('site.home') }}">{{ __('site.brand') }}</a>
+            <a class="text-lg font-semibold" href="{{ route('site.home') }}">{{ brand()->name() }}</a>
             <nav class="hidden items-center gap-4 text-sm text-[#9AA4B5] md:flex">
                 <a href="{{ route('site.sport') }}">{{ __('site.sport') }}</a>
                 <a href="{{ route('site.live') }}">{{ __('site.live') }}</a>
@@ -31,7 +31,7 @@
             </div>
         </div>
     </header>
-    <main class="mx-auto max-w-6xl px-4 py-6">
+    <main class="@yield('mainClass', 'mx-auto max-w-6xl px-4 py-6')">
         @if (session('status'))
             <p class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</p>
         @endif

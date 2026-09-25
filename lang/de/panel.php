@@ -2,7 +2,6 @@
 
 return [
     'title' => 'Verwaltung',
-    'brand' => 'Plattform',
     'badge' => 'VERWALTUNG',
     'menu_general' => 'ALLGEMEIN',
     'menu_network' => 'NETZ',

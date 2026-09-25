@@ -2,7 +2,6 @@
 
 return [
     'title' => 'الإدارة',
-    'brand' => 'المنصة',
     'badge' => 'الإدارة',
     'menu_general' => 'عام',
     'menu_network' => 'الشبكة',

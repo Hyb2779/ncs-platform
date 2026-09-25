@@ -3,7 +3,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>@yield('heading', __('panel.title')) — {{ __('panel.brand') }}</title>
+    <title>@yield('heading', __('panel.title')) — {{ brand()->name() }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600&family=Cairo:wght@400;600;700&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -13,7 +13,7 @@
     <div class="fixed inset-0 z-20 bg-slate-900/40 md:hidden" x-show="open" x-cloak @click="open = false"></div>
     <aside class="fixed inset-y-0 start-0 z-30 flex w-64 flex-col border-e border-[#E3E6EB] bg-white" :class="open ? 'flex' : 'hidden md:flex'">
         <div class="flex items-center justify-between px-4 py-5">
-            <p class="text-base font-semibold">{{ __('panel.brand') }}</p>
+            <p class="text-base font-semibold">{{ brand()->name() }}</p>
             <span class="rounded-lg bg-[#F3F4F6] px-2 py-1 text-[11px] font-semibold tracking-wide text-slate-500">{{ __('panel.badge') }}</span>
         </div>
         <div class="mx-3 rounded-lg bg-[#F3F4F6] px-3 py-3 text-start">

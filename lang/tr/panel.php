@@ -2,7 +2,6 @@
 
 return [
     'title' => 'Yönetim',
-    'brand' => 'Platform',
     'badge' => 'YÖNETİM',
     'menu_general' => 'GENEL',
     'menu_network' => 'AĞ',
