@@ -20,26 +20,23 @@
         </select>
         <button class="inline-flex h-10 items-center rounded-lg border border-[#E3E6EB] bg-white px-3 text-sm" type="submit">{{ __('panel.filter') }}</button>
     </form>
-    <div class="mb-4 grid gap-3 md:grid-cols-3">
-        @forelse ($totals as $total)
-            <article class="rounded-lg bg-white p-4 text-start">
-                <p class="text-sm text-slate-500">{{ __('wallet.added') }}</p>
-                <p class="font-numeric text-lg">{{ $total['added'] }}</p>
-            </article>
-            <article class="rounded-lg bg-white p-4 text-start">
-                <p class="text-sm text-slate-500">{{ __('wallet.removed') }}</p>
-                <p class="font-numeric text-lg">{{ $total['removed'] }}</p>
-            </article>
-            <article class="rounded-lg bg-white p-4 text-start">
-                <p class="text-sm text-slate-500">{{ __('wallet.difference') }}</p>
-                <p class="font-numeric text-lg">{{ $total['difference'] }}</p>
-            </article>
-        @empty
-            <article class="rounded-lg bg-white p-4 text-start">
-                <p class="text-sm text-slate-500">{{ __('wallet.difference') }}</p>
-                <p class="font-numeric text-lg">{{ __('panel.empty_value') }}</p>
-            </article>
-        @endforelse
+    <div class="mb-4 grid gap-3">
+        @foreach ($totals as $total)
+            <div class="flex gap-3">
+                <article class="flex-1 rounded-lg bg-white p-4 text-start">
+                    <p class="text-sm text-slate-500">{{ __('wallet.added') }}</p>
+                    <p class="font-numeric text-lg">{{ $total['added'] }}</p>
+                </article>
+                <article class="flex-1 rounded-lg bg-white p-4 text-start">
+                    <p class="text-sm text-slate-500">{{ __('wallet.removed') }}</p>
+                    <p class="font-numeric text-lg">{{ $total['removed'] }}</p>
+                </article>
+                <article class="flex-1 rounded-lg bg-white p-4 text-start">
+                    <p class="text-sm text-slate-500">{{ __('wallet.difference') }}</p>
+                    <p class="font-numeric text-lg">{{ $total['difference'] }}</p>
+                </article>
+            </div>
+        @endforeach
     </div>
     <div class="hidden overflow-x-auto rounded-lg bg-white md:block">
         <table class="w-full text-sm">
@@ -60,7 +57,12 @@
                         <td class="px-3 py-2 text-start">{{ $row['when'] }}</td>
                         <td class="px-3 py-2 text-start">{{ $row['actor'] }} › {{ $row['user'] }}</td>
                         <td class="px-3 py-2 text-end font-numeric">{{ $row['before'] }}</td>
-                        <td class="px-3 py-2 text-end font-numeric">{{ $row['amount'] }}</td>
+                        <td class="px-3 py-2 text-end font-numeric">
+                            @if ($row['movement'])
+                                <span>{{ $row['movement'] }}</span>
+                            @endif
+                            {{ $row['amount'] }}
+                        </td>
                         <td class="px-3 py-2 text-end font-numeric">{{ $row['after'] }}</td>
                         <td class="px-3 py-2 text-start">{{ $row['note'] }}</td>
                         <td class="px-3 py-2 text-start">{{ $row['ip'] }}</td>
@@ -76,7 +78,12 @@
             <article class="rounded-md bg-white p-3 text-start">
                 <p>{{ $row['when'] }}</p>
                 <p>{{ $row['actor'] }} › {{ $row['user'] }}</p>
-                <p class="font-numeric">{{ $row['before'] }} → {{ $row['amount'] }} → {{ $row['after'] }}</p>
+                <p class="font-numeric">
+                    @if ($row['movement'])
+                        <span>{{ $row['movement'] }}</span>
+                    @endif
+                    {{ $row['before'] }} → {{ $row['amount'] }} → {{ $row['after'] }}
+                </p>
                 <p>{{ $row['note'] }}</p>
                 <p>{{ $row['ip'] }}</p>
             </article>

@@ -2,6 +2,9 @@
 
 return [
     'menu' => 'حركات الحساب',
+    'distributed_credit' => 'الرصيد الموزع',
+    'given' => 'مُنح',
+    'taken_back' => 'مسترد',
     'mint_menu' => 'إصدار رصيد',
     'balance' => 'الرصيد',
     'adjust' => 'إضافة / سحب رصيد',
@@ -48,6 +51,7 @@ return [
         'amount_invalid' => 'يجب أن يكون المبلغ أكبر من صفر وبحد أقصى منزلتين عشريتين.',
         'direction_required' => 'الاتجاه مطلوب.',
         'currency_required' => 'العملة مطلوبة.',
+        'idempotency_required' => 'مفتاح العملية مطلوب.',
         'note_max' => 'الوصف بحد أقصى 2000 حرف.',
     ],
     'errors' => [

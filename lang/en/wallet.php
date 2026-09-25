@@ -2,6 +2,9 @@
 
 return [
     'menu' => 'Account movements',
+    'distributed_credit' => 'Distributed credit',
+    'given' => 'Given',
+    'taken_back' => 'Taken back',
     'mint_menu' => 'Mint credit',
     'balance' => 'Balance',
     'adjust' => 'Add / remove balance',
@@ -48,6 +51,7 @@ return [
         'amount_invalid' => 'Amount must be greater than zero and have at most two decimals.',
         'direction_required' => 'Direction is required.',
         'currency_required' => 'Currency is required.',
+        'idempotency_required' => 'A transaction key is required.',
         'note_max' => 'Description may be at most 2000 characters.',
     ],
     'errors' => [

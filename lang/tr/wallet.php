@@ -2,6 +2,9 @@
 
 return [
     'menu' => 'Hesap hareketleri',
+    'distributed_credit' => 'Dağıtılan kredi',
+    'given' => 'Verilen',
+    'taken_back' => 'Geri alınan',
     'mint_menu' => 'Kredi üret',
     'balance' => 'Bakiye',
     'adjust' => 'Bakiye ekle / çıkar',
@@ -48,6 +51,7 @@ return [
         'amount_invalid' => 'Tutar sıfırdan büyük olmalı ve en fazla iki ondalık içermeli.',
         'direction_required' => 'İşlem yönü gerekli.',
         'currency_required' => 'Para birimi gerekli.',
+        'idempotency_required' => 'İşlem anahtarı gerekli.',
         'note_max' => 'Açıklama en fazla 2000 karakter olabilir.',
     ],
     'errors' => [

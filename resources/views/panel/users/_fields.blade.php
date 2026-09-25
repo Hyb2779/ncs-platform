@@ -54,10 +54,3 @@
         <input class="rounded-md border border-slate-300 px-3 py-2" name="timezone" value="{{ old('timezone', 'UTC') }}">
     </label>
 @endif
-@if ($errors->any())
-    <ul class="text-sm text-red-700">
-        @foreach ($errors->all() as $error)
-            <li>{{ $error }}</li>
-        @endforeach
-    </ul>
-@endif

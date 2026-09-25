@@ -2,6 +2,9 @@
 
 return [
     'menu' => 'Kontobewegungen',
+    'distributed_credit' => 'Verteiltes Guthaben',
+    'given' => 'Vergeben',
+    'taken_back' => 'Zurückgenommen',
     'mint_menu' => 'Guthaben erzeugen',
     'balance' => 'Guthaben',
     'adjust' => 'Guthaben hinzufügen / abziehen',
@@ -48,6 +51,7 @@ return [
         'amount_invalid' => 'Der Betrag muss größer als null sein und höchstens zwei Nachkommastellen haben.',
         'direction_required' => 'Richtung ist erforderlich.',
         'currency_required' => 'Währung ist erforderlich.',
+        'idempotency_required' => 'Ein Vorgangsschlüssel ist erforderlich.',
         'note_max' => 'Die Beschreibung darf höchstens 2000 Zeichen haben.',
     ],
     'errors' => [

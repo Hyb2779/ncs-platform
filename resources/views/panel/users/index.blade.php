@@ -3,7 +3,7 @@
 @section('heading', __('panel.users'))
 
 @section('content')
-<div x-data="{ open: false, target: '', direction: 'add', key: '' }">
+<div x-data="{ open: false, target: '', direction: 'add', key: makeUuid() }">
     @if (count($breadcrumb) > 1)
         <nav class="mb-4 flex flex-wrap gap-2 text-sm text-start">
             @foreach ($breadcrumb as $crumb)
@@ -60,7 +60,7 @@
                         <td class="px-3 py-2 text-start">
                             <a href="{{ route('panel.users.edit', $user) }}">{{ __('panel.edit') }}</a>
                             @if ($user->parent_id === auth()->id())
-                                <button class="ms-2" type="button" @click="open = true; target = {{ $user->id }}; key = crypto.randomUUID()">{{ __('wallet.adjust') }}</button>
+                                <button class="ms-2" type="button" @click="open = true; target = {{ $user->id }}; key = makeUuid()">{{ __('wallet.adjust') }}</button>
                             @endif
                         </td>
                     </tr>
@@ -82,7 +82,7 @@
                 <p class="text-sm font-numeric">{{ __('wallet.balance') }}: {{ $user->wallets->firstWhere('currency', $user->currency)?->formattedBalance() }}</p>
                 <a class="text-sm" href="{{ route('panel.users.edit', $user) }}">{{ __('panel.edit') }}</a>
                 @if ($user->parent_id === auth()->id())
-                    <button class="ms-2 text-sm" type="button" @click="open = true; target = {{ $user->id }}; key = crypto.randomUUID()">{{ __('wallet.adjust') }}</button>
+                    <button class="ms-2 text-sm" type="button" @click="open = true; target = {{ $user->id }}; key = makeUuid()">{{ __('wallet.adjust') }}</button>
                 @endif
             </article>
         @empty
@@ -92,7 +92,7 @@
     <div class="fixed inset-0 z-40 flex items-center justify-center bg-slate-900/40 p-4" x-show="open" x-cloak>
         <form class="w-full max-w-md rounded-lg bg-white p-4 text-start" method="POST" :action="'{{ url('/panel/users') }}/' + target + '/balance'">
             @csrf
-            <input type="hidden" name="idempotency_key" :value="key">
+            <input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}" :value="key">
             <h2 class="mb-3 text-base font-semibold">{{ __('wallet.adjust') }}</h2>
             <label class="mb-2 block text-sm">{{ __('wallet.direction') }}
                 <select class="mt-1 w-full rounded-md border border-[#E3E6EB] px-3 py-2" name="direction" x-model="direction">
