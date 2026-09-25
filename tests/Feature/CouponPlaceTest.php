@@ -173,6 +173,142 @@ class CouponPlaceTest extends TestCase
         $this->artisan('wallet:verify')->assertOk();
     }
 
+    public function test_started_match_is_rejected(): void
+    {
+        [$user] = $this->player('40.00');
+        $odd = $this->odd('1.80');
+        $odd->fixture->update(['status' => '1H', 'starts_at' => now()->subHour()]);
+        $this->actingAs($user)->post('/sport/odds/'.$odd->id);
+
+        app()->setLocale('tr');
+        $this->place('10', 'single')->assertSessionHasErrors(['coupon' => __('sport.errors.started')]);
+        $this->assertSame(0, Coupon::query()->count());
+    }
+
+    public function test_suspended_odd_is_rejected(): void
+    {
+        [$user] = $this->player('40.00');
+        $odd = $this->odd('1.70');
+        $this->actingAs($user)->post('/sport/odds/'.$odd->id);
+        $odd->update(['suspended' => true]);
+
+        app()->setLocale('tr');
+        $this->place('10', 'single')->assertSessionHasErrors(['coupon' => __('sport.errors.suspended')]);
+        $this->assertSame(0, Coupon::query()->count());
+    }
+
+    public function test_changed_odds_are_rejected_when_accept_is_off(): void
+    {
+        [$user] = $this->player('40.00');
+        $odd = $this->odd('1.50');
+        $this->actingAs($user)->post('/sport/odds/'.$odd->id);
+        $odd->update(['raw_odd' => '2.00', 'shown_odd' => '2.00']);
+
+        app()->setLocale('tr');
+        $this->place('10', 'single', '0')->assertSessionHasErrors(['coupon' => __('sport.errors.odds_changed')]);
+        $this->assertSame(0, Coupon::query()->count());
+    }
+
+    public function test_changed_odds_are_kept_when_accept_is_on(): void
+    {
+        [$user] = $this->player('40.00');
+        $odd = $this->odd('1.50');
+        $this->actingAs($user)->post('/sport/odds/'.$odd->id);
+        $odd->update(['raw_odd' => '2.00', 'shown_odd' => '2.00']);
+
+        $this->place('10', 'single', '1')->assertRedirect();
+
+        $this->assertSame('2.00', Coupon::query()->first()->selections()->first()->odds);
+    }
+
+    public function test_min_stake_is_rejected(): void
+    {
+        $this->assertLimitRejected(['min_stake' => '50.00'], '10', 'single', ['1.50'], 'sport.errors.min_stake', ['amount' => '50.00']);
+    }
+
+    public function test_max_stake_is_rejected(): void
+    {
+        $this->assertLimitRejected(['max_stake' => '5.00'], '10', 'single', ['1.50'], 'sport.errors.max_stake', ['amount' => '5.00']);
+    }
+
+    public function test_max_win_is_rejected(): void
+    {
+        $this->assertLimitRejected(['max_win' => '20.00'], '10', 'single', ['5.00'], 'sport.errors.max_win', ['amount' => '20.00']);
+    }
+
+    public function test_combo_min_selections_is_rejected(): void
+    {
+        $this->assertLimitRejected(['combo_min' => 2], '10', 'combo', ['1.50'], 'sport.errors.combo_min', ['count' => 2]);
+    }
+
+    public function test_combo_max_selections_is_rejected(): void
+    {
+        $this->assertLimitRejected(
+            ['combo_min' => 2, 'combo_max' => 2],
+            '10',
+            'combo',
+            ['1.50', '1.60', '1.70'],
+            'sport.errors.combo_max',
+            ['count' => 2],
+        );
+    }
+
+    public function test_min_total_odds_is_rejected(): void
+    {
+        $this->assertLimitRejected(['min_total_odds' => '3.00'], '10', 'combo', ['1.20', '1.30'], 'sport.errors.min_total', ['odd' => '3.00']);
+    }
+
+    public function test_min_single_odd_is_rejected(): void
+    {
+        $this->assertLimitRejected(['min_odd' => '2.00'], '10', 'single', ['1.40'], 'sport.errors.min_odd', ['odd' => '2.00']);
+    }
+
+    public function test_daily_stake_cap_is_rejected(): void
+    {
+        $this->assertLimitRejected(['daily_max' => '5.00'], '10', 'single', ['1.50'], 'sport.errors.daily_max', ['amount' => '5.00']);
+    }
+
+    /**
+     * @param  array<string, mixed>  $limits
+     * @param  list<string>  $prices
+     * @param  array<string, mixed>  $replace
+     */
+    private function assertLimitRejected(array $limits, string $stake, string $mode, array $prices, string $key, array $replace): void
+    {
+        [$user] = $this->player('1000.00');
+        SportLimit::query()->whereNull('superadmin_id')->update($limits);
+        $this->actingAs($user);
+        foreach ($prices as $price) {
+            $this->post('/sport/odds/'.$this->odd($price)->id);
+        }
+
+        $stored = SportLimit::query()->whereNull('superadmin_id')->first();
+        $replace = match ($key) {
+            'sport.errors.min_stake' => ['amount' => $stored->min_stake],
+            'sport.errors.max_stake' => ['amount' => $stored->max_stake],
+            'sport.errors.max_win' => ['amount' => $stored->max_win],
+            'sport.errors.combo_min' => ['count' => $stored->combo_min],
+            'sport.errors.combo_max' => ['count' => $stored->combo_max],
+            'sport.errors.min_total' => ['odd' => $stored->min_total_odds],
+            'sport.errors.min_odd' => ['odd' => $stored->min_odd],
+            'sport.errors.daily_max' => ['amount' => $stored->daily_max],
+            default => $replace,
+        };
+        app()->setLocale('tr');
+        $this->place($stake, $mode)->assertSessionHasErrors(['coupon' => __($key, $replace)]);
+        $this->assertSame(0, Coupon::query()->count());
+    }
+
+    private function place(string $stake, string $mode, string $accept = '0'): \Illuminate\Testing\TestResponse
+    {
+        return $this->post('/sport/coupon/place', [
+            'stake' => $stake,
+            'mode' => $mode,
+            'accept' => $accept,
+            'idempotency_key' => (string) Str::uuid(),
+        ]);
+    }
+
     /**
      * @return array{0: User, 1: User}
      */
