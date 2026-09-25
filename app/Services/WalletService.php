@@ -9,6 +9,7 @@ use App\Enums\WalletTransactionType;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -28,10 +29,11 @@ class WalletService
         ?User $actor = null,
         ?string $ip = null,
         ?string $id = null,
+        ?Carbon $createdAt = null,
     ): WalletTransaction {
         $this->assertAmount($amount);
 
-        return $this->apply($wallet, $amount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id);
+        return $this->apply($wallet, $amount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $createdAt);
     }
 
     public function debit(
@@ -46,10 +48,11 @@ class WalletService
         ?User $actor = null,
         ?string $ip = null,
         ?string $id = null,
+        ?Carbon $createdAt = null,
     ): WalletTransaction {
         $this->assertAmount($amount);
 
-        return $this->apply($wallet, $this->negate($amount), $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id);
+        return $this->apply($wallet, $this->negate($amount), $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $createdAt);
     }
 
     /**
@@ -182,6 +185,7 @@ class WalletService
         ?User $actor,
         ?string $ip,
         ?string $id,
+        ?Carbon $createdAt = null,
     ): WalletTransaction {
         $existing = WalletTransaction::query()->where('idempotency_key', $idempotencyKey)->first();
 
@@ -191,7 +195,7 @@ class WalletService
 
         for ($attempt = 0; $attempt < 8; $attempt++) {
             try {
-                return DB::transaction(function () use ($wallet, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id) {
+                return DB::transaction(function () use ($wallet, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $createdAt) {
                     $again = WalletTransaction::query()->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
 
                     if ($again !== null) {
@@ -200,7 +204,7 @@ class WalletService
 
                     $locked = Wallet::query()->whereKey($wallet->id)->lockForUpdate()->firstOrFail();
 
-                    return $this->write($locked, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id);
+                    return $this->write($locked, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $createdAt);
                 });
             } catch (WalletException $exception) {
                 if ($exception->translationKey !== 'wallet.conflict' || $attempt === 7) {
@@ -224,6 +228,7 @@ class WalletService
         ?User $actor,
         ?string $ip,
         ?string $id,
+        ?Carbon $createdAt = null,
     ): WalletTransaction {
         $before = $this->normalize((string) $wallet->balance);
         $amount = $this->normalize($signedAmount);
@@ -262,7 +267,7 @@ class WalletService
             'note' => $note,
             'created_by' => $actor?->id,
             'ip' => $ip,
-            'created_at' => now(),
+            'created_at' => $createdAt ?? now(),
         ]);
 
         $this->activity->write($actor, 'wallet.posted', $wallet->user, [
