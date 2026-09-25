@@ -65,7 +65,7 @@ class WalletService
         ?string $ip = null,
     ): array {
         $this->assertAmount($amount);
-        $currency = $to->currency;
+        $currency = $this->transferCurrency($from, $to);
         $fromWallet = $this->walletFor($from, $currency);
         $toWallet = $this->walletFor($to, $currency);
 
@@ -151,6 +151,23 @@ class WalletService
         }
 
         return $wallet;
+    }
+
+    private function transferCurrency(User $from, User $to): Currency
+    {
+        if ($from->role === UserRole::Owner && $to->role !== UserRole::Owner) {
+            return $to->currency;
+        }
+
+        if ($to->role === UserRole::Owner && $from->role !== UserRole::Owner) {
+            return $from->currency;
+        }
+
+        if ($from->currency !== $to->currency) {
+            throw new WalletException('wallet.currency_mismatch');
+        }
+
+        return $from->currency;
     }
 
     private function apply(

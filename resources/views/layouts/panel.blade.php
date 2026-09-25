@@ -60,10 +60,10 @@
         </header>
         <main class="p-6">
             @if (session('status'))
-                <p class="mb-4 rounded-lg bg-white px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</p>
+                <p class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</p>
             @endif
             @if ($errors->any())
-                <div class="mb-4 rounded-lg bg-white px-3 py-2 text-sm text-red-700">
+                <div class="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
                     @foreach ($errors->all() as $error)
                         <p>{{ $error }}</p>
                     @endforeach

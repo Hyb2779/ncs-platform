@@ -26,9 +26,14 @@ class DemoSeeder extends Seeder
         $trees = [
             ['username' => 'demo-tr', 'language' => 'tr', 'currency' => 'TRY', 'timezone' => 'Europe/Istanbul'],
             ['username' => 'demo-de', 'language' => 'de', 'currency' => 'EUR', 'timezone' => 'Europe/Berlin'],
+            ['username' => 'demo-us', 'language' => 'en', 'currency' => 'USD', 'timezone' => 'America/New_York'],
+            ['username' => 'demo-ar', 'language' => 'ar', 'currency' => 'USD', 'timezone' => 'Asia/Riyadh'],
         ];
 
         foreach ($trees as $index => $tree) {
+            if (User::query()->where('username', $tree['username'])->exists()) {
+                continue;
+            }
             $superadmin = $hierarchy->create($owner, [
                 'username' => $tree['username'],
                 'password' => 'password',

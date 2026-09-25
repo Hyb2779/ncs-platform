@@ -15,6 +15,7 @@ use App\Services\HierarchyService;
 use App\Services\WalletException;
 use App\Services\WalletService;
 use App\Support\Money;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Tests\TestCase;
@@ -110,6 +111,53 @@ class WalletTest extends TestCase
         $this->assertSame('-12.50', $owner->wallets()->where('currency', 'EUR')->first()->balance);
         $this->assertSame('0.00', $owner->wallets()->where('currency', 'TRY')->first()->balance);
         $this->assertSame('12.50', $eurAdmin->wallet()->first()->balance);
+    }
+
+    public function test_owner_add_and_remove_use_the_child_currency_wallet(): void
+    {
+        $owner = $this->owner('owner-fx-adjust');
+        $hierarchy = app(HierarchyService::class);
+        $eurAdmin = $hierarchy->create($owner, $this->locale('sa-eur-adj', 'EUR', 'de'));
+        $usdAdmin = $hierarchy->create($owner, $this->locale('sa-usd-adj', 'USD', 'en'));
+        Carbon::setTestNow(Carbon::parse('2026-09-25 12:00:00'));
+
+        foreach ([
+            ['user' => $eurAdmin, 'code' => 'EUR', 'add' => '44444444-4444-4444-8444-444444444401', 'remove' => '55555555-5555-4555-8555-555555555501'],
+            ['user' => $usdAdmin, 'code' => 'USD', 'add' => '44444444-4444-4444-8444-444444444402', 'remove' => '55555555-5555-4555-8555-555555555502'],
+        ] as $case) {
+            $this->actingAs($owner)
+                ->post('/panel/users/'.$case['user']->id.'/balance', [
+                    'amount' => '5000.00',
+                    'direction' => 'add',
+                    'note' => 'load',
+                    'idempotency_key' => $case['add'],
+                ])
+                ->assertRedirect()
+                ->assertSessionHasNoErrors();
+
+            Carbon::setTestNow(now()->addSecond());
+
+            $this->actingAs($owner)
+                ->post('/panel/users/'.$case['user']->id.'/balance', [
+                    'amount' => '1500.00',
+                    'direction' => 'remove',
+                    'note' => 'unload',
+                    'idempotency_key' => $case['remove'],
+                ])
+                ->assertRedirect()
+                ->assertSessionHasNoErrors();
+
+            Carbon::setTestNow(now()->addSecond());
+
+            $owner->unsetRelation('wallets');
+            $this->assertSame('-3500.00', $owner->wallets()->where('currency', $case['code'])->first()->balance);
+            $this->assertSame('3500.00', $case['user']->wallet()->first()->fresh()->balance);
+        }
+
+        $this->assertSame('0.00', $owner->wallets()->where('currency', 'TRY')->first()->balance);
+        $this->assertSame('-3500.00', $owner->wallets()->where('currency', 'EUR')->first()->balance);
+        $this->assertSame('-3500.00', $owner->wallets()->where('currency', 'USD')->first()->balance);
+        $this->artisan('wallet:verify')->assertOk();
     }
 
     public function test_transaction_update_and_delete_are_rejected_by_the_database(): void
@@ -344,7 +392,8 @@ class WalletTest extends TestCase
                 'direction' => 'add',
                 'idempotency_key' => '33333333-3333-3333-3333-333333333333',
             ])
-            ->assertSee(__('wallet.adjusted'));
+            ->assertSee(__('wallet.adjusted'))
+            ->assertSee('bg-emerald-50', false);
     }
 
     public function test_mint_routes_are_removed(): void
