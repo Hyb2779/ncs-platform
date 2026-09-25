@@ -16,7 +16,7 @@ class WalletProvisioner
             : [$user->currency];
 
         foreach ($currencies as $currency) {
-            Wallet::query()->firstOrCreate(
+            $wallet = Wallet::query()->firstOrCreate(
                 [
                     'user_id' => $user->id,
                     'currency' => $currency,
@@ -25,6 +25,10 @@ class WalletProvisioner
                     'balance' => 0,
                 ],
             );
+
+            if ($user->role === UserRole::Owner && ! $wallet->allow_negative) {
+                $wallet->forceFill(['allow_negative' => true])->save();
+            }
         }
     }
 }

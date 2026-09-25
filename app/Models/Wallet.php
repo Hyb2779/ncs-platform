@@ -21,6 +21,7 @@ class Wallet extends Model
         return [
             'currency' => Currency::class,
             'balance' => 'decimal:2',
+            'allow_negative' => 'boolean',
         ];
     }
 
@@ -37,5 +38,10 @@ class Wallet extends Model
     public function formattedBalance(): string
     {
         return Money::format((string) $this->balance, $this->currency);
+    }
+
+    public function formattedDistributedBalance(): string
+    {
+        return Money::formatAbsolute((string) $this->balance, $this->currency);
     }
 }

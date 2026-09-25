@@ -6,6 +6,17 @@ use App\Enums\Currency;
 
 class Money
 {
+    public static function formatAbsolute(string $amount, Currency $currency): string
+    {
+        $value = bcadd($amount, '0', 2);
+
+        if (bccomp($value, '0', 2) < 0) {
+            $value = bcsub('0', $value, 2);
+        }
+
+        return self::format($value, $currency);
+    }
+
     public static function format(string $amount, Currency $currency): string
     {
         $value = number_format((float) $amount, 2, '.', '');

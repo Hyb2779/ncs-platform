@@ -34,6 +34,4 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::post('/users/{user}/balance', [WalletController::class, 'adjust'])->name('wallets.adjust');
     Route::get('/transactions', [WalletController::class, 'transactions'])->name('transactions');
-    Route::get('/mint', [WalletController::class, 'mintForm'])->name('mint');
-    Route::post('/mint', [WalletController::class, 'mint'])->name('mint.store');
 });

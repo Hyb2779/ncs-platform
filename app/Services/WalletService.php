@@ -142,42 +142,6 @@ class WalletService
         });
     }
 
-    public function mint(User $owner, Currency $currency, string $amount, string $idempotencyKey, ?string $note = null, ?string $ip = null): WalletTransaction
-    {
-        if ($owner->role !== UserRole::Owner) {
-            throw new WalletException('wallet.mint_owner_only');
-        }
-
-        $this->assertAmount($amount);
-        $wallet = $this->walletFor($owner, $currency);
-        $existed = WalletTransaction::query()->where('idempotency_key', $idempotencyKey)->exists();
-
-        $transaction = $this->credit(
-            $wallet,
-            $amount,
-            WalletTransactionType::Mint,
-            WalletProduct::Adjustment,
-            $idempotencyKey,
-            null,
-            null,
-            $note,
-            $owner,
-            $ip,
-        );
-
-        if ($existed) {
-            return $transaction;
-        }
-
-        $this->activity->write($owner, 'wallet.minted', $owner, [
-            'amount' => $this->normalize($amount),
-            'currency' => $currency->value,
-            'transaction_id' => $transaction->id,
-        ]);
-
-        return $transaction;
-    }
-
     public function walletFor(User $user, Currency $currency): Wallet
     {
         $wallet = $user->wallets()->where('currency', $currency)->first();
@@ -248,7 +212,7 @@ class WalletService
         $amount = $this->normalize($signedAmount);
         $after = bcadd($before, $amount, 2);
 
-        if (bccomp($after, '0', 2) < 0) {
+        if (bccomp($after, '0', 2) < 0 && ! $wallet->allow_negative) {
             throw new WalletException('wallet.insufficient_balance');
         }
 

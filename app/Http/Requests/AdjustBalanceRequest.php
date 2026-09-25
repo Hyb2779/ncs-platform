@@ -28,6 +28,8 @@ class AdjustBalanceRequest extends FormRequest
             'amount.regex' => __('wallet.validation.amount_invalid'),
             'direction.required' => __('wallet.validation.direction_required'),
             'note.max' => __('wallet.validation.note_max'),
+            'idempotency_key.required' => __('wallet.validation.idempotency_required'),
+            'idempotency_key.uuid' => __('wallet.validation.idempotency_required'),
         ];
     }
 }

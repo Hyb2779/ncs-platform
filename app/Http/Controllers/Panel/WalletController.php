@@ -2,12 +2,10 @@
 
 namespace App\Http\Controllers\Panel;
 
-use App\Enums\Currency;
 use App\Enums\UserRole;
 use App\Enums\WalletTransactionType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdjustBalanceRequest;
-use App\Http\Requests\MintCreditRequest;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\WalletException;
@@ -28,7 +26,7 @@ class WalletController extends Controller
         $amount = $request->string('amount')->toString();
 
         if (bccomp($amount, '0', 2) !== 1) {
-            return back()->withErrors(['amount' => __('wallet.validation.amount_invalid')]);
+            return back()->withInput()->withErrors(['amount' => __('wallet.validation.amount_invalid')]);
         }
 
         try {
@@ -38,42 +36,16 @@ class WalletController extends Controller
                 $wallets->transfer($user, $actor, $amount, $request->string('idempotency_key')->toString(), $actor, $request->input('note'), $request->ip());
             }
         } catch (WalletException $exception) {
-            return back()->withInput()->withErrors(['amount' => __($exception->translationKey === 'wallet.insufficient_balance' ? 'wallet.errors.insufficient_balance' : ($exception->translationKey === 'wallet.currency_mismatch' ? 'wallet.errors.currency_mismatch' : 'wallet.errors.invalid_amount'))]);
-        }
-
-        return back()->with('status', __('wallet.adjusted'));
-    }
-
-    public function mintForm(Request $request): View
-    {
-        abort_unless($request->user()->role === UserRole::Owner, 404);
-
-        return view('panel.wallets.mint');
-    }
-
-    public function mint(MintCreditRequest $request, WalletService $wallets): RedirectResponse
-    {
-        try {
-            $wallets->mint(
-                $request->user(),
-                Currency::from($request->string('currency')->toString()),
-                $request->string('amount')->toString(),
-                $request->string('idempotency_key')->toString(),
-                $request->input('note'),
-                $request->ip(),
-            );
-        } catch (WalletException $exception) {
             $key = match ($exception->translationKey) {
                 'wallet.insufficient_balance' => 'wallet.errors.insufficient_balance',
                 'wallet.currency_mismatch' => 'wallet.errors.currency_mismatch',
-                'wallet.mint_owner_only' => 'wallet.errors.mint_owner_only',
                 default => 'wallet.errors.invalid_amount',
             };
 
             return back()->withInput()->withErrors(['amount' => __($key)]);
         }
 
-        return redirect()->route('panel.mint')->with('status', __('wallet.minted'));
+        return back()->with('status', __('wallet.adjusted'));
     }
 
     public function transactions(Request $request): View
@@ -110,6 +82,10 @@ class WalletController extends Controller
 
         $rows = $query->get();
         $totals = [];
+        $hideSign = $actor->role === UserRole::Owner;
+        $format = $hideSign
+            ? fn (string $amount, $currency) => Money::formatAbsolute($amount, $currency)
+            : fn (string $amount, $currency) => Money::format($amount, $currency);
 
         foreach ($rows as $row) {
             $code = $row->wallet->currency->value;
@@ -123,23 +99,45 @@ class WalletController extends Controller
             }
         }
 
+        $mappedTotals = collect($totals)->map(fn (array $total) => [
+            'added' => $format($total['added'], $total['currency']),
+            'removed' => $format($total['removed'], $total['currency']),
+            'difference' => $format(bcsub($total['added'], $total['removed'], 2), $total['currency']),
+        ])->values();
+
+        if ($mappedTotals->isEmpty()) {
+            $mappedTotals = collect([[
+                'added' => $format('0.00', $actor->currency),
+                'removed' => $format('0.00', $actor->currency),
+                'difference' => $format('0.00', $actor->currency),
+            ]]);
+        }
+
         return view('panel.wallets.transactions', [
-            'rows' => $rows->map(fn (WalletTransaction $row) => [
-                'when' => $row->created_at->timezone($actor->timezone)->locale(app()->getLocale())->translatedFormat('d.m.Y H:i'),
-                'actor' => $this->visibleName($row->creator, $actor),
-                'user' => $this->visibleName($row->user, $actor),
-                'before' => Money::format((string) $row->balance_before, $row->wallet->currency),
-                'amount' => Money::format((string) $row->amount, $row->wallet->currency),
-                'after' => Money::format((string) $row->balance_after, $row->wallet->currency),
-                'note' => $row->note ?: __('panel.empty_value'),
-                'ip' => $row->ip ?: __('panel.empty_value'),
-            ]),
+            'rows' => $rows->map(function (WalletTransaction $row) use ($actor, $format, $hideSign) {
+                $amount = bcadd((string) $row->amount, '0', 2);
+                $movement = null;
+
+                if ($hideSign && $row->user_id === $actor->id) {
+                    $movement = bccomp($amount, '0', 2) === 1
+                        ? __('wallet.taken_back')
+                        : __('wallet.given');
+                }
+
+                return [
+                    'when' => $row->created_at->timezone($actor->timezone)->locale(app()->getLocale())->translatedFormat('d.m.Y H:i'),
+                    'actor' => $this->visibleName($row->creator, $actor),
+                    'user' => $this->visibleName($row->user, $actor),
+                    'before' => $format((string) $row->balance_before, $row->wallet->currency),
+                    'amount' => $format($amount, $row->wallet->currency),
+                    'after' => $format((string) $row->balance_after, $row->wallet->currency),
+                    'movement' => $movement,
+                    'note' => $row->note ?: __('panel.empty_value'),
+                    'ip' => $row->ip ?: __('panel.empty_value'),
+                ];
+            }),
             'subjects' => User::query()->subtreeOf($actor)->orderBy('username')->get(['id', 'username']),
-            'totals' => collect($totals)->map(fn (array $total) => [
-                'added' => Money::format($total['added'], $total['currency']),
-                'removed' => Money::format($total['removed'], $total['currency']),
-                'difference' => Money::format(bcsub($total['added'], $total['removed'], 2), $total['currency']),
-            ])->values(),
+            'totals' => $mappedTotals,
             'selectedUser' => $request->query('user'),
         ]);
     }
