@@ -189,7 +189,8 @@ class SportTest extends TestCase
         $this->get('/sport/live')->assertOk()
             ->assertSee(__('site.live'), false)
             ->assertSee($live->home->name, false)
-            ->assertSee('2H', false)
+            ->assertSee(__('sport.statuses.2H'), false)
+            ->assertDontSee('>2H<', false)
             ->assertSee(__('sport.live_odds_soon'), false);
         $this->get('/sport/results')->assertOk()
             ->assertSee(__('site.results'), false)

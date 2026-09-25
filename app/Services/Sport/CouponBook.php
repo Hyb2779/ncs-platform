@@ -59,4 +59,19 @@ class CouponBook
     {
         Session::forget('sport.coupon');
     }
+
+    /**
+     * @param  array<int, string>  $shownByOddId
+     */
+    public function syncShown(array $shownByOddId): void
+    {
+        $coupon = $this->get();
+        foreach ($coupon['selections'] as $index => $row) {
+            $oddId = (int) $row['odd_id'];
+            if (isset($shownByOddId[$oddId])) {
+                $coupon['selections'][$index]['shown'] = $shownByOddId[$oddId];
+            }
+        }
+        Session::put('sport.coupon', $coupon);
+    }
 }

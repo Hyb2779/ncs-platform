@@ -29,6 +29,9 @@
                         @endif
                     </a>
                 @endforeach
+                @auth
+                    <a class="sport-tab inline-flex items-center px-4 py-2.5 font-semibold {{ request()->routeIs('site.coupons', 'site.coupons.show') ? 'sport-tab-on font-bold text-white' : 'text-[#B7C0CE]' }}" href="{{ route('site.coupons') }}">{{ __('sport.my_coupons') }}</a>
+                @endauth
             </nav>
             <div class="ms-auto flex items-center gap-2 md:gap-3">
                 @guest

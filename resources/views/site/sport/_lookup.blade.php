@@ -12,6 +12,17 @@
         <button class="h-10 shrink-0 rounded-lg border border-[#2A3342] px-3.5 text-[13px] font-bold text-[#E8ECF3]" type="submit">{{ __('sport.coupon.fetch') }}</button>
     </form>
     @if (request()->filled('coupon_no'))
-        <p class="mt-2 text-[13px] text-[#9AA4B5]">{{ __('sport.coupon.lookup_soon') }}</p>
+        @guest
+            <p class="mt-2 text-[13px] text-[#9AA4B5]">{{ __('sport.coupon.lookup_login') }}</p>
+        @else
+            @if ($lookupCoupon)
+                <a class="mt-3 block rounded-lg bg-[#1A2029] p-3 text-sm" href="{{ route('site.coupons.show', $lookupCoupon) }}">
+                    <span class="font-numeric font-bold">{{ $lookupCoupon->coupon_no }}</span>
+                    <span class="text-[#9AA4B5]"> · {{ __('sport.coupon.statuses.'.$lookupCoupon->status) }}</span>
+                </a>
+            @else
+                <p class="mt-2 text-[13px] text-[#9AA4B5]">{{ __('sport.coupon.lookup_missing') }}</p>
+            @endif
+        @endguest
     @endif
 </div>

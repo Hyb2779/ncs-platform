@@ -3,7 +3,7 @@
         <span class="inline-flex shrink-0 items-center rounded bg-[#C9303A] px-2 py-1 text-[11px] font-extrabold tracking-wider text-white">{{ __('site.live_badge') }}</span>
         @foreach ($liveFixtures as $live)
             <a class="flex shrink-0 items-center gap-2 rounded-md bg-[#151A23] px-3 py-1.5 text-[13px]" href="{{ route('site.sport.show', $live) }}">
-                <span class="text-xs font-extrabold text-[var(--accent)]">{{ $live->status }}</span>
+                <span class="text-xs font-extrabold text-[var(--accent)]">{{ sport_status($live->status) }}</span>
                 <span class="flex flex-col text-[#C9D1DD]">
                     <span class="break-words">{{ sport_name($live->home) }}</span>
                     <span class="break-words">{{ sport_name($live->away) }}</span>

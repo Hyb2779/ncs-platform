@@ -3,8 +3,10 @@
 use App\Enums\UserRole;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Panel\CasinoController;
+use App\Http\Controllers\Panel\CouponController as PanelCouponController;
 use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\SportAdminController;
+use App\Http\Controllers\Site\CouponController;
 use App\Http\Controllers\Panel\UserController;
 use App\Http\Controllers\Panel\WalletController;
 use App\Http\Controllers\Site\SiteController;
@@ -43,6 +45,10 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 
 Route::middleware('auth')->group(function () {
     Route::get('/account', [SiteController::class, 'account'])->name('site.account');
+    Route::get('/account/coupons', [CouponController::class, 'index'])->name('site.coupons');
+    Route::get('/account/coupons/{coupon}', [CouponController::class, 'show'])->name('site.coupons.show');
+    Route::post('/account/coupons/{coupon}/cancel', [CouponController::class, 'cancel'])->name('site.coupons.cancel');
+    Route::post('/sport/coupon/place', [SportController::class, 'place'])->name('site.sport.coupon.place');
     Route::post('/account/password', [SiteController::class, 'password'])->name('site.password');
     Route::get('/account/balance', [SiteController::class, 'balance'])->name('site.balance');
     Route::get('/play/{game}', [SiteController::class, 'launch'])->name('site.launch');
@@ -67,6 +73,12 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::put('/casino/games/{game}', [CasinoController::class, 'updateGame'])->name('casino.games.update');
     Route::get('/casino/rounds', [CasinoController::class, 'rounds'])->name('casino.rounds');
     Route::get('/casino/sessions', [CasinoController::class, 'sessions'])->name('casino.sessions');
+    Route::get('/coupons', [PanelCouponController::class, 'index'])->name('coupons.index');
+    Route::get('/coupons/risky', [PanelCouponController::class, 'risky'])->name('coupons.risky');
+    Route::get('/coupons/{coupon}', [PanelCouponController::class, 'show'])->name('coupons.show');
+    Route::post('/coupons/{coupon}/cancel', [PanelCouponController::class, 'cancel'])->name('coupons.cancel');
+    Route::get('/sport/limits', [SportAdminController::class, 'limits'])->name('sport.limits');
+    Route::put('/sport/limits', [SportAdminController::class, 'updateLimits'])->name('sport.limits.update');
     Route::get('/sport/status', [SportAdminController::class, 'status'])->name('sport.status');
     Route::get('/sport/leagues', [SportAdminController::class, 'leagues'])->name('sport.leagues');
     Route::put('/sport/leagues/{league}', [SportAdminController::class, 'updateLeague'])->name('sport.leagues.update');

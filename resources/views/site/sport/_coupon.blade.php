@@ -123,15 +123,29 @@
                 persist();
             }));
             root.querySelector('.js-accept')?.addEventListener('change', persist);
+            root.querySelector('.js-place')?.addEventListener('submit', () => {
+                const form = root.querySelector('.js-place');
+                form.querySelector('[name=stake]').value = stake?.value ?? '';
+                form.querySelector('[name=mode]').value = root.dataset.mode;
+                form.querySelector('[name=accept]').value = root.querySelector('.js-accept')?.checked ? '1' : '0';
+            });
             paint();
         });
     </script>
     @if (count($coupon['rows']) > 0)
         <div class="px-4 pb-4">
-            <button class="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[10px] bg-[var(--accent)] text-base font-extrabold tracking-wide text-[#1A1305] opacity-70" type="button" disabled>
-                {{ __('sport.coupon.confirm') }}
-                <span class="rounded bg-[#1A1305] px-2 py-0.5 text-xs text-[var(--accent)]">{{ __('sport.coupon.soon') }}</span>
-            </button>
+            @auth
+                <form class="js-place" method="POST" action="{{ route('site.sport.coupon.place') }}">
+                    @csrf
+                    <input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}">
+                    <input type="hidden" name="stake" value="{{ $coupon['stake'] }}">
+                    <input type="hidden" name="mode" value="{{ $coupon['mode'] }}">
+                    <input type="hidden" name="accept" value="{{ $coupon['accept'] ? '1' : '0' }}">
+                    <button class="inline-flex h-[52px] w-full items-center justify-center rounded-[10px] bg-[var(--accent)] text-base font-extrabold tracking-wide text-[#1A1305]" type="submit">{{ __('sport.coupon.confirm') }}</button>
+                </form>
+            @else
+                <a class="inline-flex h-[52px] w-full items-center justify-center rounded-[10px] bg-[var(--accent)] text-base font-extrabold tracking-wide text-[#1A1305]" href="{{ route('login') }}">{{ __('site.login') }}</a>
+            @endauth
         </div>
     @endif
 </section>

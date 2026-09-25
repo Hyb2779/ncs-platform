@@ -25,7 +25,7 @@
                     </div>
                     @foreach ($group as $fixture)
                         <a class="grid items-center gap-3 border-b border-[#1D2430] px-3 py-2.5 last:border-b-0 md:grid-cols-[4.5rem_minmax(12rem,1fr)_6rem_minmax(8rem,auto)]" href="{{ route('site.sport.show', $fixture) }}">
-                            <span class="font-numeric text-xs font-extrabold text-[var(--accent)]">{{ $fixture->status }}</span>
+                            <span class="text-xs font-extrabold text-[var(--accent)]">{{ sport_status($fixture->status) }}</span>
                             <span class="flex flex-col gap-0.5 text-sm font-semibold">
                                 <span class="break-words">{{ sport_name($fixture->home) }}</span>
                                 <span class="break-words">{{ sport_name($fixture->away) }}</span>

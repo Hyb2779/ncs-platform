@@ -10,7 +10,9 @@ use App\Models\SportMargin;
 use App\Models\SportSyncState;
 use App\Models\SportTeam;
 use App\Models\SportTranslation;
+use App\Models\SportLimit;
 use App\Services\Sport\FootballBudget;
+use App\Services\Sport\SportLimits;
 use App\Services\Sport\SportTranslator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -151,5 +153,41 @@ class SportAdminController extends Controller
         );
 
         return back();
+    }
+
+    public function limits(SportLimits $limits): View
+    {
+        $user = auth()->user();
+        abort_unless(in_array($user->role, [UserRole::Owner, UserRole::Superadmin], true), 404);
+        $row = $user->role === UserRole::Owner
+            ? $limits->global()
+            : SportLimit::query()->firstOrNew(['superadmin_id' => $user->id], $limits->global()->only([
+                'min_stake', 'max_stake', 'max_win', 'combo_min', 'combo_max', 'min_total_odds', 'min_odd', 'daily_max', 'cancel_minutes',
+            ]));
+
+        return view('panel.sport.limits', ['limit' => $row]);
+    }
+
+    public function updateLimits(Request $request): RedirectResponse
+    {
+        $user = $request->user();
+        abort_unless(in_array($user->role, [UserRole::Owner, UserRole::Superadmin], true), 404);
+        $data = $request->validate([
+            'min_stake' => ['required', 'numeric', 'min:0.01'],
+            'max_stake' => ['required', 'numeric', 'min:0.01'],
+            'max_win' => ['required', 'numeric', 'min:0.01'],
+            'combo_min' => ['required', 'integer', 'min:2'],
+            'combo_max' => ['required', 'integer', 'min:2'],
+            'min_total_odds' => ['required', 'numeric', 'min:1.01'],
+            'min_odd' => ['required', 'numeric', 'min:1.01'],
+            'daily_max' => ['required', 'numeric', 'min:0.01'],
+            'cancel_minutes' => ['required', 'integer', 'min:0'],
+        ]);
+        SportLimit::query()->updateOrCreate(
+            ['superadmin_id' => $user->role === UserRole::Owner ? null : $user->id],
+            $data,
+        );
+
+        return back()->with('status', __('sport.panel.saved'));
     }
 }

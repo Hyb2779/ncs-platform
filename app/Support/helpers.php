@@ -4,6 +4,7 @@ use App\Services\Sport\SportNames;
 use App\Support\Brand;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Lang;
 
 function brand(): Brand
 {
@@ -13,6 +14,13 @@ function brand(): Brand
 function sport_name(?Model $entity): string
 {
     return app(SportNames::class)->name($entity);
+}
+
+function sport_status(?string $code): string
+{
+    $key = 'sport.statuses.'.($code ?? '');
+
+    return Lang::has($key) ? __($key) : (string) $code;
 }
 
 function sport_date(Carbon $date, string $format): string

@@ -27,18 +27,13 @@
                             <p class="text-sm font-bold text-white">{{ sport_name($league) }}</p>
                         </div>
                         @foreach ($group as $fixture)
-                            <a class="grid items-center gap-3 border-b border-[#1D2430] px-3 py-2.5 last:border-b-0 md:grid-cols-[4.5rem_minmax(12rem,1fr)_auto]" href="{{ route('site.sport.show', $fixture) }}">
-                                <span class="text-xs font-bold text-[#9AA4B5]">{{ $fixture->status }}</span>
-                                <span class="flex flex-col gap-0.5 text-sm font-semibold">
-                                    <span class="break-words">{{ sport_name($fixture->home) }}</span>
-                                    <span class="break-words">{{ sport_name($fixture->away) }}</span>
-                                </span>
-                                <span class="flex flex-col items-end gap-0.5">
-                                    <span class="font-numeric text-base font-bold">{{ $fixture->score_home ?? '0' }} : {{ $fixture->score_away ?? '0' }}</span>
-                                    @if ($fixture->ht_home !== null && $fixture->ht_away !== null)
-                                        <span class="text-[11px] font-semibold text-[#9AA4B5]">{{ __('sport.half_time') }} {{ $fixture->ht_home }} : {{ $fixture->ht_away }}</span>
-                                    @endif
-                                </span>
+                            <a class="flex flex-wrap items-center gap-x-2 gap-y-1 border-b border-[#1D2430] px-3 py-2.5 text-sm last:border-b-0" href="{{ route('site.sport.show', $fixture) }}">
+                                <span class="text-xs font-bold text-[#9AA4B5]">{{ $fixture->starts_at->timezone($zone)->format('H:i') }} · {{ sport_status($fixture->status) }}</span>
+                                <span class="break-words font-semibold">{{ sport_name($fixture->home) }} – {{ sport_name($fixture->away) }}</span>
+                                <span class="font-numeric font-bold">{{ $fixture->score_home ?? '0' }}:{{ $fixture->score_away ?? '0' }}</span>
+                                @if ($fixture->ht_home !== null && $fixture->ht_away !== null)
+                                    <span class="text-xs font-semibold text-[#9AA4B5]">{{ __('sport.half_time') }} {{ $fixture->ht_home }}:{{ $fixture->ht_away }}</span>
+                                @endif
                             </a>
                         @endforeach
                     </section>

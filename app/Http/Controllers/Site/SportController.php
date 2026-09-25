@@ -7,8 +7,11 @@ use App\Http\Controllers\Controller;
 use App\Models\SportFixture;
 use App\Models\SportLeague;
 use App\Models\SportOdd;
+use App\Models\Coupon;
 use App\Services\Sport\CouponBook;
 use App\Services\Sport\CouponCalculator;
+use App\Services\Sport\CouponException;
+use App\Services\Sport\CouponPlacer;
 use App\Services\Sport\MarginEngine;
 use App\Support\Money;
 use Illuminate\Database\Eloquent\Builder;
@@ -144,6 +147,36 @@ class SportController extends Controller
         return back();
     }
 
+    public function place(Request $request, CouponBook $book, CouponPlacer $placer): RedirectResponse
+    {
+        $slip = $book->get();
+        $slip['stake'] = (string) $request->input('stake', $slip['stake']);
+        $slip['accept'] = $request->boolean('accept');
+        $slip['mode'] = (string) $request->input('mode', $slip['mode']);
+        $book->update($slip['stake'], $slip['accept'], $slip['mode']);
+
+        try {
+            $coupons = $placer->place(
+                $request->user(),
+                $slip,
+                (string) $request->input('idempotency_key'),
+                $request->ip(),
+                $request->userAgent(),
+            );
+        } catch (CouponException $exception) {
+            if ($exception->changed !== []) {
+                $book->syncShown(collect($exception->changed)->pluck('to', 'odd_id')->all());
+            }
+
+            return back()->withErrors(['coupon' => __($exception->translationKey, $exception->replace)]);
+        }
+
+        $book->clear();
+        $numbers = collect($coupons)->pluck('coupon_no')->implode(', ');
+
+        return back()->with('status', __('sport.coupon.placed', ['no' => $numbers]));
+    }
+
     /**
      * @return array<string, mixed>
      */
@@ -212,6 +245,7 @@ class SportController extends Controller
                     ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
                     ->whereHas('odds');
             })->orderByDesc('is_featured')->orderBy('sort_order')->get(),
+            'lookupCoupon' => $this->lookupCoupon($request),
             'footballCount' => SportFixture::query()
                 ->whereHas('league', fn ($q) => $q->where('is_active', true))
                 ->whereHas('odds')
@@ -219,6 +253,17 @@ class SportController extends Controller
                 ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
                 ->count(),
         ];
+    }
+
+    private function lookupCoupon(Request $request): ?Coupon
+    {
+        $number = trim((string) $request->query('coupon_no', ''));
+        $user = $request->user();
+        if ($number === '' || $user === null) {
+            return null;
+        }
+
+        return Coupon::query()->with(['selections.fixture.home', 'selections.fixture.away'])->where('coupon_no', $number)->where('user_id', $user->id)->first();
     }
 
     private function bulletinQuery(): Builder
