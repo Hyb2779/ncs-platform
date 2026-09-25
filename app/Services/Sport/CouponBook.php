@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Session;
 class CouponBook
 {
     /**
-     * @return array{selections: list<array{odd_id: int, fixture_id: int, shown: string}>, stake: string, accept: bool, mode: string}
+     * @return array{selections: list<array{odd_id: int, fixture_id: int, outcome: string, shown: string}>, stake: string, accept: bool, mode: string}
      */
     public function get(): array
     {
@@ -30,6 +30,7 @@ class CouponBook
         $coupon['selections'][] = [
             'odd_id' => $odd->id,
             'fixture_id' => $odd->fixture_id,
+            'outcome' => $odd->outcome,
             'shown' => (string) $odd->shown_odd,
         ];
         Session::put('sport.coupon', $coupon);
@@ -41,6 +42,16 @@ class CouponBook
         $coupon['stake'] = $stake;
         $coupon['accept'] = $accept;
         $coupon['mode'] = $mode === 'single' ? 'single' : 'combo';
+        Session::put('sport.coupon', $coupon);
+    }
+
+    public function remove(int $oddId): void
+    {
+        $coupon = $this->get();
+        $coupon['selections'] = array_values(array_filter(
+            $coupon['selections'],
+            fn (array $row) => (int) $row['odd_id'] !== $oddId,
+        ));
         Session::put('sport.coupon', $coupon);
     }
 

@@ -7,8 +7,8 @@ use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\SportAdminController;
 use App\Http\Controllers\Panel\UserController;
 use App\Http\Controllers\Panel\WalletController;
-use App\Http\Controllers\Site\SportController;
 use App\Http\Controllers\Site\SiteController;
+use App\Http\Controllers\Site\SportController;
 use App\Http\Middleware\EnsurePanelUser;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +28,7 @@ Route::get('/sport', [SportController::class, 'index'])->name('site.sport');
 Route::get('/sport/fixtures/{fixture}', [SportController::class, 'show'])->name('site.sport.show');
 Route::post('/sport/odds/{odd}', [SportController::class, 'add'])->name('site.sport.add');
 Route::post('/sport/coupon', [SportController::class, 'update'])->name('site.sport.coupon');
+Route::post('/sport/coupon/{odd}/remove', [SportController::class, 'remove'])->name('site.sport.coupon.remove');
 Route::post('/sport/coupon/clear', [SportController::class, 'clear'])->name('site.sport.coupon.clear');
 
 Route::middleware('guest')->group(function () {

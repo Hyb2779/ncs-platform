@@ -1,43 +1,141 @@
-<section class="rounded-lg bg-[#151A23] p-4">
-    <h2 class="text-lg font-semibold">{{ __('sport.coupon.title') }}</h2>
+@php $clearId = 'coupon-clear-'.uniqid(); @endphp
+<section class="js-coupon overflow-hidden rounded-xl bg-[#151A23]" data-mode="{{ $coupon['mode'] }}" data-currency="{{ $coupon['currency'] }}">
+    <div class="flex border-b border-[#232B39]">
+        <button class="js-mode sport-tab h-12 flex-1 text-[13px] font-extrabold tracking-wide {{ $coupon['mode'] !== 'single' ? 'sport-tab-on bg-[#1E2533] text-white' : 'bg-transparent text-[#9AA4B5]' }}" type="button" data-mode="combo">{{ __('sport.coupon.combo') }}</button>
+        <button class="js-mode sport-tab h-12 flex-1 text-[13px] font-extrabold tracking-wide {{ $coupon['mode'] === 'single' ? 'sport-tab-on bg-[#1E2533] text-white' : 'bg-transparent text-[#9AA4B5]' }}" type="button" data-mode="single">{{ __('sport.coupon.single') }}</button>
+    </div>
     @if (in_array('suspended', $coupon['warnings'], true))
-        <p class="mt-2 text-sm text-red-400">{{ __('sport.coupon.suspended') }}</p>
+        <p class="px-4 pt-3 text-sm text-red-400">{{ __('sport.coupon.suspended') }}</p>
     @endif
     @if (in_array('changed', $coupon['warnings'], true))
-        <p class="mt-2 text-sm text-amber-300">{{ __('sport.coupon.changed') }}</p>
+        <p class="px-4 pt-3 text-sm text-amber-300">{{ __('sport.coupon.changed') }}</p>
     @endif
     @forelse ($coupon['rows'] as $row)
-        <p class="mt-3 text-sm">{{ $row['odd']->fixture->home->name }} - {{ $row['odd']->fixture->away->name }}</p>
-        <p class="text-sm text-[#9AA4B5]">{{ __($row['odd']->market->name_key) }} · {{ __('sport.outcomes.'.$row['odd']->outcome) }} <span class="font-numeric">{{ $row['shown'] }}</span></p>
-    @empty
-        <p class="mt-3 text-sm text-[#9AA4B5]">{{ __('sport.coupon.empty') }}</p>
-    @endforelse
-    <form class="mt-4 grid gap-3" method="POST" action="{{ route('site.sport.coupon') }}">
-        @csrf
-        <div class="flex gap-2 text-sm">
-            <label class="inline-flex h-11 items-center gap-2"><input type="radio" name="mode" value="combo" @checked($coupon['mode'] !== 'single')> {{ __('sport.coupon.combo') }}</label>
-            <label class="inline-flex h-11 items-center gap-2"><input type="radio" name="mode" value="single" @checked($coupon['mode'] === 'single')> {{ __('sport.coupon.single') }}</label>
+        <div class="px-2 pt-2">
+            <div class="flex gap-2.5 rounded-[10px] bg-[#1A2029] p-3">
+                <div class="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <p class="truncate text-[13px] font-bold">{{ $row['odd']->fixture->home->name }} - {{ $row['odd']->fixture->away->name }}</p>
+                    <p class="text-xs text-[#9AA4B5]">{{ __($row['odd']->market->name_key) }}: <span class="font-bold text-[#E8ECF3]">{{ __('sport.outcomes.'.$row['odd']->outcome) }}</span></p>
+                </div>
+                <div class="flex flex-col items-end gap-1">
+                    <form method="POST" action="{{ route('site.sport.coupon.remove', $row['odd']) }}">
+                        @csrf
+                        <button class="inline-flex h-6 w-6 items-center justify-center text-[#9AA4B5]" type="submit" aria-label="{{ __('sport.coupon.remove') }}">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+                        </button>
+                    </form>
+                    <span class="js-selection font-numeric text-lg font-bold text-[var(--accent)]" data-selection-odd="{{ $row['shown'] }}" data-outcome="{{ $row['odd']->outcome }}">{{ $row['shown'] }}</span>
+                </div>
+            </div>
         </div>
-        <label class="grid gap-1 text-sm">
-            <span>{{ __('sport.coupon.stake') }}</span>
-            <input class="h-11 rounded-md border border-[#232B39] bg-[#0E1117] px-3 font-numeric" name="stake" value="{{ $coupon['stake'] }}">
+    @empty
+        <div class="flex flex-col items-center gap-2 px-6 py-12 text-center">
+            <p class="text-[15px] font-bold">{{ __('sport.coupon.empty') }}</p>
+            <p class="text-[13px] text-[#9AA4B5]">{{ __('sport.coupon.empty_hint') }}</p>
+        </div>
+    @endforelse
+    <form class="js-coupon-form grid gap-3 px-4 pb-4 {{ count($coupon['rows']) === 0 ? 'hidden' : 'pt-3' }}" method="POST" action="{{ route('site.sport.coupon') }}">
+        @csrf
+        <div class="flex items-center justify-between text-[13px] text-[#9AA4B5]">
+            <span>{{ __('sport.coupon.selections', ['count' => count($coupon['rows'])]) }}</span>
+            <button class="text-xs font-bold underline" form="{{ $clearId }}" type="submit">{{ __('sport.coupon.clear') }}</button>
+        </div>
+        <label class="flex items-center gap-2.5 text-[13px] text-[#C9D1DD]">
+            <input class="js-accept h-4 w-4 accent-[var(--accent)]" type="checkbox" name="accept" value="1" @checked($coupon['accept'])>
+            {{ __('sport.coupon.accept') }}
         </label>
-        <div class="flex flex-wrap gap-2">
+        <div class="flex items-center gap-2">
+            <span class="w-16 text-xs font-bold text-[#9AA4B5]">{{ __('sport.coupon.stake') }}</span>
+            <div class="flex h-11 min-w-0 flex-1 items-center justify-between rounded-lg border border-[#2A3342] bg-[#0E1117] px-3.5">
+                <input class="js-stake min-w-0 flex-1 bg-transparent font-numeric text-xl font-bold outline-none" name="stake" value="{{ $coupon['stake'] }}" inputmode="decimal">
+                <span class="font-bold text-[#9AA4B5]">{{ $coupon['currency'] === 'TRY' ? '₺' : $coupon['currency'] }}</span>
+            </div>
+        </div>
+        <div class="grid grid-cols-5 gap-1.5">
             @foreach ($coupon['quick'] as $amount)
-                <button class="inline-flex h-11 items-center rounded-lg border border-[#232B39] px-3 font-numeric" type="submit" name="stake" value="{{ $amount }}">{{ $amount }}</button>
+                <button class="js-quick h-9 rounded-lg text-[13px] font-bold {{ (string) $coupon['stake'] === (string) $amount ? 'border border-[var(--accent)] bg-[var(--accent)] text-[#1A1305]' : 'border border-[#2A3342] bg-transparent text-[#E8ECF3]' }}" type="button" data-amount="{{ $amount }}">{{ $amount >= 1000 ? intdiv((int) $amount, 1000).'K' : $amount }}</button>
             @endforeach
         </div>
-        <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="accept" value="1" @checked($coupon['accept'])> {{ __('sport.coupon.accept') }}</label>
-        <p class="text-sm">{{ __('sport.coupon.total') }} <span class="font-numeric">{{ $coupon['total'] }}</span></p>
-        <p class="text-sm">{{ __('sport.coupon.payout') }} <span class="font-numeric">{{ $coupon['payout'] }}</span></p>
-        <button class="inline-flex h-11 items-center justify-center rounded-lg border border-[#232B39]" type="submit">{{ __('panel.save') }}</button>
+        <div class="flex gap-2">
+            <div class="flex min-w-0 flex-1 flex-col gap-0.5 rounded-lg bg-[#1A2029] px-3 py-2.5">
+                <p class="text-[11px] font-bold text-[#9AA4B5]">{{ __('sport.coupon.total') }}</p>
+                <p class="js-total font-numeric text-[22px] font-bold">{{ $coupon['total'] }}</p>
+            </div>
+            <div class="flex min-w-0 flex-1 flex-col gap-0.5 rounded-lg bg-[#13261D] px-3 py-2.5">
+                <p class="text-[11px] font-bold text-[#8FD9B3]">{{ __('sport.coupon.payout') }}</p>
+                <p class="js-payout font-numeric text-[22px] font-bold text-[#3DD68C]">{{ $coupon['payout'] }} {{ $coupon['currency'] }}</p>
+            </div>
+        </div>
     </form>
-    <form method="POST" action="{{ route('site.sport.coupon.clear') }}">
+    <form id="{{ $clearId }}" method="POST" action="{{ route('site.sport.coupon.clear') }}">
         @csrf
-        <button class="mt-2 inline-flex h-11 items-center" type="submit">{{ __('sport.coupon.clear') }}</button>
     </form>
-    <button class="mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-lg bg-[#1B2230] text-[#9AA4B5]" type="button" disabled>
-        {{ __('sport.coupon.confirm') }}
-        <span class="rounded bg-[#232B39] px-2 py-1 text-xs">{{ __('sport.coupon.soon') }}</span>
-    </button>
+    <script>
+        document.querySelectorAll('.js-coupon').forEach((root) => {
+            if (root.dataset.ready) return;
+            root.dataset.ready = '1';
+            const stake = root.querySelector('.js-stake');
+            const paint = () => {
+                if (! stake) return;
+                const odds = [...root.querySelectorAll('[data-selection-odd]')].map((node) => Number(node.dataset.selectionOdd));
+                const amount = Number(stake.value) || 0;
+                const total = root.dataset.mode === 'single'
+                    ? odds.reduce((sum, odd) => sum + odd, 0)
+                    : odds.reduce((product, odd) => product * odd, odds.length ? 1 : 0);
+                const payout = root.dataset.mode === 'single'
+                    ? odds.reduce((sum, odd) => sum + (amount * odd), 0)
+                    : amount * total;
+                const totalNode = root.querySelector('.js-total');
+                const payoutNode = root.querySelector('.js-payout');
+                if (totalNode) totalNode.textContent = total.toFixed(2);
+                if (payoutNode) payoutNode.textContent = payout.toFixed(2) + ' ' + root.dataset.currency;
+                root.querySelectorAll('.js-quick').forEach((button) => {
+                    const on = button.dataset.amount === stake.value;
+                    button.classList.toggle('bg-[var(--accent)]', on);
+                    button.classList.toggle('text-[#1A1305]', on);
+                    button.classList.toggle('border-[var(--accent)]', on);
+                    button.classList.toggle('text-[#E8ECF3]', !on);
+                    button.classList.toggle('border-[#2A3342]', !on);
+                });
+            };
+            const persist = () => {
+                if (! stake) return;
+                const form = root.querySelector('.js-coupon-form');
+                if (! form) return;
+                const body = new FormData(form);
+                body.set('stake', stake.value);
+                body.set('mode', root.dataset.mode);
+                if (root.querySelector('.js-accept')?.checked) body.set('accept', '1');
+                fetch(form.action, { method: 'POST', body, headers: { Accept: 'application/json' } });
+            };
+            stake?.addEventListener('input', () => { paint(); persist(); });
+            root.querySelectorAll('.js-quick').forEach((button) => button.addEventListener('click', () => {
+                stake.value = button.dataset.amount;
+                paint();
+                persist();
+            }));
+            root.querySelectorAll('.js-mode').forEach((button) => button.addEventListener('click', () => {
+                root.dataset.mode = button.dataset.mode;
+                root.querySelectorAll('.js-mode').forEach((item) => {
+                    const on = item === button;
+                    item.classList.toggle('sport-tab-on', on);
+                    item.classList.toggle('bg-[#1E2533]', on);
+                    item.classList.toggle('text-white', on);
+                    item.classList.toggle('text-[#9AA4B5]', !on);
+                });
+                paint();
+                persist();
+            }));
+            root.querySelector('.js-accept')?.addEventListener('change', persist);
+            paint();
+        });
+    </script>
+    @if (count($coupon['rows']) > 0)
+        <div class="px-4 pb-4">
+            <button class="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[10px] bg-[var(--accent)] text-base font-extrabold tracking-wide text-[#1A1305] opacity-70" type="button" disabled>
+                {{ __('sport.coupon.confirm') }}
+                <span class="rounded bg-[#1A1305] px-2 py-0.5 text-xs text-[var(--accent)]">{{ __('sport.coupon.soon') }}</span>
+            </button>
+        </div>
+    @endif
 </section>

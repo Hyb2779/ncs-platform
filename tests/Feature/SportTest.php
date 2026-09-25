@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\SportCountry;
 use App\Models\SportFixture;
 use App\Models\SportLeague;
+use App\Models\SportMargin;
 use App\Models\SportMarket;
 use App\Models\SportOdd;
 use App\Models\SportTeam;
@@ -58,7 +59,7 @@ class SportTest extends TestCase
     public function test_margin_rounds_to_two_decimals_and_respects_the_floor(): void
     {
         $fixture = $this->fixture();
-        \App\Models\SportMargin::query()->where('layer', 'global')->update(['margin' => '0.0750', 'max_odd' => '3.00']);
+        SportMargin::query()->where('layer', 'global')->update(['margin' => '0.0750', 'max_odd' => '3.00']);
         $engine = app(MarginEngine::class);
 
         $this->assertSame('1.86', $engine->show('2.00', $fixture, '1X2', null));
@@ -98,6 +99,35 @@ class SportTest extends TestCase
             $this->get('/sport?lang='.$locale)->assertOk()->assertSee('dir="ltr"', false);
         }
         $this->get('/sport?lang=ar')->assertOk()->assertSee('dir="rtl"', false)->assertSee(__('sport.all', [], 'ar'), false);
+    }
+
+    public function test_bulletin_and_detail_show_the_same_outcome_price(): void
+    {
+        $fixture = $this->fixture();
+        $markets = SportMarket::query()->whereIn('code', ['1X2', 'DC'])->get()->keyBy('code');
+        foreach (['away' => '5.50', 'draw' => '4.10', 'home' => '1.57'] as $outcome => $price) {
+            SportOdd::query()->create([
+                'fixture_id' => $fixture->id, 'market_id' => $markets['1X2']->id, 'outcome' => $outcome, 'raw_odd' => $price, 'shown_odd' => $price,
+            ]);
+        }
+        foreach (['draw_away' => '1.20', 'home_away' => '1.30', 'home_draw' => '1.10'] as $outcome => $price) {
+            SportOdd::query()->create([
+                'fixture_id' => $fixture->id, 'market_id' => $markets['DC']->id, 'outcome' => $outcome, 'raw_odd' => $price, 'shown_odd' => $price,
+            ]);
+        }
+
+        foreach (['/sport', '/sport/fixtures/'.$fixture->id] as $url) {
+            $html = $this->get($url)->assertOk()->getContent();
+            $this->assertMatchesRegularExpression('/data-outcome="home".*?1\.57.*?data-outcome="draw".*?4\.10.*?data-outcome="away".*?5\.50/s', $html);
+        }
+        $detail = $this->get('/sport/fixtures/'.$fixture->id)->getContent();
+        $this->assertMatchesRegularExpression('/data-outcome="home_draw".*?1\.10.*?data-outcome="home_away".*?1\.30.*?data-outcome="draw_away".*?1\.20/s', $detail);
+
+        $home = SportOdd::query()->where('outcome', 'home')->first();
+        $this->post('/sport/odds/'.$home->id);
+        $selection = session('sport.coupon')['selections'][0];
+        $this->assertSame('home', $selection['outcome']);
+        $this->assertSame('1.57', $selection['shown']);
     }
 
     public function test_second_selection_from_the_same_match_replaces_the_first(): void

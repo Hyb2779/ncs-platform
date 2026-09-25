@@ -42,4 +42,12 @@ class SportFixture extends Model
     {
         return in_array($this->status, config('football.open_statuses'), true) && $this->starts_at->isFuture();
     }
+
+    public function isInPlay(): bool
+    {
+        return ! in_array($this->status, [
+            ...config('football.open_statuses'),
+            'FT', 'AET', 'PEN', 'CANC', 'PST', 'ABD', 'AWD', 'WO',
+        ], true);
+    }
 }

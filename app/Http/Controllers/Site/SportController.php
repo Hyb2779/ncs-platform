@@ -20,6 +20,7 @@ class SportController extends Controller
         $query = SportFixture::query()
             ->with(['league.country', 'home', 'away', 'odds.market'])
             ->whereHas('league', fn ($q) => $q->where('is_active', true))
+            ->whereHas('odds')
             ->where('starts_at', '>=', now()->utc()->startOfDay())
             ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
             ->orderBy('starts_at');
@@ -45,10 +46,14 @@ class SportController extends Controller
             $query->where('league_id', $request->integer('league'));
         }
 
+        $market = $this->marketFilter($request);
+
         return view('site.sport.index', [
             'fixtures' => $query->limit(200)->get()->groupBy('league_id'),
-            'leagues' => SportLeague::query()->with('country')->where('is_active', true)->orderByDesc('is_featured')->orderBy('sort_order')->get(),
-            'coupon' => $this->couponView($request),
+            ...$this->sportFrame($request),
+            'market' => $market,
+            'columns' => $this->bulletinColumns($market),
+            'cardColumns' => $this->cardColumns($market),
         ]);
     }
 
@@ -58,7 +63,8 @@ class SportController extends Controller
 
         return view('site.sport.show', [
             'fixture' => $fixture,
-            'coupon' => $this->couponView($request),
+            ...$this->sportFrame($request),
+            'detailTab' => $this->detailTab($request),
         ]);
     }
 
@@ -73,6 +79,13 @@ class SportController extends Controller
     public function update(Request $request, CouponBook $coupon): RedirectResponse
     {
         $coupon->update((string) $request->input('stake', ''), $request->boolean('accept'), (string) $request->input('mode', 'combo'));
+
+        return back();
+    }
+
+    public function remove(SportOdd $odd, CouponBook $coupon): RedirectResponse
+    {
+        $coupon->remove($odd->id);
 
         return back();
     }
@@ -124,7 +137,113 @@ class SportController extends Controller
             'total' => $rows === [] ? '0.00' : $total,
             'payout' => bcmul($stake, $rows === [] ? '0' : $total, 2),
             'warnings' => array_unique($warnings),
-            'quick' => $currency === 'TRY' ? [50, 100, 250, 500] : [10, 25, 50, 100],
+            'currency' => $currency,
+            'quick' => $currency === 'TRY' ? [50, 100, 250, 500, 1000] : [10, 25, 50, 100, 250],
         ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function sportFrame(Request $request): array
+    {
+        return [
+            'coupon' => $this->couponView($request),
+            'liveFixtures' => SportFixture::query()
+                ->with(['home', 'away'])
+                ->whereNotIn('status', [
+                    ...config('football.open_statuses'),
+                    'FT', 'AET', 'PEN', 'CANC', 'PST', 'ABD', 'AWD', 'WO',
+                ])
+                ->orderBy('starts_at')
+                ->limit(16)
+                ->get(),
+            'leagues' => SportLeague::query()->with('country')->withCount(['fixtures as bulletin_count' => function ($query): void {
+                $query->where('starts_at', '>=', now()->utc()->startOfDay())
+                    ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
+                    ->whereHas('odds');
+            }])->where('is_active', true)->orderByDesc('is_featured')->orderBy('sort_order')->get(),
+            'footballCount' => SportFixture::query()
+                ->whereHas('league', fn ($q) => $q->where('is_active', true))
+                ->whereHas('odds')
+                ->where('starts_at', '>=', now()->utc()->startOfDay())
+                ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
+                ->count(),
+        ];
+    }
+
+    private function marketFilter(Request $request): string
+    {
+        $filter = (string) $request->query('market', 'result');
+
+        return in_array($filter, ['result', 'half', 'btts', 'ou'], true) ? $filter : 'result';
+    }
+
+    private function detailTab(Request $request): string
+    {
+        $tab = (string) $request->query('tab', 'result');
+
+        return match ($tab) {
+            'goals' => 'ou',
+            'all' => 'result',
+            default => in_array($tab, ['result', 'half', 'btts', 'ou'], true) ? $tab : 'result',
+        };
+    }
+
+    /**
+     * @return list<array{market: string, outcome: string, head: string}>
+     */
+    private function bulletinColumns(string $filter): array
+    {
+        return match ($filter) {
+            'half' => $this->columnSet('HT1X2', ['home', 'draw', 'away']),
+            'btts' => [
+                ['market' => 'BTTS', 'outcome' => 'yes', 'head' => __('sport.col_btts_yes')],
+                ['market' => 'BTTS', 'outcome' => 'no', 'head' => __('sport.col_btts_no')],
+            ],
+            'ou' => [
+                ['market' => 'OU25', 'outcome' => 'under', 'head' => __('sport.col_ou_under')],
+                ['market' => 'OU25', 'outcome' => 'over', 'head' => __('sport.col_ou_over')],
+            ],
+            default => [
+                ...$this->columnSet('1X2', ['home', 'draw', 'away']),
+                ['market' => 'OU25', 'outcome' => 'under', 'head' => __('sport.col_ou_under')],
+                ['market' => 'OU25', 'outcome' => 'over', 'head' => __('sport.col_ou_over')],
+                ['market' => 'BTTS', 'outcome' => 'yes', 'head' => __('sport.col_btts_yes')],
+                ['market' => 'BTTS', 'outcome' => 'no', 'head' => __('sport.col_btts_no')],
+            ],
+        };
+    }
+
+    /**
+     * @return list<array{market: string, outcome: string, head: string}>
+     */
+    private function cardColumns(string $filter): array
+    {
+        return match ($filter) {
+            'half' => $this->columnSet('HT1X2', ['home', 'draw', 'away']),
+            'btts' => [
+                ['market' => 'BTTS', 'outcome' => 'yes', 'head' => __('sport.outcomes.yes')],
+                ['market' => 'BTTS', 'outcome' => 'no', 'head' => __('sport.outcomes.no')],
+            ],
+            'ou' => [
+                ['market' => 'OU25', 'outcome' => 'under', 'head' => __('sport.outcomes.under')],
+                ['market' => 'OU25', 'outcome' => 'over', 'head' => __('sport.outcomes.over')],
+            ],
+            default => $this->columnSet('1X2', ['home', 'draw', 'away']),
+        };
+    }
+
+    /**
+     * @param  list<string>  $outcomes
+     * @return list<array{market: string, outcome: string, head: string}>
+     */
+    private function columnSet(string $market, array $outcomes): array
+    {
+        return array_map(fn (string $outcome) => [
+            'market' => $market,
+            'outcome' => $outcome,
+            'head' => __('sport.outcomes.'.$outcome),
+        ], $outcomes);
     }
 }

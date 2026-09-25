@@ -1,9 +1,29 @@
-<article class="rounded-lg bg-[#151A23] p-3">
-    <p class="font-numeric text-sm text-[#9AA4B5]">{{ $fixture->starts_at->timezone(auth()->user()->timezone ?? 'UTC')->format('H:i') }} · {{ $fixture->bulletin_code }}</p>
-    <a class="mt-1 block" href="{{ route('site.sport.show', $fixture) }}">{{ $fixture->home->name }} - {{ $fixture->away->name }}</a>
-    <div class="mt-3 flex gap-2">
-        @include('site.sport._odd', ['market' => '1X2', 'outcome' => 'home'])
-        @include('site.sport._odd', ['market' => '1X2', 'outcome' => 'draw'])
-        @include('site.sport._odd', ['market' => '1X2', 'outcome' => 'away'])
+@php
+    $zone = auth()->user()->timezone ?? 'UTC';
+    $kickoff = $fixture->starts_at->timezone($zone);
+    $day = $kickoff->isToday() ? __('sport.today') : ($kickoff->isTomorrow() ? __('sport.tomorrow') : $kickoff->format('d.m'));
+    $cells = $cardColumns ?? $columns;
+@endphp
+<article class="flex flex-col gap-2.5 rounded-xl bg-[#151A23] p-3">
+    <div class="flex items-center justify-between gap-3">
+        <a class="flex min-w-0 flex-col gap-0.5" href="{{ route('site.sport.show', $fixture) }}">
+            <span class="text-sm font-bold">{{ $fixture->home->name }}</span>
+            <span class="text-sm font-bold">{{ $fixture->away->name }}</span>
+        </a>
+        <div class="flex flex-col items-end gap-0.5">
+            <span class="text-[13px] font-bold">
+                @if (in_array(request('when', 'all'), ['all', 'tomorrow'], true))
+                    {{ $day }} ·
+                @endif
+                {{ $kickoff->format('H:i') }}
+            </span>
+            <span class="text-[11px] font-bold text-[var(--accent)]">{{ __('sport.code_prefix', ['code' => $fixture->bulletin_code]) }}</span>
+        </div>
+    </div>
+    <div class="grid items-center gap-1.5" style="grid-template-columns: repeat({{ count($cells) }}, minmax(0,1fr)) 3.25rem">
+        @foreach ($cells as $column)
+            @include('site.sport._odd', ['market' => $column['market'], 'outcome' => $column['outcome'], 'labeled' => true, 'head' => $column['head']])
+        @endforeach
+        <a class="inline-flex h-11 items-center justify-center rounded-lg bg-[#1E2533] text-xs font-bold text-[#9AA4B5]" href="{{ route('site.sport.show', $fixture) }}">{{ __('sport.other', ['count' => $fixture->odds->pluck('market_id')->unique()->count()]) }}</a>
     </div>
 </article>

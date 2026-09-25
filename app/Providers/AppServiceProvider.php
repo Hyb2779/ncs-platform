@@ -2,13 +2,15 @@
 
 namespace App\Providers;
 
+use App\Models\SportFixture;
 use App\Models\User;
-use App\Support\Money;
 use App\Services\Casino\DemoProvider;
 use App\Services\Casino\GoldPalaceProvider;
 use App\Services\Casino\OneGameXProvider;
 use App\Services\Casino\ProviderRegistry;
+use App\Services\Sport\CouponBook;
 use App\Services\WalletProvisioner;
+use App\Support\Money;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -54,6 +56,11 @@ class AppServiceProvider extends ServiceProvider
             $user = auth()->user();
             $wallet = $user?->wallet()->first();
             $view->with('headerBalance', $wallet === null ? '' : Money::format((string) $wallet->balance, $wallet->currency));
+            $view->with('couponCount', count(app(CouponBook::class)->get()['selections']));
+            $view->with('liveCount', SportFixture::query()->whereNotIn('status', [
+                ...config('football.open_statuses'),
+                'FT', 'AET', 'PEN', 'CANC', 'PST', 'ABD', 'AWD', 'WO',
+            ])->count());
         });
 
         View::composer('layouts.panel', function ($view): void {

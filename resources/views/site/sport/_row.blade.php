@@ -1,9 +1,20 @@
-<tr class="border-b border-[#232B39]">
-    <td class="px-3 py-2 font-numeric">{{ $fixture->starts_at->timezone(auth()->user()->timezone ?? 'UTC')->format('H:i') }}</td>
-    <td class="px-3 py-2 font-numeric">{{ $fixture->bulletin_code }}</td>
-    <td class="px-3 py-2"><a href="{{ route('site.sport.show', $fixture) }}">{{ $fixture->home->name }} - {{ $fixture->away->name }}</a></td>
-    <td class="px-2 py-2"><div class="flex gap-1">@include('site.sport._odd', ['market' => '1X2', 'outcome' => 'home'])@include('site.sport._odd', ['market' => '1X2', 'outcome' => 'draw'])@include('site.sport._odd', ['market' => '1X2', 'outcome' => 'away'])</div></td>
-    <td class="px-2 py-2"><div class="flex gap-1">@include('site.sport._odd', ['market' => 'OU25', 'outcome' => 'over'])@include('site.sport._odd', ['market' => 'OU25', 'outcome' => 'under'])</div></td>
-    <td class="px-2 py-2"><div class="flex gap-1">@include('site.sport._odd', ['market' => 'BTTS', 'outcome' => 'yes'])@include('site.sport._odd', ['market' => 'BTTS', 'outcome' => 'no'])</div></td>
-    <td class="px-3 py-2 text-end"><a href="{{ route('site.sport.show', $fixture) }}">{{ __('sport.other', ['count' => $fixture->odds->pluck('market_id')->unique()->count()]) }}</a></td>
-</tr>
+@php
+    $zone = auth()->user()->timezone ?? 'UTC';
+    $kickoff = $fixture->starts_at->timezone($zone);
+    $day = $kickoff->isToday() ? __('sport.today') : ($kickoff->isTomorrow() ? __('sport.tomorrow') : $kickoff->format('d.m'));
+    $count = count($columns);
+@endphp
+<div class="grid items-center gap-x-1 border-b border-[#1D2430] px-3" style="grid-template-columns: 4.75rem 3.25rem minmax(0,1fr) repeat({{ $count }}, 3.625rem) 3.5rem; min-height: 52px">
+    <div class="flex flex-col">
+        @if (in_array(request('when', 'all'), ['all', 'tomorrow'], true))
+            <span class="text-[11px] font-semibold text-[#9AA4B5]">{{ $day }}</span>
+        @endif
+        <span class="text-sm font-bold">{{ $kickoff->format('H:i') }}</span>
+    </div>
+    <span class="font-numeric text-xs font-bold text-[var(--accent)]">{{ $fixture->bulletin_code }}</span>
+    <a class="truncate text-sm font-semibold" href="{{ route('site.sport.show', $fixture) }}">{{ $fixture->home->name }} <span class="text-[#6E7889]">–</span> {{ $fixture->away->name }}</a>
+    @foreach ($columns as $column)
+        @include('site.sport._odd', ['market' => $column['market'], 'outcome' => $column['outcome'], 'compact' => true])
+    @endforeach
+    <a class="text-center text-[13px] font-bold text-[#9AA4B5]" href="{{ route('site.sport.show', $fixture) }}">{{ __('sport.other', ['count' => $fixture->odds->pluck('market_id')->unique()->count()]) }}</a>
+</div>
