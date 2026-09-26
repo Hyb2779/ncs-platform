@@ -32,11 +32,12 @@ class WalletService
         ?User $actor = null,
         ?string $ip = null,
         ?string $id = null,
-        ?Carbon $createdAt = null,
+        ?Carbon $occurredAt = null,
     ): WalletTransaction {
         $this->assertAmount($amount);
+        $this->assertOccurredAt($occurredAt);
 
-        return $this->apply($wallet, $amount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $createdAt);
+        return $this->apply($wallet, $amount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $occurredAt);
     }
 
     public function debit(
@@ -51,11 +52,12 @@ class WalletService
         ?User $actor = null,
         ?string $ip = null,
         ?string $id = null,
-        ?Carbon $createdAt = null,
+        ?Carbon $occurredAt = null,
     ): WalletTransaction {
         $this->assertAmount($amount);
+        $this->assertOccurredAt($occurredAt);
 
-        return $this->apply($wallet, $this->negate($amount), $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $createdAt);
+        return $this->apply($wallet, $this->negate($amount), $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $occurredAt);
     }
 
     /**
@@ -188,7 +190,7 @@ class WalletService
         ?User $actor,
         ?string $ip,
         ?string $id,
-        ?Carbon $createdAt = null,
+        ?Carbon $occurredAt = null,
     ): WalletTransaction {
         $existing = WalletTransaction::query()->where('idempotency_key', $idempotencyKey)->first();
 
@@ -198,7 +200,7 @@ class WalletService
 
         for ($attempt = 0; $attempt < 8; $attempt++) {
             try {
-                return $this->within(function () use ($wallet, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $createdAt) {
+                return $this->within(function () use ($wallet, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $occurredAt) {
                     $again = WalletTransaction::query()->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
 
                     if ($again !== null) {
@@ -207,7 +209,7 @@ class WalletService
 
                     $locked = Wallet::query()->whereKey($wallet->id)->lockForUpdate()->firstOrFail();
 
-                    return $this->write($locked, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $createdAt);
+                    return $this->write($locked, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $occurredAt);
                 });
             } catch (WalletException $exception) {
                 if ($exception->translationKey !== 'wallet.conflict' || $attempt === 7) {
@@ -279,7 +281,7 @@ class WalletService
         ?User $actor,
         ?string $ip,
         ?string $id,
-        ?Carbon $createdAt = null,
+        ?Carbon $occurredAt = null,
     ): WalletTransaction {
         $before = $this->normalize((string) $wallet->balance);
         $amount = $this->normalize($signedAmount);
@@ -340,7 +342,7 @@ class WalletService
             'note' => $note,
             'created_by' => $actor?->id,
             'ip' => $ip,
-            'created_at' => $createdAt ?? now(),
+            'created_at' => $occurredAt ?? now(),
         ]);
 
         $this->activity->write($actor, 'wallet.posted', $wallet->user, [
@@ -353,6 +355,13 @@ class WalletService
         app(DailyStatWriter::class)->record($transaction);
 
         return $transaction;
+    }
+
+    private function assertOccurredAt(?Carbon $occurredAt): void
+    {
+        if ($occurredAt !== null && app()->isProduction()) {
+            throw new WalletException('wallet.occurred_at_forbidden');
+        }
     }
 
     private function assertAmount(string $amount): void

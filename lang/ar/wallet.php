@@ -63,5 +63,6 @@ return [
         'currency_mismatch' => 'العملات غير متطابقة.',
         'mint_owner_only' => 'المالك فقط يمكنه إصدار الرصيد.',
         'invalid_amount' => 'المبلغ غير صالح.',
+        'demo_reset_forbidden' => 'لا يعمل هذا الأمر في بيئة الإنتاج.',
     ],
 ];

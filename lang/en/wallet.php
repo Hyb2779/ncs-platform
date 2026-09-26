@@ -63,5 +63,6 @@ return [
         'currency_mismatch' => 'Currencies do not match.',
         'mint_owner_only' => 'Only the owner can mint credit.',
         'invalid_amount' => 'Amount is invalid.',
+        'demo_reset_forbidden' => 'This command cannot run in production.',
     ],
 ];

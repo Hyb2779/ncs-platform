@@ -6,7 +6,7 @@ Kimlik, anahtar, parola ve bağlantı bilgisi bu dosyada yok.
 
 ## Son doğrulama
 
-- Tam süit: 166 test geçti, 827 assertion.
+- Tam süit: 169 test geçti, 834 assertion.
 - `lang:check`: kataloglar eşleşiyor (487 anahtar, tr/en/de/ar).
 - `wallet:verify`: ok.
 - `sport_limits` genişletme migration’ı uygulandı.
@@ -136,7 +136,7 @@ Yazar `DailyStatWriter`. `sport:stats-refresh` bugün ve dünü 10 dakikada bir 
 - İade ve iptal, hareketin gerçekleştiği güne yazılır (süperadmin saat dilimi). O günün cirosu eksi olabilir.
 - Job, her süperadminin kendi saat diliminde bugün ve dünü 10 dakikada bir yeniden yazar. Gece job’u iki gün önceyi kapatır. Kapalı güne düşen düzeltme o günü yeniden hesaplar. Backfill aynı kod yolunu kullanır. Tümü idempotent.
 - Faz E liste ekranları `x-panel.table`, `x-panel.filter-bar`, `x-panel.badge`, `x-panel.stat` ve `x-panel.card` kullanır. Ligler, sağlayıcılar, oyunlar ve marjlar dahildir.
-- Demo geçmişinde son 30 günün ürün cirosu yaklaşık slot %50, spor %35, canlı casino %15 olacak şekilde tamamlanır. Eksik pay, deftere yeni bahis olarak eklenir; eski satırlar silinmez.
+- `demo:reset` yalnızca üretim dışında çalışır: `migrate:fresh`, DemoSeeder, DemoHistorySeeder, `sport:stats-backfill`, `wallet:verify`. Demo bahisleri `occurred_at` ile son 30 güne yazılır. Üretimde bu parametre reddedilir. Günlük pay slot %50, spor %35, canlı casino %15; tutar günden güne dalgalanır, bugüne yığılmaz.
 
 ## Açık işler
 

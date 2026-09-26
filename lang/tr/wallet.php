@@ -63,5 +63,6 @@ return [
         'currency_mismatch' => 'Para birimleri uyuşmuyor.',
         'mint_owner_only' => 'Kredi yalnızca sahip üretebilir.',
         'invalid_amount' => 'Tutar geçersiz.',
+        'demo_reset_forbidden' => 'Bu komut üretimde çalışmaz.',
     ],
 ];

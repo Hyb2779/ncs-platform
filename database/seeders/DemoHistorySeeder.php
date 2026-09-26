@@ -55,7 +55,6 @@ class DemoHistorySeeder extends Seeder
 
             foreach ($members as $member) {
                 $this->seedMember($wallets, $superadmin, $member);
-                $this->balanceMix($wallets, $superadmin, $member);
             }
         });
 
@@ -85,10 +84,11 @@ class DemoHistorySeeder extends Seeder
 
         for ($day = $start->copy(); $day->lte($end); $day->addDay()) {
             $at = $day->copy()->setTime(15, 0)->addSeconds($member->id % 50)->utc();
-            $scale = bcadd('1.00', bcdiv((string) ($day->day % 5), '10', 2), 2);
-            $sportStake = bcmul('35.00', $scale, 2);
-            $slotStake = bcmul('50.00', $scale, 2);
-            $liveStake = bcmul('15.00', $scale, 2);
+            $index = (int) $start->diffInDays($day);
+            $factor = $this->factor($index, $member->id);
+            $sportStake = bcmul('35.00', $factor, 2);
+            $slotStake = bcmul('50.00', $factor, 2);
+            $liveStake = bcmul('15.00', $factor, 2);
             $mode = ($day->day + $member->id) % 10;
             $sport = $this->post($wallets, $member, $sportStake, WalletTransactionType::Bet, WalletProduct::Sport, 'demo-stat:'.$member->id.':'.$day->toDateString().':sport:bet', $at);
             if ($sport === null) {
@@ -115,101 +115,18 @@ class DemoHistorySeeder extends Seeder
             return;
         }
 
-        $this->move($wallets, $owner, $superadmin, $amount, $prefix.':sa');
-        $this->move($wallets, $superadmin, $bayi, $amount, $prefix.':bayi');
+        $this->move($wallets, $owner, $superadmin, $amount, $prefix.':sa', $memberAt);
+        $this->move($wallets, $superadmin, $bayi, $amount, $prefix.':bayi', $memberAt);
         $this->move($wallets, $bayi, $member, $amount, $prefix.':member', $memberAt);
     }
 
-    private function balanceMix(WalletService $wallets, User $superadmin, User $member): void
+    private function factor(int $index, int $memberId): string
     {
-        $zone = $superadmin->timezone ?: 'UTC';
-        $from = now($zone)->startOfDay()->subDays(29)->utc();
-        $until = now($zone)->addDay()->startOfDay()->utc();
-        $totals = ['sport' => '0.00', 'slot' => '0.00', 'live_casino' => '0.00'];
-        $rows = WalletTransaction::query()
-            ->where('user_id', $member->id)
-            ->whereIn('type', [WalletTransactionType::Bet, WalletTransactionType::Refund])
-            ->whereIn('product', [WalletProduct::Sport, WalletProduct::Slot, WalletProduct::LiveCasino])
-            ->where('created_at', '>=', $from)
-            ->where('created_at', '<', $until)
-            ->get(['product', 'amount']);
+        $wave = sin($index * 0.45) * 0.22 + sin($index * 0.17 + 0.8) * 0.10;
+        $nudge = (($memberId % 5) - 2) * 0.02;
+        $factor = 1 + $wave + $nudge;
 
-        foreach ($rows as $row) {
-            $key = $row->product instanceof WalletProduct ? $row->product->value : (string) $row->product;
-            if (! array_key_exists($key, $totals)) {
-                continue;
-            }
-            $totals[$key] = bcsub($totals[$key], (string) $row->amount, 2);
-        }
-
-        foreach ($totals as $key => $value) {
-            if (bccomp($value, '0', 2) === -1) {
-                $totals[$key] = '0.00';
-            }
-        }
-
-        $adds = $this->mixAdds($totals['sport'], $totals['slot'], $totals['live_casino']);
-        $need = '0.00';
-        foreach ($adds as $add) {
-            $need = bcadd($need, $add, 2);
-        }
-        if (bccomp($need, '0', 2) !== 1) {
-            return;
-        }
-
-        $wallet = $wallets->walletFor($member, $member->currency);
-        if (bccomp((string) $wallet->balance, $need, 2) === -1) {
-            $gap = bcadd(bcsub($need, (string) $wallet->balance, 2), '1.00', 2);
-            $this->fund($wallets, $member, now(), $gap, 'demo-stat:fund:'.$member->id.':mix');
-        }
-
-        $products = [
-            'sport' => WalletProduct::Sport,
-            'slot' => WalletProduct::Slot,
-            'live_casino' => WalletProduct::LiveCasino,
-        ];
-        foreach ($products as $key => $product) {
-            if (bccomp($adds[$key], '0', 2) !== 1) {
-                continue;
-            }
-            $this->post($wallets, $member, $adds[$key], WalletTransactionType::Bet, $product, 'demo-stat:'.$member->id.':mix:v2:'.$key, now());
-        }
-    }
-
-    /**
-     * @return array{sport: string, slot: string, live_casino: string}
-     */
-    private function mixAdds(string $sport, string $slot, string $live): array
-    {
-        $bases = [
-            bccomp($sport, '0', 2) === 1 ? bcdiv($sport, '0.35', 4) : '0',
-            bccomp($slot, '0', 2) === 1 ? bcdiv($slot, '0.50', 4) : '0',
-            bccomp($live, '0', 2) === 1 ? bcdiv($live, '0.15', 4) : '0',
-        ];
-        $target = '0';
-        foreach ($bases as $base) {
-            if (bccomp($base, $target, 4) === 1) {
-                $target = $base;
-            }
-        }
-
-        if (bccomp($target, '0', 4) !== 1) {
-            return ['sport' => '35.00', 'slot' => '50.00', 'live_casino' => '15.00'];
-        }
-
-        $want = [
-            'sport' => bcmul($target, '0.35', 2),
-            'slot' => bcmul($target, '0.50', 2),
-            'live_casino' => bcmul($target, '0.15', 2),
-        ];
-        $current = ['sport' => $sport, 'slot' => $slot, 'live_casino' => $live];
-        $adds = [];
-        foreach ($want as $key => $amount) {
-            $gap = bcsub($amount, $current[$key], 2);
-            $adds[$key] = bccomp($gap, '0', 2) === 1 ? $gap : '0.00';
-        }
-
-        return $adds;
+        return number_format(max($factor, 0.60), 2, '.', '');
     }
 
     private function move(WalletService $wallets, User $from, User $to, string $amount, string $key, ?Carbon $creditAt = null): void
@@ -217,6 +134,7 @@ class DemoHistorySeeder extends Seeder
         $currency = $to->currency;
         $fromWallet = $wallets->walletFor($from, $from->role === UserRole::Owner ? $currency : $from->currency);
         $toWallet = $wallets->walletFor($to, $currency);
+        $when = $creditAt ?? now();
         $wallets->debit(
             $fromWallet,
             $amount,
@@ -229,7 +147,7 @@ class DemoHistorySeeder extends Seeder
             $from,
             null,
             null,
-            $this->afterLast($fromWallet->id),
+            $this->notBeforeLast($fromWallet->id, $when),
         );
         $wallets->credit(
             $toWallet,
@@ -243,7 +161,7 @@ class DemoHistorySeeder extends Seeder
             $from,
             null,
             null,
-            $creditAt ?? $this->afterLast($toWallet->id),
+            $this->notBeforeLast($toWallet->id, $when),
         );
     }
 
@@ -261,13 +179,6 @@ class DemoHistorySeeder extends Seeder
         }
 
         return $wallets->credit($wallet, $amount, $type, $product, $key, null, null, null, null, null, null, $at);
-    }
-
-    private function afterLast(int $walletId): Carbon
-    {
-        $latest = WalletTransaction::query()->where('wallet_id', $walletId)->max('created_at');
-
-        return $latest === null ? now() : Carbon::parse($latest)->addSecond();
     }
 
     private function notBeforeLast(int $walletId, Carbon $at): Carbon

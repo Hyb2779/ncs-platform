@@ -63,5 +63,6 @@ return [
         'currency_mismatch' => 'Währungen stimmen nicht überein.',
         'mint_owner_only' => 'Nur der Inhaber kann Guthaben erzeugen.',
         'invalid_amount' => 'Betrag ist ungültig.',
+        'demo_reset_forbidden' => 'Dieser Befehl läuft nicht in der Produktion.',
     ],
 ];

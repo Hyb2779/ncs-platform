@@ -74,6 +74,48 @@ class WalletTest extends TestCase
         $this->assertSame('5.00', $wallet->refresh()->balance);
     }
 
+    public function test_occurred_at_sets_created_at_outside_production(): void
+    {
+        [$owner] = $this->pair();
+        $wallet = $owner->wallets()->where('currency', 'TRY')->first();
+        $at = \Illuminate\Support\Carbon::parse('2026-09-01 12:00:00', 'UTC');
+
+        $row = app(WalletService::class)->credit(
+            $wallet,
+            '5.00',
+            WalletTransactionType::Adjustment,
+            WalletProduct::Adjustment,
+            'occurred-ok',
+            occurredAt: $at,
+        );
+
+        $this->assertSame('2026-09-01 12:00:00', $row->created_at->utc()->toDateTimeString());
+    }
+
+    public function test_occurred_at_is_rejected_in_production(): void
+    {
+        $this->app['env'] = 'production';
+        [$owner] = $this->pair();
+        $wallet = $owner->wallets()->where('currency', 'TRY')->first();
+
+        try {
+            app(WalletService::class)->credit(
+                $wallet,
+                '5.00',
+                WalletTransactionType::Adjustment,
+                WalletProduct::Adjustment,
+                'occurred-no',
+                occurredAt: now()->subDay(),
+            );
+            $this->fail('occurred_at should be rejected in production');
+        } catch (WalletException $exception) {
+            $this->assertSame('wallet.occurred_at_forbidden', $exception->translationKey);
+        }
+
+        $this->assertSame(0, WalletTransaction::query()->count());
+        $this->assertSame('0.00', $wallet->refresh()->balance);
+    }
+
     public function test_lock_retry_keeps_one_row_for_the_same_key(): void
     {
         [$owner] = $this->pair();
@@ -329,7 +371,6 @@ class WalletTest extends TestCase
 
         $this->artisan('wallet:verify')->assertFailed();
     }
-
 
     public function test_owner_can_fund_superadmin_from_zero_and_go_negative(): void
     {
