@@ -77,7 +77,7 @@ class PanelShellTest extends TestCase
             'labels' => ['Dün', 'Bugün'],
             'datasets' => [['label' => 'Ciro', 'data' => [-3, 4]]],
         ]);
-        $this->assertStringContainsString('data-chart', $chart);
+        $this->assertStringContainsString('data-chart="{&quot;type&quot;:&quot;bar&quot;', $chart);
         $this->assertStringContainsString('-3', $chart);
 
         $source = file_get_contents(base_path('resources/js/panel-chart.js'));
