@@ -11,12 +11,23 @@ class SportFixture extends Model
 {
     protected $fillable = [
         'api_id', 'league_id', 'home_team_id', 'away_team_id', 'starts_at', 'status',
-        'score_home', 'score_away', 'ht_home', 'ht_away', 'bulletin_code',
+        'score_home', 'score_away', 'ht_home', 'ht_away', 'ft_home', 'ft_away',
+        'settled_at', 'score_source', 'bulletin_code',
     ];
 
     protected function casts(): array
     {
-        return ['starts_at' => 'datetime'];
+        return [
+            'starts_at' => 'datetime',
+            'settled_at' => 'datetime',
+            'ft_home' => 'integer',
+            'ft_away' => 'integer',
+        ];
+    }
+
+    public function isManual(): bool
+    {
+        return $this->score_source === 'manual';
     }
 
     public function league(): BelongsTo

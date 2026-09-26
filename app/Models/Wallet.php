@@ -22,6 +22,7 @@ class Wallet extends Model
             'currency' => Currency::class,
             'balance' => 'decimal:2',
             'allow_negative' => 'boolean',
+            'settlement_overdraft_amount' => 'decimal:2',
         ];
     }
 

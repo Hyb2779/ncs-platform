@@ -11,7 +11,7 @@ class Coupon extends Model
     protected $fillable = [
         'coupon_no', 'user_id', 'superadmin_id', 'client_key', 'type', 'stake', 'total_odds',
         'potential_win', 'status', 'accept_odds_change', 'note', 'ip', 'device', 'placed_at',
-        'settled_at', 'cancelled_by', 'cancel_reason',
+        'settled_at', 'cancelled_by', 'cancel_reason', 'settlement_revision',
     ];
 
     protected function casts(): array
@@ -20,6 +20,7 @@ class Coupon extends Model
             'accept_odds_change' => 'boolean',
             'placed_at' => 'datetime',
             'settled_at' => 'datetime',
+            'settlement_revision' => 'integer',
         ];
     }
 
