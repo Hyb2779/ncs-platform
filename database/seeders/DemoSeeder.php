@@ -66,6 +66,5 @@ class DemoSeeder extends Seeder
             }
         }
 
-        $this->call(DemoHistorySeeder::class);
     }
 }
