@@ -72,7 +72,7 @@
                         @endforeach
                     @endif
                 </div>
-                <span class="hidden text-sm text-slate-500 sm:inline">{{ auth()->user()->language->value }}</span>
+                <span class="hidden h-6 items-center rounded-md bg-[#F3F4F6] px-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:inline-flex" title="{{ __('panel.languages.'.auth()->user()->language->value) }}">{{ auth()->user()->language->value }}</span>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button class="inline-flex h-11 items-center rounded-lg border border-[#E3E6EB] bg-white px-3 text-sm" type="submit">{{ __('panel.logout') }}</button>

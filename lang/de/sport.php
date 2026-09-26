@@ -206,7 +206,7 @@ return [
             'max_odds_live' => 'Max. Live-Quote',
             'max_selections' => 'Max. Tipps',
             'live_close_minute' => 'Live-Schlussminute',
-            'cancel_minutes' => 'Spieler-Storno (Min.)',
+            'cancel_minutes' => 'Spieler-Storno',
         ],
         'settle_check' => 'Letzte Abrechnung',
         'pending_settlements' => 'Offene Abrechnungen',

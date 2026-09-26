@@ -206,7 +206,7 @@ return [
             'max_odds_live' => 'أقصى سعر مباشر',
             'max_selections' => 'أقصى عدد اختيارات',
             'live_close_minute' => 'دقيقة إغلاق المباشر',
-            'cancel_minutes' => 'مهلة إلغاء اللاعب (دقيقة)',
+            'cancel_minutes' => 'مهلة إلغاء اللاعب',
         ],
         'settle_check' => 'آخر تسوية',
         'pending_settlements' => 'تسويات معلّقة',

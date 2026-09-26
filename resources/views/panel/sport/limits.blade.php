@@ -29,8 +29,17 @@
             @csrf
             @method('PUT')
             <input type="hidden" name="currency" value="{{ $currency->value }}">
+            @php
+                $columns = [
+                    ['coupon', 'payout'],
+                    ['stake', 'odds'],
+                ];
+            @endphp
             <div class="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-                @foreach ($groups as $group => $groupFields)
+                @foreach ($columns as $column)
+                    <div class="grid content-start gap-4">
+                @foreach ($column as $group)
+                    @php $groupFields = $groups[$group]; @endphp
                     <x-panel.card :title="__('sport.panel.limit_groups.'.$group)" accordion>
                             @foreach ($groupFields as $field)
                                 @if ($field === 'cash_out_enabled')
@@ -139,6 +148,8 @@
                             @endforeach
                     </x-panel.card>
                 @endforeach
+                    </div>
+                @endforeach
             </div>
         </form>
         <form id="sport-limits-restore" method="POST" action="{{ route('panel.sport.limits.restore') }}" @submit="allowLeave()">
@@ -215,7 +226,9 @@
                         return limitGroupNumber(raw, 2, '.', ',');
                     }
                     if (this.kind === 'money') {
-                        return limitGroupNumber(raw, 2, this.decimal, this.thousands);
+                        var whole = raw.indexOf('.') === -1 || /\.00$/.test(raw);
+
+                        return limitGroupNumber(raw, whole ? 0 : 2, this.decimal, this.thousands);
                     }
                     return limitGroupNumber(raw, 0, this.decimal, this.thousands);
                 },

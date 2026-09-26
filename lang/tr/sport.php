@@ -206,7 +206,7 @@ return [
             'max_odds_live' => 'Canlı max oran',
             'max_selections' => 'Max seçim',
             'live_close_minute' => 'Canlı kapanış dakikası',
-            'cancel_minutes' => 'Oyuncu iptal süresi (dk)',
+            'cancel_minutes' => 'Oyuncu iptal süresi',
         ],
         'settle_check' => 'Son sonuçlandırma',
         'pending_settlements' => 'Bekleyen sonuçlandırma',

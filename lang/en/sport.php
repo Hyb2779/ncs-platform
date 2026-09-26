@@ -206,7 +206,7 @@ return [
             'max_odds_live' => 'Live max odds',
             'max_selections' => 'Max selections',
             'live_close_minute' => 'Live close minute',
-            'cancel_minutes' => 'Player cancel window (min)',
+            'cancel_minutes' => 'Player cancel window',
         ],
         'settle_check' => 'Last settlement check',
         'pending_settlements' => 'Pending settlements',

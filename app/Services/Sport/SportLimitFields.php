@@ -132,7 +132,9 @@ class SportLimitFields
             return self::grouped($canonical, 2, '.', ',');
         }
         if (self::kind($field) === 'money') {
-            return self::grouped($canonical, 2, $decimal, $thousands);
+            $whole = preg_match('/\.00$/', $canonical) === 1;
+
+            return self::grouped($canonical, $whole ? 0 : 2, $decimal, $thousands);
         }
 
         return self::grouped($canonical, 0, $decimal, $thousands);

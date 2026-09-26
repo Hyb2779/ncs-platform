@@ -21,6 +21,7 @@ use App\Services\HierarchyService;
 use App\Services\Sport\CouponException;
 use App\Services\Sport\CouponPlacer;
 use App\Services\Sport\SportLimitCatalog;
+use App\Services\Sport\SportLimitFields;
 use App\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
@@ -341,11 +342,22 @@ class CouponPlaceTest extends TestCase
             ->assertSee('Üst sınır: 10.000 ₺', false)
             ->assertSee('grid-cols-1', false)
             ->assertSee('lg:grid-cols-2', false)
+            ->assertSee(__('sport.panel.limit_fields.cancel_minutes'), false)
+            ->assertDontSee(__('sport.panel.limit_fields.cancel_minutes').' (dk)', false)
+            ->assertSee('value="10.000"', false)
+            ->assertDontSee('value="10.000,00"', false)
+            ->assertSee('uppercase tracking-wide', false)
+            ->assertDontSee('hidden text-sm text-slate-500 sm:inline', false)
             ->assertSee('inputmode="decimal"', false)
             ->assertSee('w-[120px]', false)
             ->assertSee('lg:w-[180px]', false)
             ->assertDontSee('Üst hesap sınırlı', false);
         $html = $page->getContent();
+        preg_match_all('/<summary[^>]*>\s*<span>([^<]+)<\/span>/', $html, $groupTitles);
+        $this->assertSame(['Kupon', 'Kazanç Limitleri', 'Bahis Limitleri', 'Oran Koruması'], $groupTitles[1]);
+        $this->assertSame('10.000', SportLimitFields::formatInput('max_stake_general', '10000.00', ',', '.'));
+        $this->assertSame('10,50', SportLimitFields::formatInput('max_stake_general', '10.50', ',', '.'));
+        $this->assertSame('1.01', SportLimitFields::formatInput('min_coupon_odds', '1.01', ',', '.'));
         $this->assertMatchesRegularExpression('/<div class="mb-4 rounded-lg bg-red-50[^"]*">\s*<p>1 alanda hata var<\/p>\s*<\/div>/', $html);
         $this->assertMatchesRegularExpression('/name="min_coupon_odds" value="1.00"/', $html);
         $this->assertMatchesRegularExpression('/border-red-600/', $html);
