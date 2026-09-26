@@ -6,6 +6,7 @@ use App\Enums\Currency;
 use App\Enums\UserRole;
 use App\Enums\WalletProduct;
 use App\Enums\WalletTransactionType;
+use App\Models\SportWarning;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
@@ -282,24 +283,46 @@ class WalletService
         $before = $this->normalize((string) $wallet->balance);
         $amount = $this->normalize($signedAmount);
         $after = bcadd($before, $amount, 2);
+        $overdraft = $this->normalize((string) ($wallet->settlement_overdraft_amount ?? '0'));
 
         if (bccomp($after, '0', 2) < 0 && ! $wallet->allow_negative) {
-            throw new WalletException('wallet.insufficient_balance');
+            if (bccomp($before, '0', 2) < 0 && $type !== WalletTransactionType::Adjustment) {
+                throw new WalletException('wallet.insufficient_balance');
+            }
+
+            $floor = bcmul($overdraft, '-1', 2);
+            if (bccomp($after, $floor, 2) < 0) {
+                throw new WalletException('wallet.insufficient_balance');
+            }
+        }
+
+        $cleared = bccomp($after, '0', 2) >= 0 && bccomp($overdraft, '0', 2) === 1;
+        $payload = [
+            'balance' => $after,
+            'updated_at' => now(),
+        ];
+        if ($cleared) {
+            $payload['settlement_overdraft_amount'] = '0.00';
         }
 
         $updated = Wallet::query()
             ->whereKey($wallet->id)
             ->where('balance', $before)
-            ->update([
-                'balance' => $after,
-                'updated_at' => now(),
-            ]);
+            ->update($payload);
 
         if ($updated !== 1) {
             throw new WalletException('wallet.conflict');
         }
 
         $wallet->balance = $after;
+        if ($cleared) {
+            $wallet->settlement_overdraft_amount = '0.00';
+            SportWarning::query()
+                ->where('type', SportWarning::Overdraft)
+                ->where('user_id', $wallet->user_id)
+                ->whereNull('resolved_at')
+                ->update(['resolved_at' => now()]);
+        }
 
         $transaction = WalletTransaction::query()->create([
             'id' => $id ?? (string) Str::uuid(),

@@ -134,13 +134,10 @@ class SportSync
                 if ($fixture === null) {
                     continue;
                 }
-                $fixture->status = (string) $row['fixture']['status']['short'];
-                $fixture->score_home = $row['goals']['home'];
-                $fixture->score_away = $row['goals']['away'];
-                $fixture->ht_home = $row['score']['halftime']['home'] ?? null;
-                $fixture->ht_away = $row['score']['halftime']['away'] ?? null;
-                $fixture->save();
-                $count++;
+                if ($this->applyScoreRow($fixture, $row)) {
+                    $fixture->save();
+                    $count++;
+                }
             }
             $this->suspendStarted();
 
@@ -171,17 +168,22 @@ class SportSync
             $max = (int) SportFixture::query()->max('bulletin_code');
             $fixture->bulletin_code = $max === 0 ? 1001 : $max + 1;
         }
-        $fixture->fill([
+        $payload = [
             'league_id' => $league->id,
             'home_team_id' => $home->id,
             'away_team_id' => $away->id,
             'starts_at' => Carbon::parse($row['fixture']['date'])->utc(),
-            'status' => (string) $row['fixture']['status']['short'],
             'score_home' => $row['goals']['home'] ?? null,
             'score_away' => $row['goals']['away'] ?? null,
-            'ht_home' => $row['score']['halftime']['home'] ?? null,
-            'ht_away' => $row['score']['halftime']['away'] ?? null,
-        ]);
+        ];
+        if (! $fixture->exists || ! $fixture->isManual()) {
+            $payload['status'] = (string) $row['fixture']['status']['short'];
+            $payload['ht_home'] = $row['score']['halftime']['home'] ?? null;
+            $payload['ht_away'] = $row['score']['halftime']['away'] ?? null;
+            $payload['ft_home'] = $row['score']['fulltime']['home'] ?? null;
+            $payload['ft_away'] = $row['score']['fulltime']['away'] ?? null;
+        }
+        $fixture->fill($payload);
         $fixture->save();
 
         return $fixture;
@@ -239,6 +241,26 @@ class SportSync
         }
 
         return $count;
+    }
+
+    /**
+     * @param  array<string, mixed>  $row
+     */
+    public function applyScoreRow(SportFixture $fixture, array $row): bool
+    {
+        $fixture->score_home = $row['goals']['home'] ?? $fixture->score_home;
+        $fixture->score_away = $row['goals']['away'] ?? $fixture->score_away;
+        if ($fixture->isManual()) {
+            return true;
+        }
+
+        $fixture->status = (string) ($row['fixture']['status']['short'] ?? $fixture->status);
+        $fixture->ht_home = $row['score']['halftime']['home'] ?? $fixture->ht_home;
+        $fixture->ht_away = $row['score']['halftime']['away'] ?? $fixture->ht_away;
+        $fixture->ft_home = $row['score']['fulltime']['home'] ?? $fixture->ft_home;
+        $fixture->ft_away = $row['score']['fulltime']['away'] ?? $fixture->ft_away;
+
+        return true;
     }
 
     /**

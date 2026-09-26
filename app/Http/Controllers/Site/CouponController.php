@@ -16,7 +16,7 @@ class CouponController extends Controller
     public function index(Request $request): View
     {
         $status = (string) $request->query('status', 'pending');
-        if (! in_array($status, ['pending', 'won', 'lost', 'cancelled'], true)) {
+        if (! in_array($status, ['pending', 'won', 'lost', 'void', 'cancelled'], true)) {
             $status = 'pending';
         }
         $statuses = $status === 'cancelled' ? ['cancelled', 'refunded'] : [$status];
@@ -24,6 +24,7 @@ class CouponController extends Controller
         return view('site.coupons.index', [
             'status' => $status,
             'coupons' => Coupon::query()
+                ->with('selections')
                 ->where('user_id', $request->user()->id)
                 ->whereIn('status', $statuses)
                 ->orderByDesc('placed_at')

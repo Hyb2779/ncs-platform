@@ -21,7 +21,7 @@ class CouponController extends Controller
         $this->filter($request, $query);
 
         return view('panel.coupons.index', [
-            'coupons' => (clone $query)->with('user')->withCount('selections')->orderByDesc('placed_at')->limit(200)->get(),
+            'coupons' => (clone $query)->with(['user', 'selections'])->withCount('selections')->orderByDesc('placed_at')->limit(200)->get(),
             'cards' => $this->cards($query, $request),
         ]);
     }
@@ -90,7 +90,7 @@ class CouponController extends Controller
         if (in_array($request->query('type'), ['combo', 'single'], true)) {
             $query->where('type', $request->query('type'));
         }
-        if (in_array($request->query('status'), ['pending', 'won', 'lost', 'refunded', 'cancelled'], true)) {
+        if (in_array($request->query('status'), ['pending', 'won', 'lost', 'refunded', 'cancelled', 'void'], true)) {
             $query->where('status', $request->query('status'));
         }
     }

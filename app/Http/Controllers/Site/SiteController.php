@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\Casino\DemoProvider;
 use App\Services\Casino\GameLauncher;
+use App\Services\WalletException;
 use App\Support\Money;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -98,7 +99,12 @@ class SiteController extends Controller
     public function launch(Request $request, CasinoGame $game, GameLauncher $launcher): RedirectResponse
     {
         $device = $request->header('User-Agent') && preg_match('/Mobile|Android/i', (string) $request->userAgent()) ? 'mobile' : 'desktop';
-        $url = $launcher->open($request->user(), $game, $device, $request->ip());
+
+        try {
+            $url = $launcher->open($request->user(), $game, $device, $request->ip());
+        } catch (WalletException $exception) {
+            return back()->withErrors(['game' => __('wallet.errors.insufficient_balance')]);
+        }
 
         return redirect()->away($url);
     }

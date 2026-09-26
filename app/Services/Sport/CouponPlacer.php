@@ -9,9 +9,11 @@ use App\Models\CouponPlacement;
 use App\Models\CouponSelection;
 use App\Models\SportOdd;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use App\Services\WalletException;
 use App\Services\WalletService;
 use Illuminate\Database\UniqueConstraintViolationException;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 
 class CouponPlacer
@@ -79,6 +81,7 @@ class CouponPlacer
                             'odds' => $row['shown'],
                             'raw_odds' => $row['raw'],
                             'kickoff' => $row['kickoff'],
+                            'kickoff_at' => $row['kickoff'],
                             'status' => 'pending',
                         ]);
                     }
@@ -234,10 +237,10 @@ class CouponPlacer
         return [];
     }
 
-    private function ledgerAt(int $walletId, int $offset): \Illuminate\Support\Carbon
+    private function ledgerAt(int $walletId, int $offset): Carbon
     {
-        $latest = \App\Models\WalletTransaction::query()->where('wallet_id', $walletId)->max('created_at');
-        $base = $latest === null ? now() : \Illuminate\Support\Carbon::parse($latest)->addSecond();
+        $latest = WalletTransaction::query()->where('wallet_id', $walletId)->max('created_at');
+        $base = $latest === null ? now() : Carbon::parse($latest)->addSecond();
 
         return $base->addSeconds($offset);
     }
