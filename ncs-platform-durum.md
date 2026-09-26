@@ -6,8 +6,8 @@ Kimlik, anahtar, parola ve bağlantı bilgisi bu dosyada yok.
 
 ## Son doğrulama
 
-- Tam süit: 157 test geçti, 762 assertion.
-- `lang:check`: kataloglar eşleşiyor (464 anahtar, tr/en/de/ar).
+- Tam süit: 166 test geçti, 817 assertion.
+- `lang:check`: kataloglar eşleşiyor (487 anahtar, tr/en/de/ar).
 - `wallet:verify`: ok.
 - `sport_limits` genişletme migration’ı uygulandı.
 - Mevcut kupon seçimlerinde `kickoff_at` boş olan yok (5 seçim, 0 boş).
@@ -28,9 +28,11 @@ Kimlik, anahtar, parola ve bağlantı bilgisi bu dosyada yok.
 | 6c ek | `kickoff_at` anlık görüntüsü, live-sync, “Maç bitti”, oynama anı skoru | Tamam |
 | Limit | Para birimi başına hiyerarşik spor ayarları, Kupon Sorgulama | Tamam (`7bb368d`). 6b’deki tek satırlık limit bununla değişti |
 | 6d | Canlı oran ve canlı bahis | Açık |
-| Panel A | Tasarım sistemi, mobil kabuk, Chart.js, Spor Ayarları bileşenleri | Tamam, onay bekliyor |
-| Panel B | daily_stats yazarı, job’lar, backfill, demo geçmiş | Bu tur |
-| Panel C–E | Owner/süperadmin paneli, liste taşıma | Onay bekliyor |
+| Panel A | Tasarım sistemi, mobil kabuk, Chart.js, Spor Ayarları bileşenleri | Tamam |
+| Panel B | daily_stats yazarı, job’lar, backfill, demo geçmiş | Tamam |
+| Panel C | Owner paneli: para birimi sekmeleri, kartlar, grafikler, süperadmin detayı | Tamam |
+| Panel D | Süperadmin paneli, bayi tablosu ve detayı, bayi iskeleti | Tamam |
+| Panel E | Liste ekranlarının tabloya taşınması | Onay bekliyor |
 
 ## 6c — sonuçlandırma
 

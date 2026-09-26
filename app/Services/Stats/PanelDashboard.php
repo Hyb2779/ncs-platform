@@ -67,6 +67,88 @@ class PanelDashboard
     /**
      * @return array<string, mixed>
      */
+    public function superadmin(User $user): array
+    {
+        $range = $this->range($user);
+        $data = $this->scoped($user, $range, true);
+        $bayis = User::query()->where('parent_id', $user->id)->where('role', UserRole::Bayi)->orderBy('username')->get();
+        $data['rank'] = $this->ranking($bayis->pluck('id')->all(), $range['from'], $range['to']);
+        $data['columns'] = [
+            ['key' => 'username', 'label' => __('panel.fields.username'), 'priority' => 'primary'],
+            ['key' => 'balance', 'label' => __('wallet.balance'), 'priority' => 'primary'],
+            ['key' => 'ggr', 'label' => __('panel.period_ggr'), 'priority' => 'primary'],
+            ['key' => 'members', 'label' => __('panel.member_count'), 'priority' => 'detail'],
+            ['key' => 'risk', 'label' => __('panel.open_risk'), 'priority' => 'detail'],
+        ];
+        $data['rows'] = $bayis->map(function (User $bayi) use ($range): array {
+            $members = $this->membersOf([$bayi->id]);
+            $open = $this->openCoupons([$bayi->id], $members);
+
+            return [
+                'username' => new HtmlString('<a class="font-medium" href="'.e(route('panel.network.show', $bayi)).'">'.e($bayi->username).'</a>'),
+                'balance' => $bayi->wallet()->first()?->formattedBalance() ?? Money::format('0', $bayi->currency),
+                'ggr' => Money::format($this->sum($this->rows([$bayi->id], $range['from'], $range['to'], 'all'), 'ggr'), $bayi->currency),
+                'members' => (string) $members->count(),
+                'risk' => Money::format($open['risk'], $bayi->currency),
+            ];
+        })->all();
+
+        return $data;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function bayi(User $user): array
+    {
+        $data = $this->scoped($user, $this->range($user), false);
+        $data['showPlayers'] = false;
+        $data['columns'] = [];
+        $data['rows'] = [];
+
+        return $data;
+    }
+
+    /**
+     * @param  array{from: string, to: string, previous_from: string, previous_to: string}  $range
+     * @return array<string, mixed>
+     */
+    private function scoped(User $user, array $range, bool $includeNew): array
+    {
+        $data = $this->presentation($user, [$user->id], $user->currency, $range, false);
+        $data['players'] = $this->players([$user->id], $range['from'], $range['to'], $includeNew);
+        $data['cards'][] = $this->card(
+            __('panel.subtree_balance'),
+            Money::format($this->subtreeBalance($user), $user->currency),
+            null,
+        );
+        $data['currency'] = $user->currency->value;
+        $data['currencies'] = [];
+        $data['ops'] = null;
+        $data['heading'] = __('panel.overview');
+        $data['showPlayers'] = true;
+
+        return $data;
+    }
+
+    private function subtreeBalance(User $account): string
+    {
+        $ids = User::query()->subtreeOf($account)->where('id', '!=', $account->id)->pluck('id');
+        $total = '0.00';
+        if ($ids->isEmpty()) {
+            return $total;
+        }
+
+        foreach (Wallet::query()->whereIn('user_id', $ids)->where('currency', $account->currency)->pluck('balance') as $balance) {
+            $total = bcadd($total, (string) $balance, 2);
+        }
+
+        return $total;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
     public function account(User $viewer, User $account): array
     {
         $range = $this->range($viewer);

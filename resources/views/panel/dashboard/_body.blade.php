@@ -27,7 +27,9 @@
             @endif
         </x-panel.card>
     @endif
-    <x-panel.card :title="__('panel.chart_players')">
-        <x-panel.chart type="line" :labels="$players['labels']" :datasets="$players['datasets']" />
-    </x-panel.card>
+    @if ($showPlayers ?? true)
+        <x-panel.card :title="__('panel.chart_players')">
+            <x-panel.chart type="line" :labels="$players['labels']" :datasets="$players['datasets']" />
+        </x-panel.card>
+    @endif
 </div>
