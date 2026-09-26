@@ -60,6 +60,7 @@ Route::middleware('auth')->group(function () {
 
 Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('panel.')->group(function () {
     Route::get('/', DashboardController::class)->name('dashboard');
+    Route::get('/network/{user}', [DashboardController::class, 'show'])->name('network.show');
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
