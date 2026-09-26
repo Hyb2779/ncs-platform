@@ -1,12 +1,12 @@
 # NCS Platform durum
 
-Tarih: 26 Eylül 2026. Dal: `main`, `7bb368d`.
+Tarih: 26 Eylül 2026. Dal: `main`.
 
 Kimlik, anahtar, parola ve bağlantı bilgisi bu dosyada yok.
 
 ## Son doğrulama
 
-- Tam süit: 166 test geçti, 817 assertion.
+- Tam süit: 166 test geçti, 827 assertion.
 - `lang:check`: kataloglar eşleşiyor (487 anahtar, tr/en/de/ar).
 - `wallet:verify`: ok.
 - `sport_limits` genişletme migration’ı uygulandı.
@@ -32,7 +32,7 @@ Kimlik, anahtar, parola ve bağlantı bilgisi bu dosyada yok.
 | Panel B | daily_stats yazarı, job’lar, backfill, demo geçmiş | Tamam |
 | Panel C | Owner paneli: para birimi sekmeleri, kartlar, grafikler, süperadmin detayı | Tamam |
 | Panel D | Süperadmin paneli, bayi tablosu ve detayı, bayi iskeleti | Tamam |
-| Panel E | Liste ekranlarının tabloya taşınması | Onay bekliyor |
+| Panel E | Liste ekranları: tablo, filtre, rozet, kart | Tamam |
 
 ## 6c — sonuçlandırma
 
@@ -135,7 +135,8 @@ Yazar `DailyStatWriter`. `sport:stats-refresh` bugün ve dünü 10 dakikada bir 
 - `product` değeri `transfer`, `adjustment` veya `bonus` olan kayıtlar ciroya ve payout’a hiç girmez.
 - İade ve iptal, hareketin gerçekleştiği güne yazılır (süperadmin saat dilimi). O günün cirosu eksi olabilir.
 - Job, her süperadminin kendi saat diliminde bugün ve dünü 10 dakikada bir yeniden yazar. Gece job’u iki gün önceyi kapatır. Kapalı güne düşen düzeltme o günü yeniden hesaplar. Backfill aynı kod yolunu kullanır. Tümü idempotent.
-- Faz E’ye Ligler, Sağlayıcılar/Oyunlar ve Marjlar da girer. Marjlar owner menüsündedir.
+- Faz E liste ekranları `x-panel.table`, `x-panel.filter-bar`, `x-panel.badge`, `x-panel.stat` ve `x-panel.card` kullanır. Ligler, sağlayıcılar, oyunlar ve marjlar dahildir.
+- Demo geçmişinde son 30 günün ürün cirosu yaklaşık slot %50, spor %35, canlı casino %15 olacak şekilde tamamlanır. Eksik pay, deftere yeni bahis olarak eklenir; eski satırlar silinmez.
 
 ## Açık işler
 

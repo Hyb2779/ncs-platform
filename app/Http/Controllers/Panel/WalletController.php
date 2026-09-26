@@ -14,6 +14,7 @@ use App\Support\Money;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class WalletController extends Controller
@@ -96,8 +97,8 @@ class WalletController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, WalletTransaction>  $rows
-     * @return \Illuminate\Support\Collection<int, WalletTransaction>
+     * @param  Collection<int, WalletTransaction>  $rows
+     * @return Collection<int, WalletTransaction>
      */
     private function withTransferPartners($rows)
     {
@@ -114,8 +115,8 @@ class WalletController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, WalletTransaction>  $rows
-     * @return \Illuminate\Support\Collection<int, array<string, mixed>>
+     * @param  Collection<int, WalletTransaction>  $rows
+     * @return Collection<int, array<string, mixed>>
      */
     private function ledgerEntries($rows, User $actor, ?int $focusedId)
     {
@@ -172,6 +173,7 @@ class WalletController extends Controller
             'raw_before' => $before,
             'raw_amount' => $signed,
             'raw_after' => $after,
+            'type' => __('wallet.types.'.$subject->type->value),
             'tone' => $positive ? 'text-emerald-800' : 'text-red-700',
             'movement' => $actor->role === UserRole::Owner && ($out->user_id === $actor->id || $in->user_id === $actor->id)
                 ? ($positive ? __('wallet.given') : __('wallet.taken_back'))
@@ -200,6 +202,7 @@ class WalletController extends Controller
             'raw_before' => $before,
             'raw_amount' => $signed,
             'raw_after' => $after,
+            'type' => __('wallet.types.'.$row->type->value),
             'tone' => $positive ? 'text-emerald-800' : 'text-red-700',
             'movement' => null,
             'note' => $row->note ?: __('panel.empty_value'),

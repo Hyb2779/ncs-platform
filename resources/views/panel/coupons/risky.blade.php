@@ -3,16 +3,24 @@
 @section('heading', __('sport.panel.risky'))
 
 @section('content')
-    <div class="overflow-x-auto rounded-lg bg-white">
-        <table class="w-full text-sm">
-            @foreach ($coupons as $coupon)
-                <tr class="border-b">
-                    <td class="px-3 py-2 font-numeric">{{ $coupon->coupon_no }}</td>
-                    <td class="px-3 py-2">{{ $coupon->user->username }}</td>
-                    <td class="px-3 py-2 font-numeric">{{ $coupon->potential_win }}</td>
-                    <td class="px-3 py-2"><a class="underline" href="{{ route('panel.coupons.show', $coupon) }}">{{ __('sport.panel.detail') }}</a></td>
-                </tr>
-            @endforeach
-        </table>
-    </div>
+    @php
+        $rows = [];
+        foreach ($coupons as $coupon) {
+            $rows[] = [
+                'no' => $coupon->coupon_no,
+                'user' => $coupon->user->username,
+                'win' => $coupon->potential_win,
+                'detail' => new \Illuminate\Support\HtmlString('<a class="underline" href="'.e(route('panel.coupons.show', $coupon)).'">'.e(__('sport.panel.detail')).'</a>'),
+            ];
+        }
+    @endphp
+    <x-panel.table
+        :columns="[
+            ['key' => 'no', 'label' => __('sport.panel.cols.no')],
+            ['key' => 'user', 'label' => __('sport.panel.cols.user')],
+            ['key' => 'win', 'label' => __('sport.panel.cols.win')],
+            ['key' => 'detail', 'label' => __('sport.panel.detail')],
+        ]"
+        :rows="$rows"
+    />
 @endsection

@@ -11,6 +11,7 @@ use App\Services\HierarchyException;
 use App\Services\HierarchyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class UserController extends Controller
@@ -37,6 +38,12 @@ class UserController extends Controller
                 if (in_array($status, array_column(UserStatus::cases(), 'value'), true)) {
                     $query->where('status', $status);
                 }
+            })
+            ->when($request->filled('from'), function ($query) use ($request, $actor) {
+                $query->where('created_at', '>=', Carbon::parse($request->query('from'), $actor->timezone)->startOfDay()->utc());
+            })
+            ->when($request->filled('to'), function ($query) use ($request, $actor) {
+                $query->where('created_at', '<=', Carbon::parse($request->query('to'), $actor->timezone)->endOfDay()->utc());
             })
             ->orderBy('username')
             ->get();

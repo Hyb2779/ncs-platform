@@ -3,23 +3,29 @@
 @section('heading', __('site.panel_sessions'))
 
 @section('content')
-    <form class="mb-4 flex flex-wrap gap-2" method="GET">
-        <input class="h-11 rounded-md border px-3" type="date" name="from" value="{{ request('from') }}">
-        <input class="h-11 rounded-md border px-3" type="date" name="to" value="{{ request('to') }}">
-        <button class="inline-flex h-11 items-center rounded-lg border px-3" type="submit">{{ __('panel.filter') }}</button>
-    </form>
-    <div class="overflow-x-auto rounded-lg bg-white">
-        <table class="w-full text-sm">
-            @foreach ($rows as $row)
-                <tr class="border-b">
-                    <td class="px-3 py-2">{{ $row->opened_at->timezone(auth()->user()->timezone)->format('d.m.Y H:i') }}</td>
-                    <td class="px-3 py-2">{{ $row->user->username }}</td>
-                    <td class="px-3 py-2">{{ $row->game->name }}</td>
-                    <td class="px-3 py-2">{{ $row->game->provider->name }}</td>
-                    <td class="px-3 py-2">{{ $row->ip }}</td>
-                    <td class="px-3 py-2">{{ $row->device }}</td>
-                </tr>
-            @endforeach
-        </table>
-    </div>
+    <x-panel.filter-bar class="mb-4" />
+    @php
+        $tableRows = [];
+        foreach ($rows as $row) {
+            $tableRows[] = [
+                'when' => $row->opened_at->timezone(auth()->user()->timezone)->format('d.m.Y H:i'),
+                'user' => $row->user->username,
+                'game' => $row->game->name,
+                'provider' => $row->game->provider->name,
+                'ip' => $row->ip,
+                'device' => $row->device,
+            ];
+        }
+    @endphp
+    <x-panel.table
+        :columns="[
+            ['key' => 'when', 'label' => __('wallet.when')],
+            ['key' => 'user', 'label' => __('sport.panel.user')],
+            ['key' => 'game', 'label' => __('site.panel_games')],
+            ['key' => 'provider', 'label' => __('site.panel_providers'), 'priority' => 'detail'],
+            ['key' => 'ip', 'label' => __('sport.panel.cols.ip'), 'priority' => 'detail'],
+            ['key' => 'device', 'label' => __('site.device'), 'priority' => 'detail'],
+        ]"
+        :rows="$tableRows"
+    />
 @endsection

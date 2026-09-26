@@ -1,3 +1,5 @@
+@props(['dates' => true])
+
 @php
     $zone = auth()->user()?->timezone ?: 'UTC';
     $today = \Illuminate\Support\Carbon::now($zone);
@@ -14,6 +16,7 @@
 
 <div {{ $attributes->class(['']) }} x-data="{ sheet: false }">
     <div class="hidden flex-wrap items-end gap-2 md:flex">
+        @if ($dates)
         @foreach ($presets as $preset)
             <a
                 class="inline-flex h-11 items-center rounded-lg border px-3 text-sm {{ $currentFrom === $preset['from'] && $currentTo === $preset['to'] ? 'border-[var(--accent)] bg-[var(--accent)] text-[#1A1305]' : 'border-[#E3E6EB] bg-white' }}"
@@ -29,8 +32,15 @@
                 {{ __('panel.filter_to') }}
                 <input class="h-11 rounded-lg border border-[#E3E6EB] px-2 text-sm" type="date" name="to" value="{{ $currentTo }}">
             </label>
+            @foreach (request()->except(['from', 'to', 'page']) as $name => $value)
+                @if (is_scalar($value))
+                    <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                @endif
+            @endforeach
             <button class="inline-flex h-11 items-center rounded-lg border border-[#E3E6EB] bg-white px-3 text-sm" type="submit">{{ __('panel.filter_apply') }}</button>
         </form>
+        @endif
+        {{ $slot }}
     </div>
     <button class="inline-flex h-11 items-center rounded-lg border border-[#E3E6EB] bg-white px-3 text-sm md:hidden" type="button" @click="sheet = true">{{ __('panel.filter_open') }}</button>
     <div class="fixed inset-0 z-40 md:hidden" x-show="sheet" x-cloak>
@@ -40,6 +50,7 @@
                 <p class="text-sm font-semibold">{{ __('panel.filter_custom') }}</p>
                 <button class="inline-flex h-11 items-center px-2 text-sm" type="button" @click="sheet = false">{{ __('panel.filter_close') }}</button>
             </div>
+            @if ($dates)
             @foreach ($presets as $preset)
                 <a
                     class="inline-flex h-11 items-center rounded-lg border px-3 text-sm {{ $currentFrom === $preset['from'] && $currentTo === $preset['to'] ? 'border-[var(--accent)] bg-[var(--accent)] text-[#1A1305]' : 'border-[#E3E6EB]' }}"
@@ -55,8 +66,15 @@
                     {{ __('panel.filter_to') }}
                     <input class="h-11 rounded-lg border border-[#E3E6EB] px-2 text-sm" type="date" name="to" value="{{ $currentTo }}">
                 </label>
+                @foreach (request()->except(['from', 'to', 'page']) as $name => $value)
+                    @if (is_scalar($value))
+                        <input type="hidden" name="{{ $name }}" value="{{ $value }}">
+                    @endif
+                @endforeach
                 <button class="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--accent)] text-sm font-semibold text-[#1A1305]" type="submit">{{ __('panel.filter_apply') }}</button>
             </form>
+            @endif
+            {{ $slot }}
         </div>
     </div>
 </div>

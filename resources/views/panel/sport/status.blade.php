@@ -4,47 +4,65 @@
 
 @section('content')
     <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-        <article class="rounded-lg bg-white p-4"><p>{{ __('sport.panel.requests') }}</p><p class="font-numeric">{{ $used }}</p></article>
-        <article class="rounded-lg bg-white p-4"><p>{{ __('sport.panel.remaining') }}</p><p class="font-numeric">{{ $remaining ?? __('panel.empty_value') }}</p></article>
-        <article class="rounded-lg bg-white p-4"><p>{{ __('sport.panel.settle_check') }}</p><p class="font-numeric">{{ $settleCheck?->last_synced_at?->timezone(auth()->user()->timezone)->format('d.m.Y H:i') ?? __('panel.empty_value') }}</p></article>
-        <article class="rounded-lg bg-white p-4"><p>{{ __('sport.panel.pending_settlements') }}</p><p class="font-numeric">{{ $pendingSettlements }}</p></article>
-        <article class="rounded-lg bg-white p-4">
-            <p>{{ __('sport.panel.live_sync') }}</p>
-            <p class="font-numeric">{{ $liveRequests }}</p>
-            <p class="text-sm text-slate-500">{{ $liveSync?->last_synced_at?->timezone(auth()->user()->timezone)->format('d.m.Y H:i') ?? __('panel.empty_value') }}</p>
-        </article>
+        <x-panel.stat :label="__('sport.panel.requests')" :value="$used" />
+        <x-panel.stat :label="__('sport.panel.remaining')" :value="$remaining ?? __('panel.empty_value')" />
+        <x-panel.stat :label="__('sport.panel.settle_check')" :value="$settleCheck?->last_synced_at?->timezone(auth()->user()->timezone)->format('d.m.Y H:i') ?? __('panel.empty_value')" />
+        <x-panel.stat :label="__('sport.panel.pending_settlements')" :value="$pendingSettlements" />
+        <x-panel.stat :label="__('sport.panel.live_sync')" :value="$liveRequests" />
     </div>
-    <div class="mb-4 rounded-lg bg-white">
-        @foreach ($states as $state)
-            <p class="border-b px-3 py-2 text-sm">{{ $state->code }} · {{ $state->last_synced_at?->timezone(auth()->user()->timezone)->format('d.m.Y H:i') ?? __('panel.empty_value') }} · {{ $state->last_error ?: __('panel.empty_value') }}</p>
-        @endforeach
-    </div>
-    <section class="mb-4 rounded-lg bg-white p-4">
-        <h2 class="mb-2 font-semibold">{{ __('sport.panel.manual_settle') }}</h2>
-        @forelse ($stale as $warning)
-            <p class="border-b py-2 text-sm">
-                <a class="underline" href="{{ route('panel.sport.fixtures.show', $warning->fixture) }}">{{ sport_name($warning->fixture?->home) }} – {{ sport_name($warning->fixture?->away) }}</a>
-            </p>
-        @empty
-            <p class="text-sm text-slate-500">{{ __('sport.panel.no_warnings') }}</p>
-        @endforelse
-    </section>
-    <section class="mb-4 rounded-lg bg-white p-4">
-        <h2 class="mb-2 font-semibold">{{ __('sport.panel.approaching_void') }}</h2>
-        @forelse ($approaching as $selection)
-            <p class="border-b py-2 text-sm">
-                <a class="underline" href="{{ route('panel.sport.fixtures.show', $selection->fixture) }}">{{ sport_name($selection->fixture->home) }} – {{ sport_name($selection->fixture->away) }}</a>
-            </p>
-        @empty
-            <p class="text-sm text-slate-500">{{ __('sport.panel.no_warnings') }}</p>
-        @endforelse
-    </section>
-    <section class="rounded-lg bg-white p-4">
-        <h2 class="mb-2 font-semibold">{{ __('sport.panel.overdraft') }}</h2>
-        @forelse ($overdrafts as $warning)
-            <p class="border-b py-2 text-sm">{{ $warning->user?->username }} · {{ \App\Support\Money::format((string) $warning->amount, $warning->user?->currency ?? auth()->user()->currency) }}</p>
-        @empty
-            <p class="text-sm text-slate-500">{{ __('sport.panel.no_warnings') }}</p>
-        @endforelse
-    </section>
+    @php
+        $stateRows = [];
+        foreach ($states as $state) {
+            $stateRows[] = [
+                'code' => $state->code,
+                'when' => $state->last_synced_at?->timezone(auth()->user()->timezone)->format('d.m.Y H:i') ?? __('panel.empty_value'),
+                'error' => $state->last_error ?: __('panel.empty_value'),
+            ];
+        }
+        $staleRows = [];
+        foreach ($stale as $warning) {
+            $staleRows[] = [
+                'match' => new \Illuminate\Support\HtmlString('<a class="underline" href="'.e(route('panel.sport.fixtures.show', $warning->fixture)).'">'.e(sport_name($warning->fixture?->home).' – '.sport_name($warning->fixture?->away)).'</a>'),
+            ];
+        }
+        $voidRows = [];
+        foreach ($approaching as $selection) {
+            $voidRows[] = [
+                'match' => new \Illuminate\Support\HtmlString('<a class="underline" href="'.e(route('panel.sport.fixtures.show', $selection->fixture)).'">'.e(sport_name($selection->fixture->home).' – '.sport_name($selection->fixture->away)).'</a>'),
+            ];
+        }
+        $debtRows = [];
+        foreach ($overdrafts as $warning) {
+            $debtRows[] = [
+                'user' => $warning->user?->username,
+                'amount' => \App\Support\Money::format((string) $warning->amount, $warning->user?->currency ?? auth()->user()->currency),
+            ];
+        }
+    @endphp
+    <x-panel.card class="mb-4" :title="__('sport.panel.status')">
+        <x-panel.table
+            :columns="[
+                ['key' => 'code', 'label' => __('sport.panel.status')],
+                ['key' => 'when', 'label' => __('wallet.when')],
+                ['key' => 'error', 'label' => __('panel.empty_value'), 'priority' => 'detail'],
+            ]"
+            :rows="$stateRows"
+        />
+    </x-panel.card>
+    <x-panel.card class="mb-4" :title="__('sport.panel.manual_settle')">
+        <x-panel.table :empty="__('sport.panel.no_warnings')" :columns="[['key' => 'match', 'label' => __('sport.panel.fixture_detail')]]" :rows="$staleRows" />
+    </x-panel.card>
+    <x-panel.card class="mb-4" :title="__('sport.panel.approaching_void')">
+        <x-panel.table :empty="__('sport.panel.no_warnings')" :columns="[['key' => 'match', 'label' => __('sport.panel.fixture_detail')]]" :rows="$voidRows" />
+    </x-panel.card>
+    <x-panel.card :title="__('sport.panel.overdraft')">
+        <x-panel.table
+            :empty="__('sport.panel.no_warnings')"
+            :columns="[
+                ['key' => 'user', 'label' => __('sport.panel.user')],
+                ['key' => 'amount', 'label' => __('wallet.amount')],
+            ]"
+            :rows="$debtRows"
+        />
+    </x-panel.card>
 @endsection

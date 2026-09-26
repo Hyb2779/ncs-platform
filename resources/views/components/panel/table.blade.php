@@ -1,4 +1,4 @@
-@props(['columns' => [], 'rows' => []])
+@props(['columns' => [], 'rows' => [], 'empty' => null])
 
 @php
     $primary = array_values(array_filter($columns, fn (array $column): bool => ($column['priority'] ?? 'primary') !== 'detail'));
@@ -13,7 +13,7 @@
 @endphp
 
 @if ($rows === [])
-    <x-panel.empty :message="__('panel.empty_rows')" />
+    <x-panel.empty :message="$empty ?? __('panel.empty_rows')" />
 @else
     <div class="hidden overflow-x-auto rounded-lg bg-white md:block">
         <table class="w-full text-start text-sm">
@@ -26,7 +26,7 @@
             </thead>
             <tbody>
                 @foreach ($rows as $row)
-                    <tr class="border-b border-[#EEF1F4] last:border-0">
+                    <tr class="border-b border-[#EEF1F4] last:border-0"@if (isset($row['_attrs']['data-before'])) data-before="{{ $row['_attrs']['data-before'] }}" data-amount="{{ $row['_attrs']['data-amount'] }}" data-after="{{ $row['_attrs']['data-after'] }}"@endif>
                         @foreach ($columns as $column)
                             <td class="px-3 py-2">{!! $cell($row[$column['key']] ?? '') !!}</td>
                         @endforeach

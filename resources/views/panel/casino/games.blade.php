@@ -3,15 +3,27 @@
 @section('heading', __('site.panel_games'))
 
 @section('content')
-    @foreach ($games as $game)
-        <form class="mb-2 flex flex-wrap items-center gap-2 rounded-lg bg-white p-3 text-sm" method="POST" action="{{ route('panel.casino.games.update', $game) }}">
-            @csrf
-            @method('PUT')
-            <span>{{ $game->name }}</span>
-            <label><input type="checkbox" name="is_active" value="1" @checked($game->is_active)> {{ __('site.active') }}</label>
-            <label><input type="checkbox" name="is_popular" value="1" @checked($game->is_popular)> {{ __('site.popular') }}</label>
-            <input class="w-20 rounded-md border px-2 py-1" name="sort_order" value="{{ $game->sort_order }}" aria-label="{{ __('site.order') }}">
-            <button class="inline-flex h-10 items-center rounded-lg border px-3" type="submit">{{ __('panel.save') }}</button>
-        </form>
-    @endforeach
+    @php
+        $rows = [];
+        foreach ($games as $game) {
+            $form = 'game-'.$game->id;
+            $rows[] = [
+                'name' => $game->name,
+                'active' => new \Illuminate\Support\HtmlString('<label class="inline-flex h-11 items-center gap-2"><input form="'.e($form).'" type="checkbox" name="is_active" value="1"'.($game->is_active ? ' checked' : '').'> '.e(__('site.active')).'</label>'),
+                'popular' => new \Illuminate\Support\HtmlString('<label class="inline-flex h-11 items-center gap-2"><input form="'.e($form).'" type="checkbox" name="is_popular" value="1"'.($game->is_popular ? ' checked' : '').'> '.e(__('site.popular')).'</label>'),
+                'sort' => new \Illuminate\Support\HtmlString('<input form="'.e($form).'" class="h-11 w-20 rounded-md border px-2" name="sort_order" value="'.e($game->sort_order).'" aria-label="'.e(__('site.order')).'">'),
+                'save' => new \Illuminate\Support\HtmlString('<form id="'.e($form).'" method="POST" action="'.e(route('panel.casino.games.update', $game)).'">'.csrf_field().method_field('PUT').'<button class="inline-flex h-11 items-center rounded-lg border px-3" type="submit">'.e(__('panel.save')).'</button></form>'),
+            ];
+        }
+    @endphp
+    <x-panel.table
+        :columns="[
+            ['key' => 'name', 'label' => __('site.panel_games')],
+            ['key' => 'active', 'label' => __('site.active')],
+            ['key' => 'popular', 'label' => __('site.popular'), 'priority' => 'detail'],
+            ['key' => 'sort', 'label' => __('site.order'), 'priority' => 'detail'],
+            ['key' => 'save', 'label' => __('panel.save')],
+        ]"
+        :rows="$rows"
+    />
 @endsection

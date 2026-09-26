@@ -3,11 +3,25 @@
 @section('heading', __('sport.panel.overdraft'))
 
 @section('content')
-    <div class="rounded-lg bg-white">
-        @forelse ($overdrafts as $warning)
-            <p class="border-b px-3 py-2 text-sm">{{ $warning->user?->username }} · {{ \App\Support\Money::format((string) $warning->amount, $warning->user?->currency ?? auth()->user()->currency) }}</p>
-        @empty
-            <p class="px-3 py-2 text-sm text-slate-500">{{ __('sport.panel.no_warnings') }}</p>
-        @endforelse
-    </div>
+    @php
+        $rows = [];
+        foreach ($overdrafts as $warning) {
+            $currency = $warning->user?->currency ?? auth()->user()->currency;
+            $rows[] = [
+                'user' => $warning->user?->username,
+                'amount' => new \Illuminate\Support\HtmlString(\Illuminate\Support\Facades\Blade::render(
+                    '<x-panel.badge tone="danger">{{ $label }}</x-panel.badge>',
+                    ['label' => \App\Support\Money::format((string) $warning->amount, $currency)],
+                )),
+            ];
+        }
+    @endphp
+    <x-panel.table
+        :empty="__('sport.panel.no_warnings')"
+        :columns="[
+            ['key' => 'user', 'label' => __('sport.panel.user')],
+            ['key' => 'amount', 'label' => __('wallet.amount')],
+        ]"
+        :rows="$rows"
+    />
 @endsection
