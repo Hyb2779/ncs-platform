@@ -16,12 +16,22 @@ class LiveSync
 
     public function run(): int
     {
+        $closed = [...config('sport.settle_statuses'), 'CANC', 'ABD', 'AWD', 'WO', 'PST'];
         $watched = SportFixture::query()
             ->where('score_source', '!=', 'manual')
-            ->whereHas('selections', function ($query): void {
-                $query->where('status', 'pending')
-                    ->where('kickoff_at', '<=', now())
-                    ->whereHas('coupon', fn ($coupon) => $coupon->where('status', 'pending'));
+            ->where(function ($query) use ($closed): void {
+                // Fixtures behind a pending coupon...
+                $query->whereHas('selections', function ($selection): void {
+                    $selection->where('status', 'pending')
+                        ->where('kickoff_at', '<=', now())
+                        ->whereHas('coupon', fn ($coupon) => $coupon->where('status', 'pending'));
+                })
+                // ...and any bulletin fixture that started in the last 4 hours and is not closed,
+                // so the live page and score strip stay fresh without a coupon.
+                    ->orWhere(function ($bulletin) use ($closed): void {
+                        $bulletin->whereBetween('starts_at', [now()->subHours(4), now()])
+                            ->whereNotIn('status', $closed);
+                    });
             })
             ->get();
 
