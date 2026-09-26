@@ -8,7 +8,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CouponSelection extends Model
 {
     protected $fillable = [
-        'coupon_id', 'fixture_id', 'market_code', 'outcome', 'odds', 'raw_odds', 'kickoff', 'kickoff_at', 'status', 'settled_at',
+        'coupon_id', 'fixture_id', 'market_code', 'outcome', 'odds', 'raw_odds', 'kickoff', 'kickoff_at',
+        'placed_status', 'placed_minute', 'placed_home', 'placed_away', 'status', 'settled_at',
     ];
 
     protected function casts(): array
@@ -16,6 +17,9 @@ class CouponSelection extends Model
         return [
             'kickoff' => 'datetime',
             'kickoff_at' => 'datetime',
+            'placed_minute' => 'integer',
+            'placed_home' => 'integer',
+            'placed_away' => 'integer',
             'settled_at' => 'datetime',
             'odds' => 'decimal:2',
             'raw_odds' => 'decimal:2',

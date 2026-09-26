@@ -3,11 +3,16 @@
 @section('heading', __('sport.panel.status'))
 
 @section('content')
-    <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <article class="rounded-lg bg-white p-4"><p>{{ __('sport.panel.requests') }}</p><p class="font-numeric">{{ $used }}</p></article>
         <article class="rounded-lg bg-white p-4"><p>{{ __('sport.panel.remaining') }}</p><p class="font-numeric">{{ $remaining ?? __('panel.empty_value') }}</p></article>
         <article class="rounded-lg bg-white p-4"><p>{{ __('sport.panel.settle_check') }}</p><p class="font-numeric">{{ $settleCheck?->last_synced_at?->timezone(auth()->user()->timezone)->format('d.m.Y H:i') ?? __('panel.empty_value') }}</p></article>
         <article class="rounded-lg bg-white p-4"><p>{{ __('sport.panel.pending_settlements') }}</p><p class="font-numeric">{{ $pendingSettlements }}</p></article>
+        <article class="rounded-lg bg-white p-4">
+            <p>{{ __('sport.panel.live_sync') }}</p>
+            <p class="font-numeric">{{ $liveRequests }}</p>
+            <p class="text-sm text-slate-500">{{ $liveSync?->last_synced_at?->timezone(auth()->user()->timezone)->format('d.m.Y H:i') ?? __('panel.empty_value') }}</p>
+        </article>
     </div>
     <div class="mb-4 rounded-lg bg-white">
         @foreach ($states as $state)

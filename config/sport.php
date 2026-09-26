@@ -9,4 +9,5 @@ return [
     'void_statuses' => ['PST', 'CANC', 'ABD', 'AWD', 'WO', 'TBD'],
     'wait_statuses' => ['SUSP', 'INT'],
     'stale_statuses' => ['NS', '1H', 'HT', '2H', 'ET', 'BT', 'P', 'LIVE'],
+    'live_statuses' => ['1H', '2H', 'ET', 'BT', 'P', 'LIVE'],
 ];

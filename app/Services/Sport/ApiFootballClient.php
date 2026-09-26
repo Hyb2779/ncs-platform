@@ -13,7 +13,7 @@ class ApiFootballClient
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>|null
      */
-    public function get(string $path, array $query = [], bool $critical = false): ?array
+    public function get(string $path, array $query = [], bool $critical = false, ?string $channel = null): ?array
     {
         if (! $this->budget->allows($critical)) {
             return null;
@@ -24,11 +24,11 @@ class ApiFootballClient
         ])->acceptJson()->timeout(30)->get(rtrim((string) config('football.url'), '/').$path, $query);
 
         $remaining = $response->header('x-ratelimit-requests-remaining');
-        $this->budget->record(is_numeric($remaining) ? (int) $remaining : 0);
+        $this->budget->record(is_numeric($remaining) ? (int) $remaining : 0, $channel);
 
         $body = $response->json();
 
-        if (! is_array($body) || $body['errors'] ?? false) {
+        if (! is_array($body) || ! empty($body['errors'])) {
             $errors = is_array($body) ? ($body['errors'] ?? []) : [];
             Log::warning('football.api.error', ['path' => $path, 'status' => $response->status(), 'errors' => $errors]);
 

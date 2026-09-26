@@ -24,6 +24,10 @@
                 <input class="h-11 rounded-md border px-3" type="number" min="0" name="ft_away" value="{{ old('ft_away', $fixture->ft_away) }}" required>
             </label>
         </div>
+        <label class="grid gap-1 text-sm">
+            <span>{{ __('sport.panel.played_at') }}</span>
+            <input class="h-11 rounded-md border px-3" type="datetime-local" name="played_at" value="{{ old('played_at', $fixture->played_at?->timezone(auth()->user()->timezone)->format('Y-m-d\TH:i')) }}" required>
+        </label>
         <button class="inline-flex h-11 items-center justify-center rounded-lg border" type="submit">{{ __('sport.panel.correct_score') }}</button>
     </form>
     <div class="grid gap-2">
@@ -32,7 +36,7 @@
                 <p class="font-numeric">{{ $coupon->coupon_no }} · {{ $coupon->user->username }} · {{ __('sport.coupon.statuses.'.$coupon->status) }}</p>
                 <div class="mt-2 flex flex-wrap gap-1">
                     @foreach ($coupon->selections as $selection)
-                        @include('sport._badge', ['status' => $selection->status])
+                        @include('sport._badge', ['status' => $selection->status, 'coupon' => $coupon])
                     @endforeach
                 </div>
             </article>

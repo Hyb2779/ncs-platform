@@ -6,6 +6,7 @@ use App\Enums\WalletProduct;
 use App\Enums\WalletTransactionType;
 use App\Models\Coupon;
 use App\Models\CouponSelection;
+use App\Models\SportFixture;
 use App\Models\SportWarning;
 use App\Models\User;
 use App\Models\WalletTransaction;
@@ -112,6 +113,14 @@ class CouponSettler
                 continue;
             }
 
+            if ($this->startedAfterVoidWindow($selection, $fixture)) {
+                $selection->status = 'void';
+                $selection->settled_at = now();
+                $selection->save();
+
+                continue;
+            }
+
             $result = $this->evaluator->evaluate(
                 $selection->market_code,
                 $selection->outcome,
@@ -128,6 +137,21 @@ class CouponSettler
             $selection->settled_at = now();
             $selection->save();
         }
+    }
+
+    private function startedAfterVoidWindow(CouponSelection $selection, SportFixture $fixture): bool
+    {
+        if ($selection->kickoff_at === null || $fixture->played_at === null) {
+            return false;
+        }
+
+        if (! in_array($fixture->status, config('sport.settle_statuses'), true)) {
+            return false;
+        }
+
+        $deadline = $selection->kickoff_at->copy()->addHours((int) config('sport.void_after_hours'));
+
+        return $fixture->played_at->greaterThan($deadline);
     }
 
     private function pay(Coupon $coupon): void

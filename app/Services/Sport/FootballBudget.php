@@ -18,10 +18,18 @@ class FootballBudget
         return false;
     }
 
-    public function record(int $remaining): void
+    public function record(int $remaining, ?string $channel = null): void
     {
         Cache::increment($this->key());
+        if ($channel !== null && $channel !== '') {
+            Cache::increment($this->key().':'.$channel);
+        }
         Cache::put('football:remaining', $remaining, now()->addDays(2));
+    }
+
+    public function usedChannel(string $channel): int
+    {
+        return (int) Cache::get($this->key().':'.$channel, 0);
     }
 
     public function used(): int

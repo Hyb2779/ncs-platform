@@ -7,7 +7,7 @@
     <div class="mt-4 grid gap-2 rounded-xl bg-[#151A23] p-4">
         <p class="font-numeric text-2xl font-bold">{{ $coupon->coupon_no }}</p>
         <p class="text-sm text-[#9AA4B5]">{{ sport_date($coupon->placed_at->timezone(auth()->user()->timezone), 'j F Y H:i') }} · {{ __('sport.coupon.'.$coupon->type) }} · {{ __('sport.coupon.statuses.'.$coupon->status) }}</p>
-        <p class="font-numeric">{{ \App\Support\Money::format((string) $coupon->stake, auth()->user()->currency) }} · {{ $coupon->total_odds }} · {{ \App\Support\Money::format((string) $coupon->potential_win, auth()->user()->currency) }}</p>
+        @include('sport._coupon_facts')
     </div>
     <div class="mt-4 grid gap-3">
         @foreach ($coupon->selections as $selection)
@@ -15,7 +15,8 @@
                 <p class="break-words font-semibold">{{ sport_name($selection->fixture->home) }}</p>
                 <p class="break-words font-semibold">{{ sport_name($selection->fixture->away) }}</p>
                 <p class="mt-1 text-sm text-[#9AA4B5]">{{ __('sport.markets.'.$selection->market_code) }} · {{ __('sport.outcomes.'.$selection->outcome) }} · {{ $selection->odds }}</p>
-                <div class="mt-2">@include('sport._badge', ['status' => $selection->status])</div>
+                <div class="mt-2">@include('sport._badge', ['status' => $selection->status, 'coupon' => $coupon])</div>
+                <div class="mt-2">@include('sport._selection_meta', ['selection' => $selection, 'coupon' => $coupon])</div>
             </article>
         @endforeach
     </div>

@@ -60,6 +60,7 @@ class SettleCheck
         return CouponSelection::query()
             ->where('status', 'pending')
             ->where('kickoff_at', '<=', $cutoff)
+            ->whereHas('coupon', fn ($query) => $query->where('status', 'pending'))
             ->with(['fixture', 'coupon'])
             ->get();
     }

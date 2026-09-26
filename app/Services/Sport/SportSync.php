@@ -259,6 +259,9 @@ class SportSync
         $fixture->ht_away = $row['score']['halftime']['away'] ?? $fixture->ht_away;
         $fixture->ft_home = $row['score']['fulltime']['home'] ?? $fixture->ft_home;
         $fixture->ft_away = $row['score']['fulltime']['away'] ?? $fixture->ft_away;
+        if (in_array($fixture->status, config('sport.settle_statuses'), true) && is_numeric($row['fixture']['timestamp'] ?? null)) {
+            $fixture->played_at = Carbon::createFromTimestampUTC((int) $row['fixture']['timestamp']);
+        }
 
         return true;
     }

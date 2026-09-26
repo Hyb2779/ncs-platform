@@ -21,6 +21,7 @@ use App\Services\Sport\SportLimits;
 use App\Services\Sport\SportTranslator;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 class SportAdminController extends Controller
@@ -35,7 +36,9 @@ class SportAdminController extends Controller
         return view('panel.sport.status', [
             'used' => $budget->used(),
             'remaining' => $budget->remaining(),
-            'states' => SportSyncState::query()->orderBy('code')->get(),
+            'liveRequests' => $budget->usedChannel('live-sync'),
+            'liveSync' => SportSyncState::query()->where('code', 'live-sync')->first(),
+            'states' => SportSyncState::query()->where('code', '!=', 'live-sync')->orderBy('code')->get(),
             'settleCheck' => SportSyncState::query()->where('code', 'settle-check')->first(),
             'pendingSettlements' => CouponSelection::query()
                 ->where('status', 'pending')
@@ -96,12 +99,14 @@ class SportAdminController extends Controller
             'ht_away' => ['required', 'integer', 'min:0', 'max:99'],
             'ft_home' => ['required', 'integer', 'min:0', 'max:99'],
             'ft_away' => ['required', 'integer', 'min:0', 'max:99'],
+            'played_at' => ['required', 'date'],
         ]);
 
         $fixture->ht_home = (string) $data['ht_home'];
         $fixture->ht_away = (string) $data['ht_away'];
         $fixture->ft_home = $data['ft_home'];
         $fixture->ft_away = $data['ft_away'];
+        $fixture->played_at = Carbon::parse($data['played_at'], $request->user()->timezone)->utc();
         $fixture->status = 'FT';
         $fixture->score_source = 'manual';
         $fixture->settled_at = now();

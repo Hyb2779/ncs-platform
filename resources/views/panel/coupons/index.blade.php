@@ -56,7 +56,7 @@
                             <p>{{ __('sport.coupon.statuses.'.$coupon->status) }}</p>
                             <div class="mt-1 flex flex-wrap gap-1">
                                 @foreach ($coupon->selections as $selection)
-                                    @include('sport._badge', ['status' => $selection->status])
+                                    @include('sport._badge', ['status' => $selection->status, 'coupon' => $coupon])
                                 @endforeach
                             </div>
                         </td>

@@ -46,6 +46,7 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 Route::middleware('auth')->group(function () {
     Route::get('/account', [SiteController::class, 'account'])->name('site.account');
     Route::get('/account/coupons', [CouponController::class, 'index'])->name('site.coupons');
+    Route::get('/account/coupons/live', [CouponController::class, 'live'])->name('site.coupons.live');
     Route::get('/account/coupons/{coupon}', [CouponController::class, 'show'])->name('site.coupons.show');
     Route::post('/account/coupons/{coupon}/cancel', [CouponController::class, 'cancel'])->name('site.coupons.cancel');
     Route::post('/sport/coupon/place', [SportController::class, 'place'])->name('site.sport.coupon.place');

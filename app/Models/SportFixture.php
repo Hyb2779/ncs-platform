@@ -10,18 +10,20 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class SportFixture extends Model
 {
     protected $fillable = [
-        'api_id', 'league_id', 'home_team_id', 'away_team_id', 'starts_at', 'status',
+        'api_id', 'league_id', 'home_team_id', 'away_team_id', 'starts_at', 'status', 'elapsed',
         'score_home', 'score_away', 'ht_home', 'ht_away', 'ft_home', 'ft_away',
-        'settled_at', 'score_source', 'bulletin_code',
+        'settled_at', 'score_source', 'bulletin_code', 'played_at',
     ];
 
     protected function casts(): array
     {
         return [
             'starts_at' => 'datetime',
+            'played_at' => 'datetime',
             'settled_at' => 'datetime',
             'ft_home' => 'integer',
             'ft_away' => 'integer',
+            'elapsed' => 'integer',
         ];
     }
 
@@ -48,6 +50,11 @@ class SportFixture extends Model
     public function odds(): HasMany
     {
         return $this->hasMany(SportOdd::class, 'fixture_id');
+    }
+
+    public function selections(): HasMany
+    {
+        return $this->hasMany(CouponSelection::class, 'fixture_id');
     }
 
     public function isOpen(): bool

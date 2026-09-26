@@ -7,6 +7,7 @@ use App\Models\Coupon;
 use App\Services\Sport\CouponCanceller;
 use App\Services\Sport\CouponException;
 use App\Support\Money;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -24,7 +25,7 @@ class CouponController extends Controller
         return view('site.coupons.index', [
             'status' => $status,
             'coupons' => Coupon::query()
-                ->with('selections')
+                ->with(['selections.fixture'])
                 ->where('user_id', $request->user()->id)
                 ->whereIn('status', $statuses)
                 ->orderByDesc('placed_at')
@@ -33,10 +34,42 @@ class CouponController extends Controller
         ]);
     }
 
+    public function live(Request $request): JsonResponse
+    {
+        $ids = collect(explode(',', (string) $request->query('ids')))
+            ->filter(fn ($id) => $id !== '')
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values();
+
+        if ($ids->isEmpty()) {
+            return response()->json(['selections' => []]);
+        }
+
+        $coupons = Coupon::query()->with(['selections.fixture'])->whereIn('id', $ids)->get();
+        if ($coupons->count() !== $ids->count() || $coupons->contains(fn (Coupon $coupon) => $coupon->user_id !== $request->user()->id)) {
+            abort(404);
+        }
+
+        $selections = [];
+        foreach ($coupons as $coupon) {
+            foreach ($coupon->selections as $selection) {
+                $state = sport_live_state($selection->fixture, $selection->status);
+                $selections[] = [
+                    'id' => $selection->id,
+                    'text' => $state['text'],
+                    'live' => $state['live'],
+                ];
+            }
+        }
+
+        return response()->json(['selections' => $selections]);
+    }
+
     public function show(Request $request, Coupon $coupon): View
     {
         abort_unless($coupon->user_id === $request->user()->id, 404);
-        $coupon->load(['selections.fixture.home', 'selections.fixture.away', 'selections.fixture.league']);
+        $coupon->load(['selections.fixture.home', 'selections.fixture.away', 'selections.fixture.league', 'canceller']);
 
         return view('site.coupons.show', ['coupon' => $coupon]);
     }

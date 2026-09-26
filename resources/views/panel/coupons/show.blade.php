@@ -4,12 +4,16 @@
 
 @section('content')
     <p class="mb-4 text-sm text-slate-600">{{ $coupon->user->username }} · {{ $coupon->ip }} · {{ __('sport.coupon.statuses.'.$coupon->status) }}</p>
+    <div class="mb-4 max-w-lg rounded-lg bg-white p-4">
+        @include('sport._coupon_facts')
+    </div>
     <div class="grid gap-2">
         @foreach ($coupon->selections as $selection)
             <article class="rounded-lg bg-white p-3 text-sm">
                 <p>{{ sport_name($selection->fixture->home) }} – {{ sport_name($selection->fixture->away) }}</p>
                 <p>{{ __('sport.markets.'.$selection->market_code) }} · {{ __('sport.outcomes.'.$selection->outcome) }} · {{ $selection->odds }}</p>
-                <div class="mt-2">@include('sport._badge', ['status' => $selection->status])</div>
+                <div class="mt-2">@include('sport._badge', ['status' => $selection->status, 'coupon' => $coupon])</div>
+                <div class="mt-2">@include('sport._selection_meta', ['selection' => $selection, 'coupon' => $coupon])</div>
             </article>
         @endforeach
     </div>

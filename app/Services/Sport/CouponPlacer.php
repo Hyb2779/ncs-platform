@@ -7,6 +7,7 @@ use App\Enums\WalletTransactionType;
 use App\Models\Coupon;
 use App\Models\CouponPlacement;
 use App\Models\CouponSelection;
+use App\Models\SportFixture;
 use App\Models\SportOdd;
 use App\Models\User;
 use App\Models\WalletTransaction;
@@ -83,6 +84,7 @@ class CouponPlacer
                             'kickoff' => $row['kickoff'],
                             'kickoff_at' => $row['kickoff'],
                             'status' => 'pending',
+                            ...$this->snapshot($row['fixture']),
                         ]);
                     }
                     $wallet = $user->wallet()->firstOrFail();
@@ -116,6 +118,28 @@ class CouponPlacer
      * @param  list<array{odd_id: int, fixture_id: int, outcome: string, shown: string}>  $selections
      * @return list<array{odd_id: int, fixture_id: int, outcome: string, market: string, shown: string, raw: string, kickoff: mixed}>
      */
+    /**
+     * @return array{placed_status: string, placed_minute: int|null, placed_home: int|null, placed_away: int|null}
+     */
+    private function snapshot(SportFixture $fixture): array
+    {
+        if ($fixture->isOpen()) {
+            return [
+                'placed_status' => 'NS',
+                'placed_minute' => null,
+                'placed_home' => null,
+                'placed_away' => null,
+            ];
+        }
+
+        return [
+            'placed_status' => (string) $fixture->status,
+            'placed_minute' => $fixture->elapsed,
+            'placed_home' => $fixture->score_home === null ? null : (int) $fixture->score_home,
+            'placed_away' => $fixture->score_away === null ? null : (int) $fixture->score_away,
+        ];
+    }
+
     private function rows(User $user, array $selections, bool $accept): array
     {
         if ($selections === []) {
@@ -147,6 +171,7 @@ class CouponPlacer
                 'shown' => $shown,
                 'raw' => number_format((float) $odd->raw_odd, 2, '.', ''),
                 'kickoff' => $odd->fixture->starts_at,
+                'fixture' => $odd->fixture,
             ];
         }
 

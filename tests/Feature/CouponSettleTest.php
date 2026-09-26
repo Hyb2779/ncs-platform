@@ -8,6 +8,7 @@ use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\CasinoGame;
 use App\Models\Coupon;
+use App\Models\CouponSelection;
 use App\Models\SportCountry;
 use App\Models\SportFixture;
 use App\Models\SportLeague;
@@ -21,8 +22,11 @@ use App\Services\Casino\DemoProvider;
 use App\Services\HierarchyService;
 use App\Services\Sport\CouponCanceller;
 use App\Services\Sport\CouponPlacer;
+use App\Services\Sport\FootballBudget;
 use App\Services\WalletService;
+use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Client\Factory;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -143,6 +147,312 @@ class CouponSettleTest extends TestCase
         $this->artisan('wallet:verify')->assertOk();
     }
 
+    public function test_settle_check_does_not_request_scores_for_closed_coupons(): void
+    {
+        [$member, $bayi] = $this->player('50.00');
+        $closedIds = [];
+        foreach (['cancelled', 'void', 'refunded'] as $status) {
+            $coupon = $this->placeCombo($member, [
+                $this->pricedOdd('2.00', now()->addMinutes(5)),
+                $this->pricedOdd('1.50', now()->addMinutes(5)),
+            ]);
+            if ($status === 'cancelled') {
+                app(CouponCanceller::class)->cancel($bayi, $coupon, 'panel', '127.0.0.1');
+            } else {
+                $coupon->status = $status;
+                $coupon->save();
+            }
+            $coupon->load('selections.fixture');
+            foreach ($coupon->selections as $selection) {
+                $closedIds[] = (string) $selection->fixture->api_id;
+                $this->assertSame('pending', $selection->status);
+            }
+        }
+
+        $pending = $this->placeCombo($member, [
+            $this->pricedOdd('2.00', now()->addMinutes(5)),
+            $this->pricedOdd('1.50', now()->addMinutes(5)),
+        ]);
+        $pending->load('selections.fixture');
+        $pendingIds = $pending->selections->map(fn ($selection) => (string) $selection->fixture->api_id)->sort()->values()->all();
+
+        Carbon::setTestNow(now()->addHours(3));
+        Http::swap(new Factory);
+        Http::fake(function ($request) use ($pendingIds, $closedIds) {
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $ids = collect(explode('-', (string) ($query['ids'] ?? '')))->filter()->sort()->values()->all();
+            $this->assertSame($pendingIds, $ids);
+            foreach ($closedIds as $apiId) {
+                $this->assertNotContains($apiId, $ids);
+            }
+
+            return Http::response(['response' => []]);
+        });
+
+        $this->artisan('sport:settle-check');
+        Http::assertSentCount(1);
+        $this->assertSame(3, Coupon::query()->whereIn('status', ['cancelled', 'void', 'refunded'])->count());
+        $this->assertSame(6, CouponSelection::query()->whereHas('coupon', fn ($query) => $query->whereIn('status', ['cancelled', 'void', 'refunded']))->where('status', 'pending')->count());
+    }
+
+    public function test_cancelled_coupon_shows_cancel_badge_and_hides_the_ancestor(): void
+    {
+        [$member, $bayi] = $this->player('50.00');
+        $coupon = $this->placeCombo($member, [
+            $this->pricedOdd('2.00', now()->addMinutes(30)),
+            $this->pricedOdd('1.50', now()->addMinutes(30)),
+        ]);
+        app(CouponCanceller::class)->cancel($bayi, $coupon, 'panel', '127.0.0.1');
+        $coupon->refresh();
+
+        $this->assertSame('pending', $coupon->selections()->first()->status);
+        $this->actingAs($member)->get(route('site.coupons.show', $coupon))
+            ->assertOk()
+            ->assertSee(__('sport.selection.cancelled'), false)
+            ->assertDontSee(__('sport.selection.pending'), false)
+            ->assertSee(__('sport.coupon.stake'), false)
+            ->assertSee(__('sport.coupon.total_odds'), false)
+            ->assertSee(__('sport.coupon.potential_win'), false)
+            ->assertSee(__('sport.coupon.refund_amount'), false)
+            ->assertSee(Money::format('10.00', Currency::Try), false)
+            ->assertSee('panel', false)
+            ->assertSee(__('wallet.upper_account'), false)
+            ->assertSee(__('sport.coupon.cancelled_by'), false)
+            ->assertSee(__('sport.coupon.cancelled_at'), false)
+            ->assertDontSee($bayi->username, false);
+
+        $this->actingAs($bayi)->get(route('panel.coupons.show', $coupon))
+            ->assertOk()
+            ->assertSee(__('sport.selection.cancelled'), false)
+            ->assertDontSee(__('sport.selection.pending'), false)
+            ->assertSee($bayi->username, false)
+            ->assertSee(__('sport.coupon.refund_amount'), false);
+    }
+
+    public function test_placement_writes_the_pre_match_snapshot(): void
+    {
+        [$member] = $this->player('50.00');
+        $coupon = $this->placeCombo($member, [
+            $this->pricedOdd('2.00', now()->addHour()),
+            $this->pricedOdd('1.50', now()->addHour()),
+        ]);
+        $selection = $coupon->selections()->first();
+
+        $this->assertNotNull($coupon->placed_at);
+        $this->assertSame('NS', $selection->placed_status);
+        $this->assertNull($selection->placed_minute);
+        $this->assertNull($selection->placed_home);
+        $this->assertNull($selection->placed_away);
+    }
+
+    public function test_live_sync_does_not_call_the_api_without_a_due_fixture(): void
+    {
+        [$member] = $this->player('50.00');
+        $first = $this->pricedOdd('2.00', now()->addHour());
+        $this->placeCombo($member, [$first, $this->pricedOdd('1.50', now()->addHour())]);
+
+        $this->artisan('sport:live-sync');
+        Http::assertNothingSent();
+
+        $first->fixture->selections()->update(['kickoff_at' => now()->subMinute()]);
+        CouponSelection::query()->update(['kickoff_at' => now()->subMinute()]);
+        Http::swap(new Factory);
+        Http::fake(function ($request) use ($first) {
+            $this->assertStringContainsString('live=all', urldecode($request->url()));
+
+            return Http::response([
+                'errors' => null,
+                'response' => [[
+                    'fixture' => [
+                        'id' => $first->fixture->api_id,
+                        'status' => ['short' => '1H', 'elapsed' => 34],
+                    ],
+                    'goals' => ['home' => 1, 'away' => 0],
+                    'score' => ['halftime' => ['home' => null, 'away' => null]],
+                ]],
+            ]);
+        });
+
+        $this->artisan('sport:live-sync');
+        $first->fixture->refresh();
+        $this->assertSame('1H', $first->fixture->status);
+        $this->assertSame(34, $first->fixture->elapsed);
+        $this->assertSame('1', (string) $first->fixture->score_home);
+        $this->assertSame(1, app(FootballBudget::class)->usedChannel('live-sync'));
+    }
+
+    public function test_a_fixture_that_drops_off_live_is_fetched_once_and_settled(): void
+    {
+        [$member] = $this->player('50.00');
+        $finished = $this->pricedOdd('2.00', now()->addMinutes(5));
+        $stillOpen = $this->pricedOdd('1.50', now()->addMinutes(5));
+        $coupon = $this->placeCombo($member, [$finished, $stillOpen]);
+        $coupon->selections()->update(['kickoff_at' => now()->subMinute()]);
+        $finished->fixture->update(['status' => '2H', 'elapsed' => 80, 'score_home' => 0, 'score_away' => 0]);
+        $started = now()->subMinutes(90);
+
+        Http::swap(new Factory);
+        Http::fake(function ($request) use ($finished, $stillOpen, $started) {
+            $url = urldecode($request->url());
+            if (str_contains($url, 'live=all')) {
+                return Http::response(['errors' => null, 'response' => []]);
+            }
+
+            parse_str((string) parse_url($request->url(), PHP_URL_QUERY), $query);
+            $this->assertSame([(string) $finished->fixture->api_id], explode('-', (string) ($query['ids'] ?? '')));
+            $this->assertStringNotContainsString((string) $stillOpen->fixture->api_id, (string) ($query['ids'] ?? ''));
+
+            return Http::response([
+                'errors' => null,
+                'response' => [$this->apiRow($finished->fixture, $started, 0, 1)],
+            ]);
+        });
+
+        $this->artisan('sport:live-sync');
+
+        $finished->fixture->refresh();
+        $stillOpen->fixture->refresh();
+        $coupon->refresh();
+        $this->assertSame('FT', $finished->fixture->status);
+        $this->assertSame(0, $finished->fixture->ft_home);
+        $this->assertSame(1, $finished->fixture->ft_away);
+        $this->assertSame($started->timestamp, $finished->fixture->played_at->timestamp);
+        $this->assertSame('NS', $stillOpen->fixture->status);
+        $this->assertSame('lost', $coupon->status);
+        $this->assertSame('lost', $coupon->selections()->where('fixture_id', $finished->fixture_id)->value('status'));
+        $this->assertSame('40.00', $member->wallet()->first()->fresh()->balance);
+        $this->assertSame(2, app(FootballBudget::class)->usedChannel('live-sync'));
+        Http::assertSentCount(2);
+        $this->artisan('wallet:verify')->assertOk();
+    }
+
+    public function test_pending_selection_on_a_finished_fixture_waits_for_the_result(): void
+    {
+        [$member] = $this->player('50.00');
+        $coupon = $this->placeCombo($member, [
+            $this->pricedOdd('2.00', now()->addHour()),
+            $this->pricedOdd('1.50', now()->addHour()),
+        ]);
+        $selection = $coupon->selections()->first();
+        $selection->fixture->update(['status' => 'FT', 'ft_home' => 2, 'ft_away' => 1]);
+
+        $this->actingAs($member)->get(route('site.coupons.show', $coupon))
+            ->assertOk()
+            ->assertSee('Maç bitti, sonuç bekleniyor', false);
+        $this->actingAs($member)->getJson(route('site.coupons.live', ['ids' => $coupon->id]))
+            ->assertOk()
+            ->assertJsonFragment(['text' => 'Maç bitti, sonuç bekleniyor', 'live' => false]);
+
+        foreach ([
+            'tr' => 'Maç bitti, sonuç bekleniyor',
+            'en' => 'Match finished, waiting for the result',
+            'de' => 'Spiel beendet, Ergebnis ausstehend',
+            'ar' => 'انتهت المباراة، بانتظار النتيجة',
+        ] as $locale => $text) {
+            app()->setLocale($locale);
+            $this->assertSame($text, __('sport.live.awaiting_result'));
+        }
+    }
+
+    public function test_live_endpoint_does_not_return_another_members_coupon(): void
+    {
+        [$member] = $this->player('50.00');
+        $coupon = $this->placeCombo($member, [
+            $this->pricedOdd('2.00', now()->addHour()),
+            $this->pricedOdd('1.50', now()->addHour()),
+        ]);
+        [$other] = $this->player('50.00');
+
+        $this->actingAs($other)->getJson(route('site.coupons.live', ['ids' => $coupon->id]))->assertNotFound();
+        $this->actingAs($member)->getJson(route('site.coupons.live', ['ids' => $coupon->id]))
+            ->assertOk()
+            ->assertJsonPath('selections.0.id', $coupon->selections()->first()->id);
+    }
+
+    public function test_finish_after_the_void_window_voids_even_if_the_deadline_run_was_missed(): void
+    {
+        [$member] = $this->player('50.00');
+        $first = $this->pricedOdd('2.00', now()->addMinutes(5));
+        $second = $this->pricedOdd('1.50', now()->addMinutes(5));
+        $coupon = $this->placeCombo($member, [$first, $second]);
+        $kickoff = $coupon->selections()->first()->kickoff_at->copy();
+        $first->fixture->update(['status' => 'PST']);
+        $second->fixture->update(['status' => 'PST']);
+        $started = $kickoff->copy()->addHours(60);
+
+        Carbon::setTestNow($started);
+        $this->fakeFinalFixtures([
+            $this->apiRow($first->fixture, $started, 2, 0),
+            $this->apiRow($second->fixture, $started, 1, 0),
+        ]);
+        $this->artisan('sport:settle-check');
+
+        $coupon->refresh();
+        $first->fixture->refresh();
+        $this->assertSame('FT', $first->fixture->status);
+        $this->assertSame($started->timestamp, $first->fixture->played_at->timestamp);
+        $this->assertSame('void', $coupon->status);
+        $this->assertTrue($coupon->selections->every(fn ($selection) => $selection->status === 'void'));
+        $this->assertSame(0, WalletTransaction::query()->where('type', 'win')->count());
+        $this->assertSame('50.00', $member->wallet()->first()->fresh()->balance);
+        $this->artisan('wallet:verify')->assertOk();
+    }
+
+    public function test_finish_inside_the_void_window_settles_from_the_actual_start(): void
+    {
+        [$member] = $this->player('50.00');
+        $first = $this->pricedOdd('2.00', now()->addMinutes(5));
+        $second = $this->pricedOdd('1.50', now()->addMinutes(5));
+        $coupon = $this->placeCombo($member, [$first, $second]);
+        $kickoff = $coupon->selections()->first()->kickoff_at->copy();
+        $first->fixture->update(['status' => 'PST']);
+        $second->fixture->update(['status' => 'PST']);
+        $started = $kickoff->copy()->addHours(20);
+
+        Carbon::setTestNow($started);
+        $this->fakeFinalFixtures([
+            $this->apiRow($first->fixture, $started, 2, 0),
+            $this->apiRow($second->fixture, $started, 1, 0),
+        ]);
+        $this->artisan('sport:settle-check');
+
+        $coupon->refresh();
+        $this->assertSame($started->timestamp, $first->fixture->fresh()->played_at->timestamp);
+        $this->assertSame('won', $coupon->status);
+        $this->assertSame('won', $coupon->selections()->where('fixture_id', $first->fixture_id)->value('status'));
+        $this->assertSame('70.00', $member->wallet()->first()->fresh()->balance);
+        $this->artisan('wallet:verify')->assertOk();
+    }
+
+    public function test_manual_played_at_outside_the_window_voids_the_selection(): void
+    {
+        [$member, , $owner] = $this->player('50.00');
+        $coupon = $this->combo($member, [
+            ['outcome' => 'home', 'odd' => '2.00', 'ft' => [2, 0]],
+            ['outcome' => 'home', 'odd' => '1.50', 'ft' => [1, 0]],
+        ]);
+        $this->travelAndSettle();
+        $fixture = $coupon->selections()->first()->fixture;
+        $kickoff = $coupon->selections()->first()->kickoff_at;
+
+        $this->actingAs($owner)->post(route('panel.sport.fixtures.score', $fixture), [
+            'ht_home' => 1, 'ht_away' => 0, 'ft_home' => 3, 'ft_away' => 1,
+        ])->assertSessionHasErrors('played_at');
+
+        $this->actingAs($owner)->post(route('panel.sport.fixtures.score', $fixture), [
+            'ht_home' => 1, 'ht_away' => 0, 'ft_home' => 3, 'ft_away' => 1,
+            'played_at' => $this->playedAtInput($kickoff->copy()->addHours(60)),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $fixture->refresh();
+        $this->assertSame('manual', $fixture->score_source);
+        $this->assertNull($fixture->score_home);
+        $this->assertSame($kickoff->copy()->addHours(60)->timezone('Europe/Istanbul')->startOfMinute()->utc()->timestamp, $fixture->played_at->timestamp);
+        $this->assertSame('void', $coupon->selections()->where('fixture_id', $fixture->id)->value('status'));
+        $this->assertSame('won', $coupon->selections()->where('fixture_id', '!=', $fixture->id)->value('status'));
+        $this->artisan('wallet:verify')->assertOk();
+    }
+
     public function test_manual_correction_reverses_and_repays(): void
     {
         [$member, , $owner] = $this->player('50.00');
@@ -156,6 +466,7 @@ class CouponSettleTest extends TestCase
         $fixture = $coupon->selections()->first()->fixture;
         $this->actingAs($owner)->post(route('panel.sport.fixtures.score', $fixture), [
             'ht_home' => 1, 'ht_away' => 0, 'ft_home' => 3, 'ft_away' => 1,
+            'played_at' => $this->playedAtInput($fixture->starts_at),
         ])->assertRedirect();
 
         $fixture->refresh();
@@ -251,12 +562,14 @@ class CouponSettleTest extends TestCase
         $this->travelAndSettle();
         $this->assertSame('50.00', $member->wallet()->first()->fresh()->balance);
 
+        Carbon::setTestNow(now()->addSecond());
         app(WalletService::class)->transfer($member, $bayi, '50.00', 'withdraw-win', $bayi);
         $this->assertSame('0.00', $member->wallet()->first()->fresh()->balance);
 
         $fixture = $coupon->selections()->first()->fixture;
         $this->actingAs($owner)->post(route('panel.sport.fixtures.score', $fixture), [
             'ht_home' => 0, 'ht_away' => 1, 'ft_home' => 0, 'ft_away' => 1,
+            'played_at' => $this->playedAtInput($fixture->starts_at),
         ])->assertRedirect();
 
         $wallet = $member->wallet()->first()->fresh();
@@ -286,7 +599,7 @@ class CouponSettleTest extends TestCase
         $outsider = $this->otherBayi($owner);
         $this->actingAs($outsider)->get(route('panel.sport.overdrafts'))->assertOk()->assertDontSee($member->username, false);
 
-        Carbon::setTestNow(now()->addSeconds(2));
+        Carbon::setTestNow(now()->addSeconds(5));
         app(WalletService::class)->transfer($bayi, $member, '50.00', 'cover-debt', $bayi);
         $wallet = $member->wallet()->first()->fresh();
         $this->assertSame('10.00', $wallet->balance);
@@ -348,6 +661,41 @@ class CouponSettleTest extends TestCase
         ], (string) Str::uuid(), '127.0.0.1', 'test');
 
         return $coupons[0];
+    }
+
+    private function playedAtInput(Carbon $moment): string
+    {
+        return $moment->copy()->timezone('Europe/Istanbul')->format('Y-m-d\TH:i');
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $rows
+     */
+    private function fakeFinalFixtures(array $rows): void
+    {
+        Http::swap(new Factory);
+        Http::fake(function () use ($rows) {
+            return Http::response(['response' => $rows, 'errors' => null]);
+        });
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    private function apiRow(SportFixture $fixture, Carbon $started, int $home, int $away): array
+    {
+        return [
+            'fixture' => [
+                'id' => $fixture->api_id,
+                'timestamp' => $started->timestamp,
+                'status' => ['short' => 'FT'],
+            ],
+            'goals' => ['home' => $home, 'away' => $away],
+            'score' => [
+                'halftime' => ['home' => min($home, 1), 'away' => min($away, 1)],
+                'fulltime' => ['home' => $home, 'away' => $away],
+            ],
+        ];
     }
 
     private function travelAndSettle(): void

@@ -36,7 +36,7 @@ class CouponController extends Controller
     public function show(Request $request, Coupon $coupon): View
     {
         $this->authorizeCoupon($request, $coupon);
-        $coupon->load(['user', 'selections.fixture.home', 'selections.fixture.away']);
+        $coupon->load(['user', 'canceller', 'selections.fixture.home', 'selections.fixture.away']);
 
         return view('panel.coupons.show', ['coupon' => $coupon]);
     }
