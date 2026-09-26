@@ -60,9 +60,9 @@ export function mountPanelCharts() {
             const color = palette[index % palette.length];
 
             return {
-                borderColor: color,
-                backgroundColor: type === 'line' ? color : color,
                 ...dataset,
+                borderColor: color,
+                backgroundColor: type === 'doughnut' ? palette : color,
             };
         });
         const cartesian = type !== 'doughnut';

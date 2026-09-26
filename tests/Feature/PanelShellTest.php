@@ -85,6 +85,7 @@ class PanelShellTest extends TestCase
         $this->assertStringContainsString('beginAtZero: !negative', $source);
         $this->assertStringContainsString("locale: 'en-US'", $source);
         $this->assertStringContainsString('reverse: rtl', $source);
+        $this->assertStringContainsString("type === 'doughnut' ? palette : color", $source);
     }
 
     public function test_adjustment_products_that_enter_payout_are_the_game_products(): void
