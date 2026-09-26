@@ -32,9 +32,10 @@
                 <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.casino.rounds') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.casino.rounds') }}">{{ __('site.panel_rounds') }}</a>
                 <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.casino.sessions') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.casino.sessions') }}">{{ __('site.panel_sessions') }}</a>
                 <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.coupons.*') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.coupons.index') }}">{{ __('sport.panel.coupons') }}</a>
+                <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.coupons.lookup') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.coupons.lookup') }}">{{ __('sport.panel.lookup') }}</a>
                 <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm {{ request()->routeIs('panel.sport.overdrafts') ? 'bg-[#161A22] text-white' : 'text-slate-700' }}" href="{{ route('panel.sport.overdrafts') }}">{{ __('sport.panel.overdraft') }}</a>
                 <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm" href="{{ route('panel.coupons.risky') }}">{{ __('sport.panel.risky') }}</a>
-                @if (in_array(auth()->user()->role->value, ['owner', 'superadmin'], true))
+                @if (in_array(auth()->user()->role->value, ['owner', 'superadmin', 'bayi'], true))
                     <a class="mt-1 flex h-10 items-center rounded-lg px-3 text-sm" href="{{ route('panel.sport.limits') }}">{{ __('sport.panel.limits') }}</a>
                 @endif
                 @if (auth()->user()->role->value === 'owner')

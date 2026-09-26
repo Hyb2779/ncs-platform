@@ -3,9 +3,10 @@
     $labeled = $labeled ?? false;
     $compact = $compact ?? false;
     $picked = $odd && collect($coupon['rows'] ?? [])->contains(fn ($row) => (int) $row['odd']->id === (int) $odd->id);
+    $blocked = $odd && ! sport_price_open($fixture, (string) $odd->shown_odd);
     $tone = $picked ? 'bg-[var(--accent)] text-[#1A1305]' : 'bg-[#1E2533] text-[#E8ECF3]';
 @endphp
-@if ($odd && ! $odd->suspended)
+@if ($odd && ! $odd->suspended && ! $blocked)
     <form class="min-w-0" method="POST" action="{{ route('site.sport.add', $odd) }}">
         @csrf
         <button

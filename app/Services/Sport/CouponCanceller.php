@@ -7,9 +7,11 @@ use App\Enums\WalletProduct;
 use App\Enums\WalletTransactionType;
 use App\Models\Coupon;
 use App\Models\User;
+use App\Models\WalletTransaction;
 use App\Services\ActivityLogger;
 use App\Services\WalletException;
 use App\Services\WalletService;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class CouponCanceller
@@ -75,18 +77,18 @@ class CouponCanceller
         }
     }
 
-    private function ledgerAt(int $walletId): \Illuminate\Support\Carbon
+    private function ledgerAt(int $walletId): Carbon
     {
-        $latest = \App\Models\WalletTransaction::query()->where('wallet_id', $walletId)->max('created_at');
+        $latest = WalletTransaction::query()->where('wallet_id', $walletId)->max('created_at');
 
-        return ($latest === null ? now() : \Illuminate\Support\Carbon::parse($latest))->addSecond();
+        return ($latest === null ? now() : Carbon::parse($latest))->addSecond();
     }
 
     private function authorize(User $actor, Coupon $coupon): void
     {
         if ($actor->id === $coupon->user_id) {
-            $minutes = (int) $this->limits->forUser($actor)->cancel_minutes;
-            if ($minutes < 1 || $coupon->placed_at->copy()->addMinutes($minutes)->isPast()) {
+            $minutes = $this->limits->forUser($actor)->cancel_minutes;
+            if ($minutes !== null && ((int) $minutes < 1 || $coupon->placed_at->copy()->addMinutes((int) $minutes)->isPast())) {
                 throw new CouponException('sport.errors.cancel_closed');
             }
             foreach ($coupon->selections as $selection) {

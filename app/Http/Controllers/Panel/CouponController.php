@@ -33,6 +33,22 @@ class CouponController extends Controller
         ]);
     }
 
+    public function lookup(Request $request): View|RedirectResponse
+    {
+        $raw = trim((string) $request->query('id', ''));
+        $coupon = null;
+        if ($raw !== '') {
+            abort_unless(ctype_digit($raw), 404);
+            $coupon = Coupon::query()->find($raw);
+            abort_if($coupon === null, 404);
+            $this->authorizeCoupon($request, $coupon);
+
+            return redirect()->route('panel.coupons.show', $coupon);
+        }
+
+        return view('panel.coupons.lookup', ['coupon' => null]);
+    }
+
     public function show(Request $request, Coupon $coupon): View
     {
         $this->authorizeCoupon($request, $coupon);

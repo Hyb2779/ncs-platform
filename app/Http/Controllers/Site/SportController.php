@@ -4,10 +4,10 @@ namespace App\Http\Controllers\Site;
 
 use App\Enums\Currency;
 use App\Http\Controllers\Controller;
+use App\Models\Coupon;
 use App\Models\SportFixture;
 use App\Models\SportLeague;
 use App\Models\SportOdd;
-use App\Models\Coupon;
 use App\Services\Sport\CouponBook;
 use App\Services\Sport\CouponCalculator;
 use App\Services\Sport\CouponException;
@@ -114,6 +114,8 @@ class SportController extends Controller
     public function add(Request $request, SportOdd $odd, CouponBook $coupon): RedirectResponse
     {
         abort_if($odd->suspended, 422);
+        $odd->loadMissing('fixture');
+        abort_unless(sport_price_open($odd->fixture, (string) $odd->shown_odd), 422);
         $coupon->add($odd);
 
         return back();

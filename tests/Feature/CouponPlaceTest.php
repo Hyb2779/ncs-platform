@@ -18,9 +18,13 @@ use App\Models\SportTeam;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\HierarchyService;
+use App\Services\Sport\CouponException;
+use App\Services\Sport\CouponPlacer;
+use App\Services\Sport\SportLimitCatalog;
 use App\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Tests\TestCase;
 
 class CouponPlaceTest extends TestCase
@@ -82,23 +86,27 @@ class CouponPlaceTest extends TestCase
         $this->actingAs($user);
         $cases = [
             ['min_stake' => '50.00', 'stake' => '10', 'mode' => 'single', 'prices' => ['1.50']],
-            ['max_stake' => '5.00', 'stake' => '10', 'mode' => 'single', 'prices' => ['1.50']],
-            ['max_win' => '20.00', 'stake' => '10', 'mode' => 'single', 'prices' => ['5.00']],
-            ['combo_min' => 2, 'stake' => '10', 'mode' => 'combo', 'prices' => ['1.50']],
-            ['combo_max' => 2, 'combo_min' => 2, 'stake' => '10', 'mode' => 'combo', 'prices' => ['1.50', '1.60', '1.70']],
-            ['min_total_odds' => '3.00', 'stake' => '10', 'mode' => 'combo', 'prices' => ['1.20', '1.30']],
-            ['min_odd' => '2.00', 'stake' => '10', 'mode' => 'single', 'prices' => ['1.40']],
+            ['max_stake_general' => '5.00', 'stake' => '10', 'mode' => 'single', 'prices' => ['1.50']],
+            ['max_payout_general' => '20.00', 'stake' => '10', 'mode' => 'single', 'prices' => ['5.00']],
+            ['stake' => '10', 'mode' => 'combo', 'prices' => ['1.50']],
+            ['max_selections' => 2, 'stake' => '10', 'mode' => 'combo', 'prices' => ['1.50', '1.60', '1.70']],
+            ['min_coupon_odds' => '3.00', 'stake' => '10', 'mode' => 'combo', 'prices' => ['1.20', '1.30']],
+            ['min_odds_prematch' => '2.00', 'stake' => '10', 'mode' => 'single', 'prices' => ['1.40']],
             ['daily_max' => '5.00', 'stake' => '10', 'mode' => 'single', 'prices' => ['1.50']],
         ];
 
         foreach ($cases as $case) {
-            SportLimit::query()->whereNull('superadmin_id')->update([
-                'min_stake' => '1.00', 'max_stake' => '10000.00', 'max_win' => '100000.00',
-                'combo_min' => 2, 'combo_max' => 20, 'min_total_odds' => '1.01', 'min_odd' => '1.01', 'daily_max' => '50000.00',
+            SportLimit::query()->whereNull('user_id')->where('currency', 'TRY')->update([
+                'min_stake' => '1.00', 'max_stake_general' => '10000.00', 'max_payout_general' => '100000.00',
+                'max_selections' => 20, 'min_coupon_odds' => '1.01', 'min_odds_prematch' => '1.01', 'daily_max' => '50000.00',
+                'max_odds_prematch' => '30.00', 'max_coupon_odds' => '500.00',
             ]);
-            SportLimit::query()->whereNull('superadmin_id')->update(collect($case)->except(['stake', 'mode', 'prices'])->all());
             foreach ($case['prices'] as $price) {
                 $this->post('/sport/odds/'.$this->odd($price)->id);
+            }
+            $overrides = collect($case)->except(['stake', 'mode', 'prices'])->all();
+            if ($overrides !== []) {
+                SportLimit::query()->whereNull('user_id')->where('currency', 'TRY')->update($overrides);
             }
             $this->post('/sport/coupon/place', [
                 'stake' => $case['stake'], 'mode' => $case['mode'], 'idempotency_key' => (string) Str::uuid(),
@@ -165,7 +173,7 @@ class CouponPlaceTest extends TestCase
         $this->actingAs($left)->post('/account/coupons/'.$coupon->id.'/cancel', ['reason' => 'too late'])->assertSessionHasErrors('coupon');
         $this->assertSame('pending', $coupon->fresh()->status);
 
-        SportLimit::query()->whereNull('superadmin_id')->update(['cancel_minutes' => 10]);
+        SportLimit::query()->whereNull('user_id')->where('currency', 'TRY')->update(['cancel_minutes' => 10]);
         $this->actingAs($bayiLeft)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'customer request'])->assertRedirect();
         $this->assertSame('cancelled', $coupon->fresh()->status);
         $this->assertSame('10.00', WalletTransaction::query()->where('type', 'refund')->first()->amount);
@@ -228,39 +236,39 @@ class CouponPlaceTest extends TestCase
 
     public function test_max_stake_is_rejected(): void
     {
-        $this->assertLimitRejected(['max_stake' => '5.00'], '10', 'single', ['1.50'], 'sport.errors.max_stake', ['amount' => '5.00']);
+        $this->assertLimitRejected(['max_stake_general' => '5.00'], '10', 'single', ['1.50'], 'sport.errors.max_stake_general', ['amount' => '5.00']);
     }
 
     public function test_max_win_is_rejected(): void
     {
-        $this->assertLimitRejected(['max_win' => '20.00'], '10', 'single', ['5.00'], 'sport.errors.max_win', ['amount' => '20.00']);
+        $this->assertLimitRejected(['max_payout_general' => '20.00'], '10', 'single', ['5.00'], 'sport.errors.max_payout_general', ['amount' => '20.00']);
     }
 
     public function test_combo_min_selections_is_rejected(): void
     {
-        $this->assertLimitRejected(['combo_min' => 2], '10', 'combo', ['1.50'], 'sport.errors.combo_min', ['count' => 2]);
+        $this->assertLimitRejected([], '10', 'combo', ['1.50'], 'sport.errors.combo_min', ['count' => 2]);
     }
 
     public function test_combo_max_selections_is_rejected(): void
     {
         $this->assertLimitRejected(
-            ['combo_min' => 2, 'combo_max' => 2],
+            ['max_selections' => 2],
             '10',
             'combo',
             ['1.50', '1.60', '1.70'],
-            'sport.errors.combo_max',
+            'sport.errors.max_selections',
             ['count' => 2],
         );
     }
 
     public function test_min_total_odds_is_rejected(): void
     {
-        $this->assertLimitRejected(['min_total_odds' => '3.00'], '10', 'combo', ['1.20', '1.30'], 'sport.errors.min_total', ['odd' => '3.00']);
+        $this->assertLimitRejected(['min_coupon_odds' => '3.00'], '10', 'combo', ['1.20', '1.30'], 'sport.errors.min_coupon_odds', ['odd' => '3.00']);
     }
 
     public function test_min_single_odd_is_rejected(): void
     {
-        $this->assertLimitRejected(['min_odd' => '2.00'], '10', 'single', ['1.40'], 'sport.errors.min_odd', ['odd' => '2.00']);
+        $this->assertLimitRejected(['min_odds_prematch' => '2.00'], '10', 'single', ['1.40'], 'sport.errors.min_odds_prematch', ['odd' => '2.00']);
     }
 
     public function test_rejected_place_shows_the_error_on_the_slip(): void
@@ -276,7 +284,7 @@ class CouponPlaceTest extends TestCase
                 'stake' => '',
                 'mode' => 'combo',
                 'accept' => '0',
-                'idempotency_key' => (string) \Illuminate\Support\Str::uuid(),
+                'idempotency_key' => (string) Str::uuid(),
             ])
             ->assertOk()
             ->assertSee(__('sport.errors.stake'), false)
@@ -289,6 +297,75 @@ class CouponPlaceTest extends TestCase
         $this->assertLimitRejected(['daily_max' => '5.00'], '10', 'single', ['1.50'], 'sport.errors.daily_max', ['amount' => '5.00']);
     }
 
+    public function test_a_lower_level_cannot_exceed_the_parent_and_the_tightest_value_applies(): void
+    {
+        [$member, $bayi] = $this->player('100.00');
+        $this->actingAs($bayi)->get('/panel/sport/limits')
+            ->assertOk()
+            ->assertSee('Bahis Limitleri', false)
+            ->assertSee('Sınırsız', false)
+            ->assertSee('Üst sınır:', false);
+        $payload = SportLimitCatalog::for('TRY');
+        $payload['currency'] = 'TRY';
+        $payload['max_stake_general'] = '50000';
+        $payload['unlimited'] = ['max_coupon_odds' => '1'];
+        $this->actingAs($bayi)->from('/panel/sport/limits')->put('/panel/sport/limits', $payload)
+            ->assertSessionHasErrors(['max_stake_general', 'max_coupon_odds']);
+
+        unset($payload['unlimited']);
+        $payload['max_stake_general'] = '40.00';
+        $this->actingAs($bayi)->put('/panel/sport/limits', $payload)->assertRedirect();
+        $this->assertTrue(ActivityLog::query()->where('action', 'sport.limits.updated')->exists());
+
+        $this->actingAs($member)->post('/sport/odds/'.$this->odd('1.50')->id);
+        $this->place('50', 'single')->assertSessionHasErrors('coupon');
+        $this->place('10', 'single')->assertRedirect();
+        $this->assertSame(1, Coupon::query()->count());
+    }
+
+    public function test_an_odds_ceiling_hides_the_price_and_rejects_the_slip(): void
+    {
+        [$user] = $this->player('50.00');
+        $odd = $this->odd('9.50');
+        SportLimit::query()->whereNull('user_id')->where('currency', 'TRY')->update(['max_odds_prematch' => '2.00']);
+
+        $this->actingAs($user)->get('/sport?when=all')
+            ->assertOk()
+            ->assertDontSee('/sport/odds/'.$odd->id, false);
+        $this->post('/sport/odds/'.$odd->id)->assertStatus(422);
+
+        try {
+            app(CouponPlacer::class)->place($user, [
+                'selections' => [[
+                    'odd_id' => $odd->id,
+                    'fixture_id' => $odd->fixture_id,
+                    'outcome' => 'home',
+                    'shown' => '9.50',
+                ]],
+                'stake' => '10',
+                'accept' => true,
+                'mode' => 'single',
+            ], (string) Str::uuid(), '127.0.0.1', 'test');
+            $this->fail('high odds should be rejected');
+        } catch (CouponException $exception) {
+            $this->assertSame('sport.errors.max_odds_prematch', $exception->translationKey);
+        }
+    }
+
+    public function test_coupon_lookup_stays_inside_the_tree(): void
+    {
+        [$left, $bayiLeft] = $this->player('40.00');
+        [, $bayiRight] = $this->player('40.00');
+        $this->actingAs($left)->post('/sport/odds/'.$this->odd('1.50')->id);
+        $this->place('10', 'single')->assertRedirect();
+        $coupon = Coupon::query()->first();
+
+        $this->actingAs($bayiLeft)->get('/panel/coupons/lookup?id='.$coupon->id)
+            ->assertRedirect(route('panel.coupons.show', $coupon));
+        $this->actingAs($bayiRight)->get('/panel/coupons/lookup?id='.$coupon->id)->assertNotFound();
+        $this->actingAs($bayiLeft)->get('/panel/coupons/lookup')->assertOk()->assertSee(__('sport.panel.lookup'), false);
+    }
+
     /**
      * @param  array<string, mixed>  $limits
      * @param  list<string>  $prices
@@ -297,21 +374,23 @@ class CouponPlaceTest extends TestCase
     private function assertLimitRejected(array $limits, string $stake, string $mode, array $prices, string $key, array $replace): void
     {
         [$user] = $this->player('1000.00');
-        SportLimit::query()->whereNull('superadmin_id')->update($limits);
         $this->actingAs($user);
         foreach ($prices as $price) {
             $this->post('/sport/odds/'.$this->odd($price)->id);
         }
+        if ($limits !== []) {
+            SportLimit::query()->whereNull('user_id')->where('currency', 'TRY')->update($limits);
+        }
 
-        $stored = SportLimit::query()->whereNull('superadmin_id')->first();
+        $stored = SportLimit::query()->whereNull('user_id')->where('currency', 'TRY')->first();
         $replace = match ($key) {
             'sport.errors.min_stake' => ['amount' => $stored->min_stake],
-            'sport.errors.max_stake' => ['amount' => $stored->max_stake],
-            'sport.errors.max_win' => ['amount' => $stored->max_win],
-            'sport.errors.combo_min' => ['count' => $stored->combo_min],
-            'sport.errors.combo_max' => ['count' => $stored->combo_max],
-            'sport.errors.min_total' => ['odd' => $stored->min_total_odds],
-            'sport.errors.min_odd' => ['odd' => $stored->min_odd],
+            'sport.errors.max_stake_general' => ['amount' => $stored->max_stake_general],
+            'sport.errors.max_payout_general' => ['amount' => $stored->max_payout_general],
+            'sport.errors.combo_min' => ['count' => 2],
+            'sport.errors.max_selections' => ['count' => $stored->max_selections],
+            'sport.errors.min_coupon_odds' => ['odd' => $stored->min_coupon_odds],
+            'sport.errors.min_odds_prematch' => ['odd' => $stored->min_odds_prematch],
             'sport.errors.daily_max' => ['amount' => $stored->daily_max],
             default => $replace,
         };
@@ -320,7 +399,7 @@ class CouponPlaceTest extends TestCase
         $this->assertSame(0, Coupon::query()->count());
     }
 
-    private function place(string $stake, string $mode, string $accept = '0'): \Illuminate\Testing\TestResponse
+    private function place(string $stake, string $mode, string $accept = '0'): TestResponse
     {
         return $this->post('/sport/coupon/place', [
             'stake' => $stake,

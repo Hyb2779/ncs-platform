@@ -4,6 +4,7 @@ use App\Models\Coupon;
 use App\Models\CouponSelection;
 use App\Models\SportFixture;
 use App\Models\User;
+use App\Services\Sport\CouponLimitGuard;
 use App\Services\Sport\SportNames;
 use App\Support\Brand;
 use Illuminate\Database\Eloquent\Model;
@@ -97,6 +98,21 @@ function sport_live_state(?SportFixture $fixture, ?string $selectionStatus = nul
     $zone = auth()->user()->timezone ?? 'UTC';
 
     return ['text' => sport_digits($fixture->starts_at->timezone($zone)->format('H:i')), 'live' => false];
+}
+
+function sport_price_open(SportFixture $fixture, string $price): bool
+{
+    $user = auth()->user();
+    if ($user === null) {
+        return true;
+    }
+    $guard = request()->attributes->get('sport.limit_guard');
+    if (! $guard instanceof CouponLimitGuard) {
+        $guard = app(CouponLimitGuard::class);
+        request()->attributes->set('sport.limit_guard', $guard);
+    }
+
+    return $guard->allowsPrice($user, $fixture, $price);
 }
 
 function sport_pair(mixed $home, mixed $away): string

@@ -10,6 +10,7 @@ use App\Models\CouponSelection;
 use App\Models\SportFixture;
 use App\Models\SportOdd;
 use App\Models\User;
+use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Services\WalletException;
 use App\Services\WalletService;
@@ -22,7 +23,7 @@ class CouponPlacer
     public function __construct(
         private readonly CouponCalculator $calculator,
         private readonly MarginEngine $margins,
-        private readonly SportLimits $limits,
+        private readonly CouponLimitGuard $guard,
         private readonly WalletService $wallets,
     ) {}
 
@@ -41,10 +42,19 @@ class CouponPlacer
         $mode = ($slip['mode'] ?? '') === 'single' ? 'single' : 'combo';
         $accept = (bool) ($slip['accept'] ?? false);
         $rows = $this->rows($user, $slip['selections'] ?? [], $accept);
-        $this->guardLimits($user, $mode, $stake, $rows);
+        $this->guard->assertSlip($user, $mode, $stake, $rows);
 
         try {
             return $this->wallets->within(function () use ($user, $clientKey, $stake, $mode, $accept, $rows, $ip, $device) {
+                $lockedWallet = Wallet::query()
+                    ->where('user_id', $user->id)
+                    ->where('currency', $user->currency->value)
+                    ->lockForUpdate()
+                    ->first();
+                if ($lockedWallet === null) {
+                    throw new CouponException('sport.errors.stake');
+                }
+
                 $again = $this->existing($user, $clientKey);
                 if ($again !== []) {
                     return $again;
@@ -55,6 +65,7 @@ class CouponPlacer
                 $groups = $mode === 'single' ? array_map(fn (array $row) => [$row], $rows) : [$rows];
 
                 foreach ($groups as $index => $group) {
+                    $this->guard->assertTotals($user, $mode, $stake, $group);
                     $odds = array_column($group, 'shown');
                     $total = $this->calculator->total($mode === 'single' ? 'single' : 'combo', $odds);
                     $win = $this->calculator->payout($mode === 'single' ? 'single' : 'combo', $stake, $odds);
@@ -180,56 +191,6 @@ class CouponPlacer
         }
 
         return $rows;
-    }
-
-    /**
-     * @param  list<array{shown: string}>  $rows
-     */
-    private function guardLimits(User $user, string $mode, string $stake, array $rows): void
-    {
-        $limit = $this->limits->forUser($user);
-        $count = count($rows);
-
-        if (bccomp($stake, (string) $limit->min_stake, 2) < 0) {
-            throw new CouponException('sport.errors.min_stake', ['amount' => $limit->min_stake]);
-        }
-        if (bccomp($stake, (string) $limit->max_stake, 2) > 0) {
-            throw new CouponException('sport.errors.max_stake', ['amount' => $limit->max_stake]);
-        }
-        if ($mode === 'combo' && $count < (int) $limit->combo_min) {
-            throw new CouponException('sport.errors.combo_min', ['count' => $limit->combo_min]);
-        }
-        if ($mode === 'combo' && $count > (int) $limit->combo_max) {
-            throw new CouponException('sport.errors.combo_max', ['count' => $limit->combo_max]);
-        }
-
-        $groups = $mode === 'single' ? array_map(fn (array $row) => [$row], $rows) : [$rows];
-        foreach ($groups as $group) {
-            $prices = array_column($group, 'shown');
-            foreach ($prices as $price) {
-                if ($mode === 'single' && bccomp($price, (string) $limit->min_odd, 2) < 0) {
-                    throw new CouponException('sport.errors.min_odd', ['odd' => $limit->min_odd]);
-                }
-            }
-            $total = $this->calculator->total($mode === 'single' ? 'single' : 'combo', $prices);
-            if (bccomp($total, (string) $limit->min_total_odds, 2) < 0) {
-                throw new CouponException('sport.errors.min_total', ['odd' => $limit->min_total_odds]);
-            }
-            $win = $this->calculator->payout($mode === 'single' ? 'single' : 'combo', $stake, $prices);
-            if (bccomp($win, (string) $limit->max_win, 2) > 0) {
-                throw new CouponException('sport.errors.max_win', ['amount' => $limit->max_win]);
-            }
-        }
-
-        $today = Coupon::query()
-            ->where('user_id', $user->id)
-            ->whereNotIn('status', ['cancelled', 'refunded'])
-            ->where('placed_at', '>=', now()->timezone($user->timezone)->startOfDay()->utc())
-            ->sum('stake');
-        $adding = $mode === 'single' ? bcmul($stake, (string) $count, 2) : $stake;
-        if (bccomp(bcadd((string) $today, $adding, 2), (string) $limit->daily_max, 2) > 0) {
-            throw new CouponException('sport.errors.daily_max', ['amount' => $limit->daily_max]);
-        }
     }
 
     private function stake(string $stake): string

@@ -75,11 +75,13 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::get('/casino/rounds', [CasinoController::class, 'rounds'])->name('casino.rounds');
     Route::get('/casino/sessions', [CasinoController::class, 'sessions'])->name('casino.sessions');
     Route::get('/coupons', [PanelCouponController::class, 'index'])->name('coupons.index');
+    Route::get('/coupons/lookup', [PanelCouponController::class, 'lookup'])->name('coupons.lookup');
     Route::get('/coupons/risky', [PanelCouponController::class, 'risky'])->name('coupons.risky');
     Route::get('/coupons/{coupon}', [PanelCouponController::class, 'show'])->name('coupons.show');
     Route::post('/coupons/{coupon}/cancel', [PanelCouponController::class, 'cancel'])->name('coupons.cancel');
     Route::get('/sport/limits', [SportAdminController::class, 'limits'])->name('sport.limits');
     Route::put('/sport/limits', [SportAdminController::class, 'updateLimits'])->name('sport.limits.update');
+    Route::post('/sport/limits/restore', [SportAdminController::class, 'restoreLimits'])->name('sport.limits.restore');
     Route::get('/sport/status', [SportAdminController::class, 'status'])->name('sport.status');
     Route::get('/sport/overdrafts', [SportAdminController::class, 'overdrafts'])->name('sport.overdrafts');
     Route::get('/sport/fixtures/{fixture}', [SportAdminController::class, 'fixture'])->name('sport.fixtures.show');

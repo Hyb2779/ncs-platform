@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Panel;
 
+use App\Enums\Currency;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\Coupon;
@@ -17,6 +18,7 @@ use App\Models\SportTranslation;
 use App\Models\SportWarning;
 use App\Services\Sport\CouponSettler;
 use App\Services\Sport\FootballBudget;
+use App\Services\Sport\SportLimitFields;
 use App\Services\Sport\SportLimits;
 use App\Services\Sport\SportTranslator;
 use Illuminate\Http\RedirectResponse;
@@ -253,39 +255,45 @@ class SportAdminController extends Controller
         return back();
     }
 
-    public function limits(SportLimits $limits): View
-    {
-        $user = auth()->user();
-        abort_unless(in_array($user->role, [UserRole::Owner, UserRole::Superadmin], true), 404);
-        $row = $user->role === UserRole::Owner
-            ? $limits->global()
-            : SportLimit::query()->firstOrNew(['superadmin_id' => $user->id], $limits->global()->only([
-                'min_stake', 'max_stake', 'max_win', 'combo_min', 'combo_max', 'min_total_odds', 'min_odd', 'daily_max', 'cancel_minutes',
-            ]));
-
-        return view('panel.sport.limits', ['limit' => $row]);
-    }
-
-    public function updateLimits(Request $request): RedirectResponse
+    public function limits(Request $request, SportLimits $limits): View
     {
         $user = $request->user();
-        abort_unless(in_array($user->role, [UserRole::Owner, UserRole::Superadmin], true), 404);
-        $data = $request->validate([
-            'min_stake' => ['required', 'numeric', 'min:0.01'],
-            'max_stake' => ['required', 'numeric', 'min:0.01'],
-            'max_win' => ['required', 'numeric', 'min:0.01'],
-            'combo_min' => ['required', 'integer', 'min:2'],
-            'combo_max' => ['required', 'integer', 'min:2'],
-            'min_total_odds' => ['required', 'numeric', 'min:1.01'],
-            'min_odd' => ['required', 'numeric', 'min:1.01'],
-            'daily_max' => ['required', 'numeric', 'min:0.01'],
-            'cancel_minutes' => ['required', 'integer', 'min:0'],
+        abort_unless(in_array($user->role, [UserRole::Owner, UserRole::Superadmin, UserRole::Bayi], true), 404);
+        $currency = $this->limitCurrency($request);
+        $row = $user->role === UserRole::Owner
+            ? $limits->owner($currency)
+            : SportLimit::query()->firstOrNew(['user_id' => $user->id]);
+
+        return view('panel.sport.limits', [
+            'limit' => $row,
+            'ceiling' => $limits->ceiling($user),
+            'currency' => $currency,
+            'groups' => SportLimitFields::groups(),
         ]);
-        SportLimit::query()->updateOrCreate(
-            ['superadmin_id' => $user->role === UserRole::Owner ? null : $user->id],
-            $data,
-        );
+    }
+
+    public function updateLimits(Request $request, SportLimits $limits): RedirectResponse
+    {
+        $currency = $this->limitCurrency($request);
+        $limits->save($request->user(), $currency, $request->all());
 
         return back()->with('status', __('sport.panel.saved'));
+    }
+
+    public function restoreLimits(Request $request, SportLimits $limits): RedirectResponse
+    {
+        $limits->restore($request->user(), $this->limitCurrency($request));
+
+        return back()->with('status', __('sport.panel.saved'));
+    }
+
+    private function limitCurrency(Request $request): Currency
+    {
+        $user = $request->user();
+        if ($user->role !== UserRole::Owner) {
+            return $user->currency;
+        }
+
+        return Currency::tryFrom((string) $request->input('currency', $request->query('currency', 'TRY'))) ?? Currency::Try;
     }
 }
