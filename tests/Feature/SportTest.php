@@ -32,7 +32,7 @@ class SportTest extends TestCase
         ]);
         $sync = app(SportSync::class);
         $fixture = $sync->storeFixture($league, [
-            'fixture' => ['id' => 10, 'date' => '2026-09-26T19:00:00+00:00', 'status' => ['short' => 'NS']],
+            'fixture' => ['id' => 10, 'date' => now()->addDay()->toIso8601String(), 'status' => ['short' => 'NS']],
             'teams' => [
                 'home' => ['id' => 1, 'name' => 'Home FC', 'logo' => null],
                 'away' => ['id' => 2, 'name' => 'Away FC', 'logo' => null],
