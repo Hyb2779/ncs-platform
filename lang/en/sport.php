@@ -93,6 +93,7 @@ return [
             'lost' => 'Lost',
             'refunded' => 'Refunded',
             'cancelled' => 'Cancelled',
+            'void' => 'Void',
         ],
     ],
     'panel' => [
@@ -162,6 +163,19 @@ return [
             'daily_max' => 'Daily max stake',
             'cancel_minutes' => 'Player cancel window (min)',
         ],
+        'settle_check' => 'Last settlement check',
+        'pending_settlements' => 'Pending settlements',
+        'approaching_void' => 'Matches nearing 48 hours',
+        'manual_settle' => 'Settle manually',
+        'overdraft' => 'Correction debt',
+        'correct_score' => 'Correct the score',
+        'ht_home' => 'HT home',
+        'ht_away' => 'HT away',
+        'ft_home' => '90 min home',
+        'ft_away' => '90 min away',
+        'score_saved' => 'Score saved.',
+        'fixture_detail' => 'Match detail',
+        'no_warnings' => 'No warnings.',
     ],
     'my_coupons' => 'My coupons',
     'selection' => [
@@ -189,6 +203,7 @@ return [
         'SUSP' => 'Suspended',
         'INT' => 'Interrupted',
         'LIVE' => 'Live',
+        'P' => 'Penalties in play',
     ],
     'errors' => [
         'empty' => 'The slip has no selections.',
@@ -211,6 +226,7 @@ return [
         'cancel_started' => 'The match has started, so the coupon cannot be cancelled.',
         'cancel_forbidden' => 'You cannot cancel this coupon.',
         'request' => 'The request could not be completed. Try again.',
+        'score_required' => 'Half-time and 90-minute scores are required.',
     ],
     'translate' => [
         'waiting' => ':count names are waiting for translation.',

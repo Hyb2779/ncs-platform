@@ -8,7 +8,8 @@
         @foreach ($coupon->selections as $selection)
             <article class="rounded-lg bg-white p-3 text-sm">
                 <p>{{ sport_name($selection->fixture->home) }} – {{ sport_name($selection->fixture->away) }}</p>
-                <p>{{ __('sport.markets.'.$selection->market_code) }} · {{ __('sport.outcomes.'.$selection->outcome) }} · {{ $selection->odds }} · {{ __('sport.selection.'.$selection->status) }}</p>
+                <p>{{ __('sport.markets.'.$selection->market_code) }} · {{ __('sport.outcomes.'.$selection->outcome) }} · {{ $selection->odds }}</p>
+                <div class="mt-2">@include('sport._badge', ['status' => $selection->status])</div>
             </article>
         @endforeach
     </div>

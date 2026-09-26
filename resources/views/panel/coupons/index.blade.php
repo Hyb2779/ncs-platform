@@ -24,7 +24,7 @@
         </select>
         <select class="h-11 rounded-md border px-2" name="status">
             <option value="">{{ __('sport.panel.status_filter') }}</option>
-            @foreach (['pending', 'won', 'lost', 'refunded', 'cancelled'] as $status)
+            @foreach (['pending', 'won', 'lost', 'void', 'refunded', 'cancelled'] as $status)
                 <option value="{{ $status }}" @selected(request('status') === $status)>{{ __('sport.coupon.statuses.'.$status) }}</option>
             @endforeach
         </select>
@@ -52,7 +52,14 @@
                         <td class="px-3 py-2 font-numeric">{{ $coupon->total_odds }}</td>
                         <td class="px-3 py-2 font-numeric">{{ $coupon->stake }}</td>
                         <td class="px-3 py-2 font-numeric">{{ $coupon->potential_win }}</td>
-                        <td class="px-3 py-2">{{ __('sport.coupon.statuses.'.$coupon->status) }}</td>
+                        <td class="px-3 py-2">
+                            <p>{{ __('sport.coupon.statuses.'.$coupon->status) }}</p>
+                            <div class="mt-1 flex flex-wrap gap-1">
+                                @foreach ($coupon->selections as $selection)
+                                    @include('sport._badge', ['status' => $selection->status])
+                                @endforeach
+                            </div>
+                        </td>
                         <td class="px-3 py-2">
                             <a class="underline" href="{{ route('panel.coupons.show', $coupon) }}">{{ __('sport.panel.detail') }}</a>
                         </td>

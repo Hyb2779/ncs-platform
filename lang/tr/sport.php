@@ -93,6 +93,7 @@ return [
             'lost' => 'Kaybeden',
             'refunded' => 'İade',
             'cancelled' => 'İptal',
+            'void' => 'İade',
         ],
     ],
     'panel' => [
@@ -162,6 +163,19 @@ return [
             'daily_max' => 'Günlük max bahis',
             'cancel_minutes' => 'Oyuncu iptal süresi (dk)',
         ],
+        'settle_check' => 'Son sonuçlandırma',
+        'pending_settlements' => 'Bekleyen sonuçlandırma',
+        'approaching_void' => '48 saate yaklaşan maçlar',
+        'manual_settle' => 'Elle sonuçlandır',
+        'overdraft' => 'Düzeltme borcu',
+        'correct_score' => 'Sonucu düzelt',
+        'ht_home' => 'İY ev sahibi',
+        'ht_away' => 'İY deplasman',
+        'ft_home' => '90 dk ev sahibi',
+        'ft_away' => '90 dk deplasman',
+        'score_saved' => 'Skor kaydedildi.',
+        'fixture_detail' => 'Maç detayı',
+        'no_warnings' => 'Uyarı yok.',
     ],
     'my_coupons' => 'Kuponlarım',
     'selection' => [
@@ -189,6 +203,7 @@ return [
         'SUSP' => 'Askı',
         'INT' => 'Ara verildi',
         'LIVE' => 'Canlı',
+        'P' => 'Penaltı',
     ],
     'errors' => [
         'empty' => 'Kuponda seçim yok.',
@@ -211,6 +226,7 @@ return [
         'cancel_started' => 'Maç başladığı için iptal edilemez.',
         'cancel_forbidden' => 'Bu kuponu iptal edemezsiniz.',
         'request' => 'İstek tamamlanamadı. Tekrar deneyin.',
+        'score_required' => 'İY ve 90 dakika skoru zorunludur.',
     ],
     'translate' => [
         'waiting' => ':count isim çeviri bekliyor.',

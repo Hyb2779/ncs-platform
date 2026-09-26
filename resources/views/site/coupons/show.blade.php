@@ -14,7 +14,8 @@
             <article class="rounded-xl bg-[#151A23] p-4">
                 <p class="break-words font-semibold">{{ sport_name($selection->fixture->home) }}</p>
                 <p class="break-words font-semibold">{{ sport_name($selection->fixture->away) }}</p>
-                <p class="mt-1 text-sm text-[#9AA4B5]">{{ __('sport.markets.'.$selection->market_code) }} · {{ __('sport.outcomes.'.$selection->outcome) }} · {{ $selection->odds }} · {{ __('sport.selection.'.$selection->status) }}</p>
+                <p class="mt-1 text-sm text-[#9AA4B5]">{{ __('sport.markets.'.$selection->market_code) }} · {{ __('sport.outcomes.'.$selection->outcome) }} · {{ $selection->odds }}</p>
+                <div class="mt-2">@include('sport._badge', ['status' => $selection->status])</div>
             </article>
         @endforeach
     </div>

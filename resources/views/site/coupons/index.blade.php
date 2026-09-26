@@ -4,7 +4,7 @@
 
 @section('content')
     <div class="mb-4 flex gap-4 border-b border-[#1D2430]">
-        @foreach (['pending', 'won', 'lost', 'cancelled'] as $tab)
+        @foreach (['pending', 'won', 'lost', 'void', 'cancelled'] as $tab)
             <a class="py-2.5 text-sm {{ $status === $tab ? 'sport-tab-on font-bold text-white' : 'font-semibold text-[#9AA4B5]' }}" href="{{ route('site.coupons', ['status' => $tab]) }}">{{ __('sport.coupon.statuses.'.$tab) }}</a>
         @endforeach
     </div>
@@ -15,6 +15,11 @@
                 <span class="text-sm text-[#9AA4B5]">{{ sport_date($coupon->placed_at->timezone(auth()->user()->timezone), 'j F Y H:i') }} · {{ __('sport.coupon.'.$coupon->type) }}</span>
                 <span class="font-numeric text-sm">{{ \App\Support\Money::format((string) $coupon->stake, auth()->user()->currency) }} · {{ $coupon->total_odds }}</span>
                 <span class="text-sm font-semibold text-[#3DD68C]">{{ \App\Support\Money::format((string) $coupon->potential_win, auth()->user()->currency) }} · {{ __('sport.coupon.statuses.'.$coupon->status) }}</span>
+                <span class="flex flex-wrap gap-1 md:col-span-4">
+                    @foreach ($coupon->selections as $selection)
+                        @include('sport._badge', ['status' => $selection->status])
+                    @endforeach
+                </span>
             </a>
         @empty
             <p class="text-[#9AA4B5]">{{ __('sport.coupon.empty') }}</p>
