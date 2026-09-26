@@ -10,6 +10,7 @@ use App\Models\SportWarning;
 use App\Models\User;
 use App\Models\Wallet;
 use App\Models\WalletTransaction;
+use App\Services\Stats\DailyStatWriter;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -348,6 +349,8 @@ class WalletService
             'amount' => $amount,
             'currency' => $wallet->currency->value,
         ]);
+
+        app(DailyStatWriter::class)->record($transaction);
 
         return $transaction;
     }
