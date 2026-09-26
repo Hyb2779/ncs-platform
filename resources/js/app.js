@@ -1,5 +1,6 @@
 import Alpine from 'alpinejs';
 import translations from 'virtual:i18n';
+import { mountPanelCharts } from './panel-chart';
 
 window.Alpine = Alpine;
 window.translations = translations;
@@ -22,6 +23,7 @@ window.makeUuid = function makeUuid() {
 };
 
 Alpine.start();
+document.addEventListener('DOMContentLoaded', mountPanelCharts);
 
 const balanceNode = document.querySelector('[data-balance]');
 const balanceUrl = document.body?.dataset.balanceUrl;

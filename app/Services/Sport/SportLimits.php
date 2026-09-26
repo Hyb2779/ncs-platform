@@ -172,18 +172,17 @@ class SportLimits
         $values = [];
         $cashOut = (bool) ($input['cash_out_enabled'] ?? false);
         if ($cashOut && $ceiling->cash_out_enabled !== true) {
-            $errors['cash_out_enabled'] = __('sport.panel.above_ceiling');
+            $errors['cash_out_enabled'] = __('sport.panel.parent_limited');
             $cashOut = false;
         }
         $values['cash_out_enabled'] = $cashOut;
 
         foreach ([...SportLimitFields::MIN, ...SportLimitFields::MAX] as $field) {
-            $isMin = in_array($field, SportLimitFields::MIN, true);
             $cap = $ceiling->get($field);
             $wantsOpen = isset($unlimited[$field]);
             if ($wantsOpen) {
                 if ($cap !== null) {
-                    $errors[$field] = __('sport.panel.above_ceiling');
+                    $errors[$field] = $this->boundMessage($field, $cap);
                 }
                 $values[$field] = $cap === null ? null : $cap;
 
@@ -191,19 +190,23 @@ class SportLimits
             }
             $raw = $input[$field] ?? null;
             if ($raw === null || $raw === '') {
-                $errors[$field] = __('sport.panel.above_ceiling');
+                $errors[$field] = $cap === null
+                    ? __('sport.panel.limit_invalid')
+                    : $this->boundMessage($field, $cap);
                 $values[$field] = $cap;
 
                 continue;
             }
             $value = $this->normalize($field, $raw);
             if ($value === null) {
-                $errors[$field] = __('sport.panel.above_ceiling');
+                $errors[$field] = $cap === null
+                    ? __('sport.panel.limit_invalid')
+                    : $this->boundMessage($field, $cap);
 
                 continue;
             }
-            if ($cap !== null && $this->exceeds($field, $value, $cap, $isMin)) {
-                $errors[$field] = __('sport.panel.above_ceiling');
+            if ($cap !== null && $this->exceeds($field, $value, $cap, SportLimitFields::isFloor($field))) {
+                $errors[$field] = $this->boundMessage($field, $cap);
             }
             $values[$field] = $value;
         }
@@ -213,6 +216,13 @@ class SportLimits
         }
 
         return $values;
+    }
+
+    private function boundMessage(string $field, mixed $cap): string
+    {
+        $key = SportLimitFields::isFloor($field) ? 'sport.panel.at_least' : 'sport.panel.at_most';
+
+        return __($key, ['value' => $cap]);
     }
 
     private function exceeds(string $field, mixed $value, mixed $cap, bool $isMin): bool

@@ -11,6 +11,7 @@ use App\Services\Casino\ProviderRegistry;
 use App\Services\Sport\CouponBook;
 use App\Services\WalletProvisioner;
 use App\Support\Money;
+use App\Support\PanelMenu;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -69,6 +70,8 @@ class AppServiceProvider extends ServiceProvider
                     ? collect()
                     : $user->wallets()->orderBy('currency')->get(),
             );
+            $view->with('panelSections', $user === null ? [] : PanelMenu::sections($user));
+            $view->with('panelBottom', $user === null ? [] : PanelMenu::bottom($user));
         });
     }
 }

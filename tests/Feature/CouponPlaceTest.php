@@ -303,8 +303,8 @@ class CouponPlaceTest extends TestCase
         $this->actingAs($bayi)->get('/panel/sport/limits')
             ->assertOk()
             ->assertSee('Bahis Limitleri', false)
-            ->assertSee('Sınırsız', false)
-            ->assertSee('Üst sınır:', false);
+            ->assertSee('Üst sınır: 10.000 ₺', false)
+            ->assertDontSee('unlimited[', false);
         $payload = SportLimitCatalog::for('TRY');
         $payload['currency'] = 'TRY';
         $payload['max_stake_general'] = '50000';
@@ -321,6 +321,43 @@ class CouponPlaceTest extends TestCase
         $this->place('50', 'single')->assertSessionHasErrors('coupon');
         $this->place('10', 'single')->assertRedirect();
         $this->assertSame(1, Coupon::query()->count());
+    }
+
+    public function test_a_floor_can_be_raised_but_not_lowered(): void
+    {
+        [, $bayi] = $this->player('0');
+        $superadmin = $bayi->parent;
+        $payload = SportLimitCatalog::for('TRY');
+        $payload['currency'] = 'TRY';
+        $payload['min_coupon_odds'] = '1.00';
+
+        $this->actingAs($superadmin)->from('/panel/sport/limits')->put('/panel/sport/limits', $payload)
+            ->assertSessionHasErrors(['min_coupon_odds' => 'En az 1.01 olabilir']);
+        $page = $this->followingRedirects()->from('/panel/sport/limits')->put('/panel/sport/limits', $payload);
+        $page->assertOk()
+            ->assertSee('1 alanda hata var', false)
+            ->assertSee('Alt sınır: 1.01', false)
+            ->assertSee('Üst hesapta kapalı', false)
+            ->assertSee('Üst sınır: 10.000 ₺', false)
+            ->assertSee('grid-cols-1', false)
+            ->assertSee('lg:grid-cols-2', false)
+            ->assertSee('inputmode="decimal"', false)
+            ->assertSee('w-[120px]', false)
+            ->assertSee('lg:w-[180px]', false)
+            ->assertDontSee('Üst hesap sınırlı', false);
+        $html = $page->getContent();
+        $this->assertMatchesRegularExpression('/<div class="mb-4 rounded-lg bg-red-50[^"]*">\s*<p>1 alanda hata var<\/p>\s*<\/div>/', $html);
+        $this->assertMatchesRegularExpression('/name="min_coupon_odds" value="1.00"/', $html);
+        $this->assertMatchesRegularExpression('/border-red-600/', $html);
+        $this->assertDoesNotMatchRegularExpression('/name="unlimited\[min_coupon_odds\]"/', $html);
+        $this->assertMatchesRegularExpression('/name="cash_out_enabled"[^>]*disabled/', $html);
+        $this->assertSame(1, preg_match('/data-limit-field="min_coupon_odds"([\s\S]*?)data-limit-field=/', $html, $row));
+        $this->assertStringContainsString('En az 1.01 olabilir', $row[1]);
+        $this->assertStringNotContainsString('Alt sınır:', $row[1]);
+
+        $payload['min_coupon_odds'] = '1.20';
+        $this->actingAs($superadmin)->put('/panel/sport/limits', $payload)->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('1.20', SportLimit::query()->where('user_id', $superadmin->id)->value('min_coupon_odds'));
     }
 
     public function test_an_odds_ceiling_hides_the_price_and_rejects_the_slip(): void
