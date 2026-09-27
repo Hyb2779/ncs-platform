@@ -1,0 +1,35 @@
+<?php
+
+namespace App\Support;
+
+/** Aggregator arkasındaki gerçek oyun sağlayıcıları (görsel adresindeki kısa addan). */
+class Vendors
+{
+    public const NAMES = [
+        'pp' => 'Pragmatic Play', 'pg' => 'PG Soft', 'hacksaw' => 'Hacksaw', 'egt' => 'EGT', 'amusnet' => 'Amusnet',
+        'bng' => 'Booongo', 'hab' => 'Habanero', 'jili' => 'JILI', 'cq9' => 'CQ9', '3oaks' => '3 Oaks',
+        'tada' => 'TaDa', 'spribe' => 'Spribe', 'playstar' => 'PlayStar', 'xgaming' => 'XGaming',
+        'atlasv' => 'AtlasV', 'solidicon' => 'Solidicon', 'beon' => 'BEON', 'tydo' => 'Tydo',
+    ];
+
+    public static function fromImage(?string $url): ?string
+    {
+        if ($url === null || ! preg_match('~/game_pic/([a-z0-9_-]+)/~i', $url, $m)) {
+            return null;
+        }
+
+        return strtolower($m[1]);
+    }
+
+    public static function name(?string $slug): ?string
+    {
+        return $slug === null ? null : (self::NAMES[$slug] ?? strtoupper($slug));
+    }
+
+    public static function priority(?string $slug): int
+    {
+        $i = array_search($slug, array_keys(self::NAMES), true);
+
+        return $i === false ? 999 : $i;
+    }
+}

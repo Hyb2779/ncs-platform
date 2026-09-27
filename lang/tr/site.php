@@ -65,4 +65,6 @@ return [
         'neon' => 'Neon Strip',
         'desert' => 'Desert Night',
     ],
+    'all_providers' => 'Tüm sağlayıcılar',
+    'popular_games' => 'Popüler',
 ];

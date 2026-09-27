@@ -192,20 +192,57 @@ class SiteController extends Controller
             $query->where('provider_id', (int) $request->query('provider'));
         }
 
-        if ($request->query('list') === 'favorites' && $request->user()) {
+        $vendor = (string) $request->query('vendor', '');
+        if ($vendor !== '') {
+            $query->where('vendor', $vendor);
+        }
+
+        $list = (string) $request->query('list', 'all');
+        if ($list === 'popular') {
+            $query->where('is_popular', true);
+        }
+
+        if ($list === 'favorites' && $request->user()) {
             $ids = DB::table('casino_favorites')->where('user_id', $request->user()->id)->pluck('game_id');
             $query->whereIn('id', $ids);
         }
 
-        if ($request->query('list') === 'recent' && $request->user()) {
+        if ($list === 'recent' && $request->user()) {
             $ids = GameSession::query()->where('user_id', $request->user()->id)->latest('opened_at')->limit(20)->pluck('game_id');
             $query->whereIn('id', $ids);
         }
 
+        $plays = DB::table('game_rounds as r')
+            ->join('casino_games as g', 'g.id', '=', 'r.game_id')
+            ->where('r.created_at', '>=', now()->subDays(30))
+            ->where('g.is_live', $live)
+            ->groupBy('g.vendor')
+            ->selectRaw('g.vendor AS vendor, COUNT(*) AS c')
+            ->pluck('c', 'vendor');
+
+        $vendors = $this->games($live)
+            ->whereNotNull('vendor')
+            ->groupBy('vendor')
+            ->selectRaw('vendor, COUNT(*) AS c, SUM(CASE WHEN is_popular THEN 1 ELSE 0 END) AS p')
+            ->get()
+            ->map(fn ($row) => [
+                'slug' => $row->vendor,
+                'name' => \App\Support\Vendors::name($row->vendor),
+                'count' => (int) $row->c,
+                'plays' => (int) ($plays[$row->vendor] ?? 0),
+                'popular' => (int) $row->p,
+            ])
+            ->sort(fn ($a, $b) => [$b['plays'], $b['popular'], \App\Support\Vendors::priority($a['slug'])] <=> [$a['plays'], $a['popular'], \App\Support\Vendors::priority($b['slug'])])
+            ->values();
+
         return [
             'live' => $live,
-            'games' => $query->orderBy('sort_order')->limit(60)->get(),
+            'total' => (clone $query)->count(),
+            'games' => $query->orderByDesc('is_popular')->orderBy('sort_order')->orderBy('name')->limit($vendor !== '' ? 200 : 90)->get(),
             'providers' => CasinoProvider::query()->where('status', 'active')->orderBy('name')->get(),
+            'vendors' => $vendors,
+            'vendor' => $vendor,
+            'list' => $list,
             'categories' => CasinoGame::query()->where('is_live', $live)->where('is_active', true)->distinct()->orderBy('category')->pluck('category'),
         ];
     }

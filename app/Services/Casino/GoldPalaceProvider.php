@@ -51,6 +51,7 @@ class GoldPalaceProvider implements CasinoProvider
                         'name' => (string) ($game['locale_name'] ?: $game['game_name']),
                         'category' => (string) ($game['category'] ?: 'slot'),
                         'image_url' => $game['game_image'] ?? null,
+                        'vendor' => \App\Support\Vendors::fromImage($game['game_image'] ?? null),
                         'is_live' => false,
                         'is_active' => (bool) ($game['launch_enable'] ?? true),
                         'sort_order' => $index,
