@@ -39,4 +39,12 @@ return [
         ],
     ],
 
+
+    'ncs_bridge' => [
+        'url' => env('NCS_BRIDGE_URL', 'https://nitrocores.uk'),
+        'secret' => env('NCS_BRIDGE_SECRET'),
+        'allowed_ips' => env('NCS_BRIDGE_ALLOWED_IPS', '91.229.239.212'),
+        'max_debit_stake' => (float) env('NCS_BRIDGE_MAX_DEBIT_STAKE', 10000),
+    ],
+
 ];

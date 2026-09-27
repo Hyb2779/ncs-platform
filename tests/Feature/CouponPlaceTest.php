@@ -272,6 +272,35 @@ class CouponPlaceTest extends TestCase
         $this->actingAs($member)->get('/sport')->assertSee('data-theme="neon"', false);
     }
 
+    public function test_tipo_bridge_moves_the_wegas_wallet(): void
+    {
+        [$member] = $this->player('100.00');
+        config(['services.ncs_bridge.secret' => 'test-secret', 'services.ncs_bridge.allowed_ips' => '']);
+        $call = function (array $body, string $secret = 'test-secret') {
+            $raw = json_encode($body);
+            $ts = (string) time();
+
+            return $this->call('POST', '/api/bridge/tipo', [], [], [], [
+                'CONTENT_TYPE' => 'application/json',
+                'HTTP_X_BRIDGE_TIMESTAMP' => $ts,
+                'HTTP_X_BRIDGE_SIGNATURE' => hash_hmac('sha256', $ts.'.'.$raw, $secret),
+            ], $raw);
+        };
+        $pid = 'wegas:'.$member->id;
+
+        $call(['action' => 'getBalance', 'player_id' => $pid], 'wrong')->assertStatus(401);
+        $call(['action' => 'getBalance', 'player_id' => $pid])->assertOk()->assertJson(['success' => true, 'balance' => 100, 'currency' => 'TRY']);
+        $call(['action' => 'debit', 'player_id' => $pid, 'tx_id' => 't1', 'amount' => 30, 'bet_id' => 5])->assertOk()->assertJson(['balance' => 70, 'tx_id' => 't1']);
+        $call(['action' => 'debit', 'player_id' => $pid, 'tx_id' => 't1', 'amount' => 30])->assertOk()->assertJson(['balance' => 70]);
+        $call(['action' => 'debit', 'player_id' => $pid, 'tx_id' => 't2', 'amount' => 500])->assertStatus(422)->assertJson(['error' => 'Yetersiz bakiye.']);
+        $call(['action' => 'credit', 'player_id' => $pid, 'tx_id' => 't3', 'amount' => 45])->assertOk()->assertJson(['balance' => 115]);
+        $call(['action' => 'rollback', 'player_id' => $pid, 'tx_id' => 't1'])->assertOk()->assertJson(['balance' => 145, 'tx_id' => 'rollback:t1']);
+        $call(['action' => 'rollback', 'player_id' => $pid, 'tx_id' => 't1'])->assertOk()->assertJson(['balance' => 145]);
+        $call(['action' => 'getBalance', 'player_id' => 'wegas:999999'])->assertStatus(422);
+        $call(['action' => 'getBalance', 'player_id' => (string) $member->id])->assertStatus(422);
+        $this->artisan('wallet:verify')->assertOk();
+    }
+
     public function test_started_match_is_rejected(): void
     {
         [$user] = $this->player('40.00');
