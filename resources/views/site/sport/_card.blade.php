@@ -4,7 +4,7 @@
     $day = $kickoff->isToday() ? __('sport.today') : ($kickoff->isTomorrow() ? __('sport.tomorrow') : sport_date($kickoff, 'j F'));
     $cells = $cardColumns ?? $columns;
 @endphp
-<article class="flex flex-col gap-2.5 rounded-xl bg-[#151A23] p-3">
+<article class="flex flex-col gap-2.5 rounded-xl bg-[var(--site-panel)] p-3">
     <div class="flex items-center justify-between gap-3">
         <a class="flex min-w-0 flex-col gap-0.5" href="{{ route('site.sport.show', $fixture) }}">
             <span class="break-words text-sm font-bold">{{ sport_name($fixture->home) }}</span>
@@ -24,6 +24,6 @@
         @foreach ($cells as $column)
             @include('site.sport._odd', ['market' => $column['market'], 'outcome' => $column['outcome'], 'labeled' => true, 'head' => $column['head']])
         @endforeach
-        <a class="inline-flex h-11 items-center justify-center rounded-lg bg-[#1E2533] text-xs font-bold text-[#9AA4B5]" href="{{ route('site.sport.show', $fixture) }}">{{ __('sport.other', ['count' => $fixture->odds->pluck('market_id')->unique()->count()]) }}</a>
+        <a class="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--site-panel-2)] text-xs font-bold text-[var(--site-muted)]" href="{{ route('site.sport.show', $fixture) }}">{{ __('sport.other', ['count' => $fixture->odds->pluck('market_id')->unique()->count()]) }}</a>
     </div>
 </article>

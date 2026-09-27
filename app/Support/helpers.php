@@ -142,3 +142,8 @@ function sport_date(Carbon $date, string $format): string
 
     return str_replace($eastern, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], $formatted);
 }
+
+function site_theme(): string
+{
+    return 'classic';
+}

@@ -51,3 +51,23 @@ details.limit-group > summary::-webkit-details-marker {
 details.limit-group > summary::marker {
     content: '';
 }
+
+/* Oyuncu sitesi temalari (data-theme). Varsayilan: classic */
+:root, [data-theme="classic"] {
+    --site-bg: #0E0E10; --site-bg-deep: #09090B; --site-panel: #18181C; --site-panel-2: #1F1F24;
+    --site-line: #2A2A30; --site-line-strong: #3A3A42; --site-text: #EFEDE8; --site-text-2: #D6D2C8;
+    --site-muted: #A09C92; --accent: #F5B83D; --site-on-accent: #1A1204; --site-second: #C8102E;
+    --site-live: #C8102E; --site-gold: #F5B83D;
+}
+[data-theme="neon"] {
+    --site-bg: #0B0A1A; --site-bg-deep: #070612; --site-panel: #141230; --site-panel-2: #1B1840;
+    --site-line: #262357; --site-line-strong: #37336F; --site-text: #EDEBFF; --site-text-2: #CFCBF2;
+    --site-muted: #9C98C8; --accent: #FF2E88; --site-on-accent: #FFFFFF; --site-second: #22D3EE;
+    --site-live: #FF2E88; --site-gold: #FFC83D;
+}
+[data-theme="desert"] {
+    --site-bg: #140D14; --site-bg-deep: #0E080E; --site-panel: #211521; --site-panel-2: #2A1B29;
+    --site-line: #3A2537; --site-line-strong: #4C3148; --site-text: #F6ECF0; --site-text-2: #E2D2DA;
+    --site-muted: #B79FB0; --accent: #FF7A2F; --site-on-accent: #1E0B02; --site-second: #B45CFF;
+    --site-live: #FF7A2F; --site-gold: #FFB547;
+}

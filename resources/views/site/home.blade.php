@@ -2,8 +2,8 @@
 
 @section('content')
     <div class="grid gap-3 md:grid-cols-2">
-        <article class="rounded-lg bg-[#151A23] p-6">{{ __('site.banner_one') }}</article>
-        <article class="rounded-lg bg-[#1B2230] p-6">{{ __('site.banner_two') }}</article>
+        <article class="rounded-lg bg-[var(--site-panel)] p-6">{{ __('site.banner_one') }}</article>
+        <article class="rounded-lg bg-[var(--site-panel-2)] p-6">{{ __('site.banner_two') }}</article>
     </div>
     <section class="mt-8">
         <h2 class="mb-3 text-lg font-semibold">{{ __('site.popular_slots') }}</h2>

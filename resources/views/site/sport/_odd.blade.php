@@ -4,7 +4,7 @@
     $compact = $compact ?? false;
     $picked = $odd && collect($coupon['rows'] ?? [])->contains(fn ($row) => (int) $row['odd']->id === (int) $odd->id);
     $blocked = $odd && ! sport_price_open($fixture, (string) $odd->shown_odd);
-    $tone = $picked ? 'bg-[var(--accent)] text-[#1A1305]' : 'bg-[#1E2533] text-[#E8ECF3]';
+    $tone = $picked ? 'bg-[var(--accent)] text-[var(--site-on-accent)]' : 'bg-[var(--site-panel-2)] text-[var(--site-text)]';
 @endphp
 @if ($odd && ! $odd->suspended && ! $blocked)
     <form class="min-w-0" method="POST" action="{{ route('site.sport.add', $odd) }}">
@@ -30,5 +30,5 @@
         </button>
     </form>
 @else
-    <span class="inline-flex {{ $compact ? 'h-[38px]' : 'h-11' }} w-full items-center justify-center rounded-lg bg-[#1E2533] text-[#9AA4B5]" data-outcome="{{ $outcome }}">—</span>
+    <span class="inline-flex {{ $compact ? 'h-[38px]' : 'h-11' }} w-full items-center justify-center rounded-lg bg-[var(--site-panel-2)] text-[var(--site-muted)]" data-outcome="{{ $outcome }}">—</span>
 @endif

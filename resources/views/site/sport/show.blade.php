@@ -25,24 +25,24 @@
         </aside>
         <section class="flex min-w-0 flex-col gap-3">
             @include('site.sport._sports', ['variant' => 'chips'])
-            <a class="text-[13px] text-[#9AA4B5]" href="{{ route('site.sport') }}">{{ __('site.sport') }}</a>
-            <div class="rounded-xl bg-[#151A23] p-4">
-                <p class="text-[11px] font-semibold text-[#9AA4B5]">{{ sport_name($fixture->league->country) }} · {{ sport_name($fixture->league) }}</p>
+            <a class="text-[13px] text-[var(--site-muted)]" href="{{ route('site.sport') }}">{{ __('site.sport') }}</a>
+            <div class="rounded-xl bg-[var(--site-panel)] p-4">
+                <p class="text-[11px] font-semibold text-[var(--site-muted)]">{{ sport_name($fixture->league->country) }} · {{ sport_name($fixture->league) }}</p>
                 <h1 class="mt-1 flex flex-col gap-0.5 text-xl font-bold text-white">
                     <span class="break-words">{{ sport_name($fixture->home) }}</span>
                     <span class="break-words">{{ sport_name($fixture->away) }}</span>
                 </h1>
-                <p class="mt-1 font-numeric text-sm text-[#9AA4B5]">{{ sport_date($kickoff, 'j F Y H:i') }} · {{ __('sport.code_prefix', ['code' => $fixture->bulletin_code]) }}</p>
+                <p class="mt-1 font-numeric text-sm text-[var(--site-muted)]">{{ sport_date($kickoff, 'j F Y H:i') }} · {{ __('sport.code_prefix', ['code' => $fixture->bulletin_code]) }}</p>
             </div>
             <div class="no-scrollbar flex gap-2 overflow-x-auto">
                 @foreach (['result', 'half', 'btts', 'ou'] as $key)
-                    <button class="inline-flex h-9 shrink-0 items-center rounded-full px-3.5 text-[13px]" type="button" @click="tab = '{{ $key }}'" :class="tab === '{{ $key }}' ? 'bg-[#E8ECF3] font-bold text-[#0E1117]' : 'border border-[#2A3342] font-semibold text-[#C9D1DD]'">{{ __('sport.filters.'.$key) }}</button>
+                    <button class="inline-flex h-9 shrink-0 items-center rounded-full px-3.5 text-[13px]" type="button" @click="tab = '{{ $key }}'" :class="tab === '{{ $key }}' ? 'bg-[var(--site-text)] font-bold text-[var(--site-on-accent)]' : 'border border-[var(--site-line-strong)] font-semibold text-[var(--site-text-2)]'">{{ __('sport.filters.'.$key) }}</button>
                 @endforeach
             </div>
             @foreach ($groups as $key => $codes)
                 <div class="grid gap-3" x-show="tab === '{{ $key }}'" @if ($key !== $detailTab) x-cloak @endif>
                     @foreach ($codes as $code)
-                        <section class="rounded-xl bg-[#151A23] p-3">
+                        <section class="rounded-xl bg-[var(--site-panel)] p-3">
                             <h2 class="text-sm font-bold text-white">{{ __('sport.markets.'.$code) }}</h2>
                             @php $outcomes = \App\Models\SportMarket::outcomesFor($code); @endphp
                             <div class="mt-2 grid gap-2 {{ count($outcomes) === 3 ? 'max-w-lg grid-cols-3' : 'max-w-md grid-cols-2' }}">
