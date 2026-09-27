@@ -60,6 +60,8 @@ return [
     'unlimited' => 'غير محدود',
     'user_created' => 'تم إنشاء المستخدم.',
     'user_updated' => 'تم تحديث المستخدم.',
+    'status_toggle_banned' => 'لا يمكن تغيير حالة حساب محظور من هنا؛ استخدم التعديل.',
+    'password_reset_done' => 'تمت إعادة تعيين كلمة المرور.',
     'roles' => [
         'owner' => 'المالك',
         'superadmin' => 'مشرف أعلى',

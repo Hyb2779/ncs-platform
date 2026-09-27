@@ -68,6 +68,8 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::post('/users/{user}/balance', [WalletController::class, 'adjust'])->name('wallets.adjust');
+    Route::post('/users/{user}/status', [UserController::class, 'toggleStatus'])->name('users.status');
+    Route::post('/users/{user}/password', [UserController::class, 'resetPassword'])->name('users.password');
     Route::get('/transactions', [WalletController::class, 'transactions'])->name('transactions');
     Route::get('/casino/providers', [CasinoController::class, 'providers'])->name('casino.providers');
     Route::put('/casino/providers/{provider}', [CasinoController::class, 'updateProvider'])->name('casino.providers.update');

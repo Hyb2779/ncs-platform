@@ -220,6 +220,34 @@ class CouponPlaceTest extends TestCase
         $this->artisan('wallet:verify')->assertOk();
     }
 
+    public function test_quick_status_and_password_reset_stay_inside_the_tree(): void
+    {
+        [$member, $bayi] = $this->player('10.00');
+        [$other] = $this->player('10.00');
+        $url = fn (User $user, string $action) => '/panel/users/'.$user->id.'/'.$action;
+
+        $this->actingAs($bayi)->post($url($member, 'status'))->assertRedirect();
+        $this->assertSame('passive', $member->fresh()->status->value);
+        $this->actingAs($member->fresh())->get('/account')->assertRedirect();
+        $this->assertGuest();
+
+        $this->actingAs($bayi)->post($url($member, 'status'))->assertRedirect();
+        $this->assertSame('active', $member->fresh()->status->value);
+        $this->actingAs($other->parent)->post($url($member, 'status'))->assertNotFound();
+
+        $old = $member->fresh()->password;
+        $this->actingAs($bayi)->post($url($member, 'password'))->assertSessionHas('reset_password');
+        $this->assertNotSame($old, $member->fresh()->password);
+        $this->actingAs($bayi)->post($url($member, 'password'), ['password' => 'yeniSifre1'])->assertSessionHasNoErrors();
+        $this->assertTrue(\Illuminate\Support\Facades\Hash::check('yeniSifre1', $member->fresh()->password));
+        $this->actingAs($bayi)->post($url($member, 'password'), ['password' => 'kisa'])->assertSessionHasErrors('password');
+
+        $this->actingAs($bayi->parent)->post($url($member, 'password'))->assertSessionHas('reset_password');
+        $this->actingAs($bayi)->post($url($bayi->parent, 'password'))->assertNotFound();
+        $this->actingAs($other->parent)->post($url($member, 'password'))->assertNotFound();
+        $this->assertTrue(ActivityLog::query()->where('action', 'user.password_reset')->exists());
+    }
+
     public function test_started_match_is_rejected(): void
     {
         [$user] = $this->player('40.00');

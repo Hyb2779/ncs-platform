@@ -60,6 +60,8 @@ return [
     'unlimited' => 'sınırsız',
     'user_created' => 'Kullanıcı oluşturuldu.',
     'user_updated' => 'Kullanıcı güncellendi.',
+    'status_toggle_banned' => 'Banlı hesabın durumu buradan değiştirilemez; Düzenle\'yi kullanın.',
+    'password_reset_done' => 'Şifre sıfırlandı.',
     'roles' => [
         'owner' => 'Sahip',
         'superadmin' => 'Süperadmin',

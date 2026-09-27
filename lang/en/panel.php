@@ -60,6 +60,8 @@ return [
     'unlimited' => 'unlimited',
     'user_created' => 'User created.',
     'user_updated' => 'User updated.',
+    'status_toggle_banned' => 'A banned account\'s status cannot be changed here; use Edit.',
+    'password_reset_done' => 'Password has been reset.',
     'roles' => [
         'owner' => 'Owner',
         'superadmin' => 'Superadmin',

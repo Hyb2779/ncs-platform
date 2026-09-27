@@ -25,11 +25,15 @@ class UserController extends Controller
             $parent = $hierarchy->findInSubtree($actor, (int) $request->query('parent'));
         }
 
-        $users = User::query()
+        $balance = \App\Models\Wallet::query()
+            ->select('balance')
+            ->whereColumn('wallets.user_id', 'users.id')
+            ->whereColumn('wallets.currency', 'users.currency')
+            ->limit(1);
+
+        $base = User::query()
             ->subtreeOf($actor)
             ->where('parent_id', $parent->id)
-            ->with(['wallets', 'children'])
-            ->withCount('children')
             ->when($request->filled('q'), function ($query) use ($request) {
                 $query->where('username', 'like', '%'.$request->string('q').'%');
             })
@@ -45,15 +49,96 @@ class UserController extends Controller
             ->when($request->filled('to'), function ($query) use ($request, $actor) {
                 $query->where('created_at', '<=', Carbon::parse($request->query('to'), $actor->timezone)->endOfDay()->utc());
             })
+            ->when($request->boolean('funded'), fn ($query) => $query->where(clone $balance, '>', 0))
+            ->when($request->boolean('idle'), fn ($query) => $query->where(
+                fn ($inner) => $inner->whereNull('last_login_at')->orWhere('last_login_at', '<', now()->subDays(7))
+            ));
+
+        $summary = [
+            'total' => (clone $base)->count(),
+            'active' => (clone $base)->where('status', UserStatus::Active->value)->count(),
+            'balances' => \Illuminate\Support\Facades\DB::table('wallets')
+                ->join('users', 'users.id', '=', 'wallets.user_id')
+                ->whereColumn('wallets.currency', 'users.currency')
+                ->whereIn('users.id', (clone $base)->select('users.id'))
+                ->groupBy('wallets.currency')
+                ->selectRaw('wallets.currency AS currency, SUM(wallets.balance) AS total')
+                ->pluck('total', 'currency'),
+        ];
+
+        $sort = in_array($request->query('sort'), ['username', 'balance', 'login'], true) ? $request->query('sort') : 'username';
+
+        $users = (clone $base)
+            ->with('wallets')
+            ->withCount('children')
+            ->when($sort === 'balance', fn ($query) => $query->orderByDesc(clone $balance))
+            ->when($sort === 'login', fn ($query) => $query->orderByRaw('last_login_at IS NULL')->orderByDesc('last_login_at'))
             ->orderBy('username')
-            ->get();
+            ->paginate(50)
+            ->withQueryString();
 
         return view('panel.users.index', [
             'parent' => $parent,
             'users' => $users,
+            'summary' => $summary,
+            'sort' => $sort,
             'breadcrumb' => $this->breadcrumb($actor, $parent),
             'canCreate' => $actor->role->childRole() !== null && ($parent->id === $actor->id || $parent->role->childRole() !== null) && $parent->role->childRole() !== null && $this->actorCreatesHere($actor, $parent),
         ]);
+    }
+
+    public function toggleStatus(Request $request, User $user, HierarchyService $hierarchy): RedirectResponse
+    {
+        $actor = $request->user();
+        $target = $hierarchy->findInSubtree($actor, $user->id);
+        abort_if($target->id === $actor->id, 404);
+
+        $next = match ($target->status) {
+            UserStatus::Active => UserStatus::Passive->value,
+            UserStatus::Passive => UserStatus::Active->value,
+            default => null,
+        };
+
+        if ($next === null) {
+            return back()->withErrors(['status' => __('panel.status_toggle_banned')]);
+        }
+
+        try {
+            $hierarchy->update($actor, $target, ['status' => $next]);
+        } catch (HierarchyException $exception) {
+            return back()->withErrors(['status' => __($exception->translationKey)]);
+        }
+
+        return back()->with('status', __('panel.user_updated'));
+    }
+
+    public function resetPassword(Request $request, User $user, HierarchyService $hierarchy): RedirectResponse
+    {
+        $actor = $request->user();
+        $target = $hierarchy->findInSubtree($actor, $user->id);
+        abort_if($target->id === $actor->id, 404);
+
+        $data = $request->validate(
+            ['password' => ['nullable', 'string', 'min:8', 'max:255']],
+            ['password.min' => __('panel.validation.password_min')],
+        );
+        $password = $data['password'] ?? \Illuminate\Support\Str::password(10, symbols: false);
+
+        try {
+            $hierarchy->update($actor, $target, ['password' => $password]);
+        } catch (HierarchyException $exception) {
+            return back()->withErrors(['status' => __($exception->translationKey)]);
+        }
+
+        $target->forceFill(['remember_token' => \Illuminate\Support\Str::random(60)])->save();
+
+        if (config('session.driver') === 'database') {
+            \Illuminate\Support\Facades\DB::table(config('session.table', 'sessions'))->where('user_id', $target->id)->delete();
+        }
+
+        return back()
+            ->with('status', __('panel.password_reset_done'))
+            ->with('reset_password', ['username' => $target->username, 'password' => $password]);
     }
 
     public function create(Request $request, HierarchyService $hierarchy): View

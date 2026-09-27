@@ -60,6 +60,8 @@ return [
     'unlimited' => 'unbegrenzt',
     'user_created' => 'Benutzer angelegt.',
     'user_updated' => 'Benutzer aktualisiert.',
+    'status_toggle_banned' => 'Der Status eines gesperrten Kontos kann hier nicht geändert werden; nutzen Sie Bearbeiten.',
+    'password_reset_done' => 'Das Passwort wurde zurückgesetzt.',
     'roles' => [
         'owner' => 'Inhaber',
         'superadmin' => 'Superadmin',
