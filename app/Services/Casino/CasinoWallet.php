@@ -35,7 +35,41 @@ class CasinoWallet
      */
     public function win(User $user, string $provider, string $transactionId, string $amount, ?string $roundId, ?CasinoGame $game, array $payload, ?string $ip): array
     {
+        // Sağlayıcılar kaybedilen turda da 0 tutarlı "win" gönderir: cüzdana hareket yazmadan turu kapat.
+        if (bccomp($amount, '0', 2) === 0) {
+            return $this->zeroWin($user, $provider, $transactionId, $roundId, $game, $payload);
+        }
+
         return $this->move($user, $provider, $transactionId, $amount, $roundId, $game, $payload, $ip, false);
+    }
+
+    /**
+     * @param  array<string, mixed>  $payload
+     * @return array{balance: string, applied: bool}
+     */
+    private function zeroWin(User $user, string $provider, string $transactionId, ?string $roundId, ?CasinoGame $game, array $payload): array
+    {
+        $balance = $this->balance($user);
+        $exists = GameRound::query()->where('provider', $provider)->where('provider_transaction_id', $transactionId)->exists();
+
+        if (! $exists) {
+            GameRound::query()->create([
+                'provider' => $provider,
+                'provider_transaction_id' => $transactionId,
+                'round_id' => $roundId,
+                'user_id' => $user->id,
+                'game_id' => $game?->id,
+                'bet' => '0.00',
+                'win' => '0.00',
+                'balance_before' => $balance,
+                'amount' => '0.00',
+                'balance_after' => $balance,
+                'status' => 'win',
+                'payload' => $payload,
+            ]);
+        }
+
+        return ['balance' => $balance, 'applied' => false];
     }
 
     /**
