@@ -7,7 +7,7 @@
         <p class="flex flex-wrap items-center gap-x-1.5 text-xs text-[var(--site-muted)]" data-live-selection="{{ $selection->id }}">
             <span>{{ __('sport.markets.'.$selection->market_code) }} · {{ __('sport.outcomes.'.$selection->outcome) }}</span>
             <span aria-hidden="true">·</span>
-            <span data-live-pulse @class(['inline-block h-2 w-2 shrink-0 rounded-full bg-[var(--site-live)] animate-pulse', 'hidden' => ! $state['live']])></span>
+            <span data-live-pulse @class(['h-2 w-2 shrink-0 rounded-full bg-[var(--site-live)] animate-pulse', 'hidden' => ! $state['live']])></span>
             <span data-live-text>{{ $state['text'] }}</span>
         </p>
         @if ($selection->placed_minute !== null)

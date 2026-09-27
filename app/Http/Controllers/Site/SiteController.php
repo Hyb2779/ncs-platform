@@ -24,8 +24,13 @@ class SiteController extends Controller
 {
     public function home(\App\Services\HomeFeed $feed): View
     {
+        $pool = $this->games(false)->where('is_popular', true)->limit(60)->get();
+        $seed = crc32(now()->toDateString());
+        $daily = $pool->sortBy(fn ($game) => crc32($seed.'-'.$game->id))->take(6)->values();
+
         return view('site.home', $feed->build(auth()->user()) + [
-            'slots' => $this->games(false)->where('is_popular', true)->limit(12)->get(),
+            'dailyGames' => $daily,
+            'slots' => $pool->reject(fn ($game) => $daily->contains('id', $game->id))->take(12)->values(),
             'live' => $this->games(true)->limit(12)->get(),
         ]);
     }

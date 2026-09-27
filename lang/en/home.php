@@ -33,4 +33,5 @@ return [
     'product_slot' => 'Slot',
     'product_sport' => 'Sport',
     'product_live_casino' => 'Live casino',
+    'daily_games' => 'Games of the day',
 ];

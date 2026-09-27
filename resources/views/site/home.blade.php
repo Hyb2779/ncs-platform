@@ -29,6 +29,17 @@
         @endif
     </section>
 
+    @if ($dailyGames->isNotEmpty())
+        <section class="flex flex-col gap-4">
+            <div class="flex items-center justify-between"><h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.daily_games') }}</h2><a class="text-[13px] font-bold text-[var(--accent)]" href="{{ route('site.slots') }}">{{ __('home.show_all') }}</a></div>
+            <div class="no-scrollbar flex gap-3 overflow-x-auto md:grid md:grid-cols-6 md:gap-4 md:overflow-visible">
+                @foreach ($dailyGames as $game)
+                    <div class="w-40 shrink-0 md:w-auto">@include('site._card', ['game' => $game])</div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
     <section class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
         @foreach ([
             ['route' => 'site.sport.live', 'title' => __('home.quick_live'), 'sub' => __('home.quick_live_sub', ['count' => $quick['live']])],

@@ -33,4 +33,5 @@ return [
     'product_slot' => 'سلوت',
     'product_sport' => 'رياضة',
     'product_live_casino' => 'الكازينو المباشر',
+    'daily_games' => 'ألعاب اليوم',
 ];
