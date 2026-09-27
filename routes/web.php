@@ -29,6 +29,7 @@ Route::get('/live-casino', [SiteController::class, 'live'])->name('site.live_cas
 Route::redirect('/live', '/live-casino');
 Route::get('/sport', [SportController::class, 'index'])->name('site.sport');
 Route::get('/sport/live', [SportController::class, 'live'])->name('site.sport.live');
+Route::get('/sport/live/data', [SportController::class, 'liveData'])->name('site.sport.live.data');
 Route::get('/sport/results', [SportController::class, 'results'])->name('site.sport.results');
 Route::get('/sport/fixtures/{fixture}', [SportController::class, 'show'])->name('site.sport.show');
 Route::post('/sport/odds/{odd}', [SportController::class, 'add'])->name('site.sport.add');

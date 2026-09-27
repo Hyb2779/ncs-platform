@@ -24,13 +24,13 @@
                         <p class="text-sm font-bold text-white">{{ sport_name($league) }}</p>
                     </div>
                     @foreach ($group as $fixture)
-                        <a class="grid items-center gap-3 border-b border-[#1D2430] px-3 py-2.5 last:border-b-0 md:grid-cols-[4.5rem_minmax(12rem,1fr)_6rem_minmax(8rem,auto)]" href="{{ route('site.sport.show', $fixture) }}">
-                            <span class="text-xs font-extrabold text-[var(--accent)]">{{ sport_status($fixture->status) }}</span>
+                        <a data-live-fixture="{{ $fixture->id }}" class="grid items-center gap-3 border-b border-[#1D2430] px-3 py-2.5 last:border-b-0 md:grid-cols-[4.5rem_minmax(12rem,1fr)_6rem_minmax(8rem,auto)]" href="{{ route('site.sport.show', $fixture) }}">
+                            <span data-live-clock class="font-numeric text-xs font-extrabold text-[var(--accent)]">{{ sport_clock($fixture) }}</span>
                             <span class="flex flex-col gap-0.5 text-sm font-semibold">
                                 <span class="break-words">{{ sport_name($fixture->home) }}</span>
                                 <span class="break-words">{{ sport_name($fixture->away) }}</span>
                             </span>
-                            <span class="font-numeric text-base font-bold">{{ $fixture->score_home ?? '0' }} : {{ $fixture->score_away ?? '0' }}</span>
+                            <span data-live-score class="font-numeric text-base font-bold">{{ $fixture->score_home ?? '0' }} : {{ $fixture->score_away ?? '0' }}</span>
                             <span class="text-[13px] font-semibold text-[#9AA4B5]">{{ __('sport.live_odds_soon') }}</span>
                         </a>
                     @endforeach

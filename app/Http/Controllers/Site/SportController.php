@@ -83,6 +83,27 @@ class SportController extends Controller
         ]);
     }
 
+    public function liveData(Request $request): \Illuminate\Http\JsonResponse
+    {
+        $ids = collect(explode(',', (string) $request->query('ids')))
+            ->map(fn ($id) => (int) $id)
+            ->filter()
+            ->unique()
+            ->take(100);
+
+        $fixtures = $ids->isEmpty() ? collect() : SportFixture::query()
+            ->whereIn('id', $ids)
+            ->get(['id', 'status', 'elapsed', 'score_home', 'score_away']);
+
+        return response()->json([
+            'fixtures' => $fixtures->mapWithKeys(fn (SportFixture $fixture) => [$fixture->id => [
+                'clock' => sport_clock($fixture),
+                'score' => ($fixture->score_home ?? 0).' : '.($fixture->score_away ?? 0),
+                'live' => in_array((string) $fixture->status, config('sport.live_statuses'), true),
+            ]]),
+        ]);
+    }
+
     public function results(Request $request): View
     {
         $zone = $request->user()?->timezone ?? 'UTC';

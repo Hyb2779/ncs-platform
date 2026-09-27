@@ -28,6 +28,17 @@ function sport_status(?string $code): string
     return Lang::has($key) ? __($key) : (string) $code;
 }
 
+function sport_clock(SportFixture $fixture): string
+{
+    $status = (string) $fixture->status;
+
+    if ($status !== 'HT' && $fixture->elapsed !== null && in_array($status, config('sport.live_statuses'), true)) {
+        return sport_digits((string) $fixture->elapsed)."'";
+    }
+
+    return sport_status($status);
+}
+
 function account_label(?User $person, User $viewer): string
 {
     if ($person === null) {
