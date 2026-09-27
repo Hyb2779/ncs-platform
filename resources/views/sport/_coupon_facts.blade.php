@@ -2,8 +2,10 @@
     $currency = auth()->user()->currency;
     $refund = in_array($coupon->status, ['cancelled', 'refunded', 'void'], true) ? (string) $coupon->stake : null;
     $closed = in_array($coupon->status, ['cancelled', 'refunded'], true);
+    $compact = $compact ?? false;
 @endphp
 <dl class="grid gap-2 text-sm">
+    @unless ($compact)
     <div class="flex items-baseline justify-between gap-3">
         <dt>{{ __('sport.coupon.stake') }}</dt>
         <dd class="font-numeric">{{ \App\Support\Money::format((string) $coupon->stake, $currency) }}</dd>
@@ -16,10 +18,13 @@
         <dt>{{ __('sport.coupon.potential_win') }}</dt>
         <dd class="font-numeric">{{ \App\Support\Money::format((string) $coupon->potential_win, $currency) }}</dd>
     </div>
+    @endunless
+    @if (! $compact || $refund !== null)
     <div class="flex items-baseline justify-between gap-3">
         <dt>{{ __('sport.coupon.refund_amount') }}</dt>
         <dd class="font-numeric">{{ $refund === null ? __('panel.empty_value') : \App\Support\Money::format($refund, $currency) }}</dd>
     </div>
+    @endif
     @if ($closed)
         <div class="flex items-baseline justify-between gap-3">
             <dt>{{ __('sport.coupon.cancel_reason') }}</dt>

@@ -8,7 +8,7 @@
             <a class="py-2.5 text-sm {{ $status === $tab ? 'sport-tab-on font-bold text-white' : 'font-semibold text-[var(--site-muted)]' }}" href="{{ route('site.coupons', ['status' => $tab]) }}">{{ __('sport.coupon.statuses.'.$tab) }}</a>
         @endforeach
     </div>
-    <div class="grid gap-3" x-data='{
+    <div class="grid gap-3 md:grid-cols-2 md:items-start" x-data='{
         url: @json(route("site.coupons.live", ["ids" => $coupons->pluck("id")->implode(",")])),
         async refresh() {
             if (! this.url.includes("ids=") || this.url.endsWith("ids=")) {
@@ -39,19 +39,20 @@
         },
     }'>
         @forelse ($coupons as $coupon)
-            <a class="grid gap-2 rounded-xl bg-[var(--site-panel)] p-4 md:grid-cols-4" href="{{ route('site.coupons.show', $coupon) }}">
-                <span class="font-numeric text-lg font-bold">{{ $coupon->coupon_no }}</span>
-                <span class="text-sm text-[var(--site-muted)]">{{ sport_date($coupon->placed_at->timezone(auth()->user()->timezone), 'j F Y H:i') }} · {{ __('sport.coupon.'.$coupon->type) }}</span>
-                <span class="font-numeric text-sm">{{ \App\Support\Money::format((string) $coupon->stake, auth()->user()->currency) }} · {{ $coupon->total_odds }}</span>
-                <span class="text-sm font-semibold text-[#3DD68C]">{{ \App\Support\Money::format((string) $coupon->potential_win, auth()->user()->currency) }} · {{ __('sport.coupon.statuses.'.$coupon->status) }}</span>
-                <span class="grid gap-2 md:col-span-4">
+            <a class="block rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-4" href="{{ route('site.coupons.show', $coupon) }}">
+                <div class="flex items-start justify-between gap-3">
+                    <div class="min-w-0">
+                        <p class="font-numeric text-lg font-bold text-[var(--site-text)]">{{ $coupon->coupon_no }}</p>
+                        <p class="text-xs text-[var(--site-muted)]">{{ sport_date($coupon->placed_at->timezone(auth()->user()->timezone), 'j F Y H:i') }} · {{ __('sport.coupon.'.$coupon->type) }}</p>
+                    </div>
+                    @include('sport._coupon_status')
+                </div>
+                <div class="mt-3">@include('sport._coupon_metrics')</div>
+                <div class="mt-1 divide-y divide-[var(--site-line)]">
                     @foreach ($coupon->selections as $selection)
-                        <span class="grid gap-1">
-                            <span>@include('sport._badge', ['status' => $selection->status, 'coupon' => $coupon])</span>
-                            @include('sport._selection_meta', ['selection' => $selection, 'coupon' => $coupon])
-                        </span>
+                        @include('sport._selection_row')
                     @endforeach
-                </span>
+                </div>
             </a>
         @empty
             <p class="text-[var(--site-muted)]">{{ __('sport.coupon.empty') }}</p>
