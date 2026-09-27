@@ -22,9 +22,9 @@ use Illuminate\View\View;
 
 class SiteController extends Controller
 {
-    public function home(): View
+    public function home(\App\Services\HomeFeed $feed): View
     {
-        return view('site.home', [
+        return view('site.home', $feed->build(auth()->user()) + [
             'slots' => $this->games(false)->where('is_popular', true)->limit(12)->get(),
             'live' => $this->games(true)->limit(12)->get(),
         ]);

@@ -132,6 +132,20 @@ class SportController extends Controller
         ]);
     }
 
+    public function combo(Request $request, CouponBook $coupon): RedirectResponse
+    {
+        $ids = collect((array) $request->input('odds', []))->map(fn ($id) => (int) $id)->filter()->unique()->take(20);
+        $odds = SportOdd::query()->with('fixture')->whereIn('id', $ids)->get();
+        foreach ($odds as $odd) {
+            if ($odd->suspended || ! sport_price_open($odd->fixture, (string) $odd->shown_odd)) {
+                continue;
+            }
+            $coupon->add($odd);
+        }
+
+        return redirect()->route('site.sport');
+    }
+
     public function add(Request $request, SportOdd $odd, CouponBook $coupon): RedirectResponse
     {
         abort_if($odd->suspended, 422);
@@ -297,13 +311,7 @@ class SportController extends Controller
 
     private function bulletinQuery(): Builder
     {
-        return SportFixture::query()
-            ->with(['league.country', 'home', 'away', 'odds.market'])
-            ->whereHas('league', fn ($q) => $q->where('is_active', true))
-            ->whereHas('odds')
-            ->where('starts_at', '>=', now()->utc()->startOfDay())
-            ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
-            ->orderBy('starts_at');
+        return \App\Services\Sport\Bulletin::query();
     }
 
     private function marketFilter(Request $request): string

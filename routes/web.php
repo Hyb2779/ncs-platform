@@ -21,7 +21,7 @@ Route::get('/', function () {
         return redirect('/panel');
     }
 
-    return app(SiteController::class)->home();
+    return app()->call([app(SiteController::class), 'home']);
 })->name('site.home');
 
 Route::get('/slots', [SiteController::class, 'slots'])->name('site.slots');
@@ -33,6 +33,7 @@ Route::get('/sport/live/data', [SportController::class, 'liveData'])->name('site
 Route::get('/sport/results', [SportController::class, 'results'])->name('site.sport.results');
 Route::get('/sport/fixtures/{fixture}', [SportController::class, 'show'])->name('site.sport.show');
 Route::post('/sport/odds/{odd}', [SportController::class, 'add'])->name('site.sport.add');
+Route::post('/sport/combo', [SportController::class, 'combo'])->name('site.sport.combo');
 Route::post('/sport/coupon', [SportController::class, 'update'])->name('site.sport.coupon');
 Route::post('/sport/coupon/{odd}/remove', [SportController::class, 'remove'])->name('site.sport.coupon.remove');
 Route::post('/sport/coupon/clear', [SportController::class, 'clear'])->name('site.sport.coupon.clear');
