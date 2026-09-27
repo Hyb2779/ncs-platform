@@ -15,6 +15,8 @@ return [
     'current_balance' => 'Aktuelles Guthaben',
     'after_balance' => 'Guthaben danach',
     'exceeds_balance' => 'Betrag übersteigt das Guthaben des Mitglieds.',
+    'your_balance' => 'Ihr Guthaben',
+    'exceeds_own_balance' => 'Betrag übersteigt Ihr eigenes Guthaben.',
     'note' => 'Beschreibung',
     'submit' => 'Anwenden',
     'cancel' => 'Abbrechen',

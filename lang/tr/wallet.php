@@ -15,6 +15,8 @@ return [
     'current_balance' => 'Mevcut bakiye',
     'after_balance' => 'İşlem sonrası',
     'exceeds_balance' => 'Tutar üyenin bakiyesini aşıyor.',
+    'your_balance' => 'Sizin bakiyeniz',
+    'exceeds_own_balance' => 'Tutar kendi bakiyenizi aşıyor.',
     'note' => 'Açıklama',
     'submit' => 'Uygula',
     'cancel' => 'Vazgeç',

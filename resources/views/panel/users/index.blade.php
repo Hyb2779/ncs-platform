@@ -41,7 +41,7 @@
         ];
     }
 @endphp
-<div x-data="balanceSheet()">
+<div x-data="balanceSheet(@js(['own' => (string) (auth()->user()->wallets()->where('currency', auth()->user()->currency)->value('balance') ?? '0'), 'unlimited' => auth()->user()->role === \App\Enums\UserRole::Owner]))">
     @if (count($breadcrumb) > 1)
         <nav class="mb-4 flex flex-wrap gap-2 text-sm text-start">
             @foreach ($breadcrumb as $crumb)
@@ -94,7 +94,7 @@
     />
     <div class="fixed inset-0 z-40 flex items-end md:items-center md:justify-center md:p-4" x-show="open" x-cloak @keydown.escape.window="open = false">
         <div class="absolute inset-0 bg-slate-900/40" @click="open = false"></div>
-        <form class="relative grid w-full gap-3 rounded-t-xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-start md:max-w-md md:rounded-lg md:pb-4" method="POST" :action="'{{ url('/panel/users') }}/' + target + '/balance'" @submit="if (! amount() || tooMuch()) $event.preventDefault()">
+        <form class="relative grid w-full gap-3 rounded-t-xl bg-white p-4 pb-[max(1rem,env(safe-area-inset-bottom))] text-start md:max-w-md md:rounded-lg md:pb-4" method="POST" :action="'{{ url('/panel/users') }}/' + target + '/balance'" @submit="if (blocked()) $event.preventDefault()">
             @csrf
             <input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}" :value="key">
             <input type="hidden" name="direction" :value="direction">
@@ -114,6 +114,10 @@
                 <span class="text-slate-500">{{ __('wallet.current_balance') }}</span>
                 <span class="font-numeric font-semibold" x-text="fmt(balance)"></span>
             </div>
+            <div class="flex items-center justify-between text-sm" x-show="direction === 'add' && ! unlimited">
+                <span class="text-slate-500">{{ __('wallet.your_balance') }}</span>
+                <span class="font-numeric font-semibold" :class="ownTooMuch() ? 'text-rose-600' : ''" x-text="fmt(own)"></span>
+            </div>
             <label class="grid gap-1 text-sm">{{ __('wallet.amount') }}
                 <input class="h-12 w-full rounded-md border border-[#E3E6EB] px-3 font-numeric text-lg" x-ref="amount" x-model="raw" inputmode="decimal" autocomplete="off" required>
             </label>
@@ -122,18 +126,20 @@
                 <span class="font-numeric font-semibold" :class="tooMuch() ? 'text-rose-600' : ''" x-text="fmt(after())"></span>
             </div>
             <p class="text-sm text-rose-600" x-show="tooMuch()">{{ __('wallet.exceeds_balance') }}</p>
+            <p class="text-sm text-rose-600" x-show="ownTooMuch()">{{ __('wallet.exceeds_own_balance') }}</p>
             <label class="grid gap-1 text-sm">{{ __('wallet.note') }}
                 <input class="h-11 w-full rounded-md border border-[#E3E6EB] px-3" name="note" maxlength="2000">
             </label>
             <div class="grid grid-cols-2 gap-2 md:flex md:justify-end">
                 <button class="inline-flex h-11 items-center justify-center rounded-lg border border-[#E3E6EB] bg-white px-4 text-sm" type="button" @click="open = false">{{ __('wallet.cancel') }}</button>
-                <button class="inline-flex h-11 items-center justify-center rounded-lg bg-[#161A22] px-4 text-sm text-white disabled:opacity-40" type="submit" :disabled="! amount() || tooMuch()">{{ __('wallet.submit') }}</button>
+                <button class="inline-flex h-11 items-center justify-center rounded-lg bg-[#161A22] px-4 text-sm text-white disabled:opacity-40" type="submit" :disabled="blocked()">{{ __('wallet.submit') }}</button>
             </div>
         </form>
     </div>
 </div>
 <script>
-    window.balanceSheet = () => ({
+    window.balanceSheet = (me = {}) => ({
+        own: Number(me.own ?? 0), unlimited: Boolean(me.unlimited),
         open: false, target: '', name: '', balance: 0, symbol: '', direction: 'add', raw: '', key: makeUuid(),
         openAdjust(user, direction) {
             Object.assign(this, { target: user.id, name: user.name, balance: Number(user.balance), symbol: user.symbol, direction, raw: '', key: makeUuid(), open: true });
@@ -151,6 +157,8 @@
         },
         after() { return this.direction === 'add' ? this.balance + this.amount() : this.balance - this.amount(); },
         tooMuch() { return this.direction === 'remove' && this.amount() > this.balance; },
+        ownTooMuch() { return this.direction === 'add' && ! this.unlimited && this.amount() > this.own; },
+        blocked() { return ! this.amount() || this.tooMuch() || this.ownTooMuch(); },
         fmt(n) {
             const lang = document.documentElement.lang;
             const locale = lang === 'de' ? 'de-DE' : (lang === 'tr' ? 'tr-TR' : 'en-US');

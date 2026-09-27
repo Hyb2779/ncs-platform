@@ -15,6 +15,8 @@ return [
     'current_balance' => 'Current balance',
     'after_balance' => 'Balance after',
     'exceeds_balance' => 'Amount exceeds the member\'s balance.',
+    'your_balance' => 'Your balance',
+    'exceeds_own_balance' => 'Amount exceeds your own balance.',
     'note' => 'Description',
     'submit' => 'Apply',
     'cancel' => 'Cancel',

@@ -15,6 +15,8 @@ return [
     'current_balance' => 'الرصيد الحالي',
     'after_balance' => 'الرصيد بعد العملية',
     'exceeds_balance' => 'المبلغ يتجاوز رصيد العضو.',
+    'your_balance' => 'رصيدك',
+    'exceeds_own_balance' => 'المبلغ يتجاوز رصيدك.',
     'note' => 'الوصف',
     'submit' => 'تطبيق',
     'cancel' => 'إلغاء',
