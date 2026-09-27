@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class SportOdd extends Model
 {
     protected $fillable = [
+        'market_uid',
         'fixture_id', 'market_id', 'outcome', 'raw_odd', 'shown_odd', 'direction', 'suspended', 'quoted_at',
     ];
 

@@ -26,9 +26,7 @@ class DemoReset extends Command
         $this->call('db:seed', ['--class' => DemoSeeder::class, '--force' => true]);
 
         // migrate:fresh wipes provider data too: restore it before the history seeder uses it.
-        $this->call('sport:sync-leagues');
-        $this->call('sport:sync-fixtures');
-        $this->call('sport:sync-odds');
+        $this->call('sport:fenix-prematch');
 
         try {
             $count = $registry->get('goldpalace')?->syncGames() ?? 0;

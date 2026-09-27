@@ -260,4 +260,48 @@ class SportTest extends TestCase
             'bulletin_code' => random_int(1000, 99999),
         ]);
     }
+
+    public function test_fenix_prematch_builds_the_bulletin(): void
+    {
+        $start = now()->addDay()->timestamp;
+        \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response([
+            'success' => true,
+            'types' => [
+                '1' => ['market_name' => 'Maç Sonucu', 'selection_name' => '1', 'handicap' => '0', 'sport_id' => 1],
+                '2' => ['market_name' => 'Maç Sonucu', 'selection_name' => 'X', 'handicap' => '0', 'sport_id' => 1],
+                '3' => ['market_name' => 'Maç Sonucu', 'selection_name' => '2', 'handicap' => '0', 'sport_id' => 1],
+                '9' => ['market_name' => 'Toplam Alt/Üst', 'selection_name' => 'Üst', 'handicap' => '2.5', 'sport_id' => 1],
+                '999' => ['market_name' => 'Kornerler', 'selection_name' => 'Üst', 'handicap' => '9.5', 'sport_id' => 1],
+            ],
+            'events' => [[
+                'eventid' => 777001, 'sport' => 'football', 'live' => false, 'match_time' => $start,
+                'home_id' => 501, 'home_name' => 'Burgos', 'away_id' => 502, 'away_name' => 'Eldense',
+                'competition_id' => 191, 'competition_name' => 'La Liga 2', 'country_name' => 'İspanya', 'mbs' => 2, 'betradar_id' => 123,
+                'odds' => [
+                    '1' => ['odds' => 2.4, 'market_uid' => 'u-1'], '2' => ['odds' => 3.15, 'market_uid' => 'u-2'],
+                    '3' => ['odds' => 3.1, 'market_uid' => 'u-3'], '9' => ['odds' => 1.9, 'market_uid' => 'u-9'],
+                    '999' => ['odds' => 1.8, 'market_uid' => 'u-999'],
+                ],
+            ]],
+        ])]);
+
+        $this->artisan('sport:fenix-prematch')->assertOk();
+
+        $fixture = \App\Models\SportFixture::query()->where('api_id', 777001)->firstOrFail();
+        $this->assertSame(2, (int) $fixture->mbs);
+        $this->assertSame('La Liga 2', $fixture->league->name);
+        $this->assertSame(4, \App\Models\SportOdd::query()->where('fixture_id', $fixture->id)->count());
+        $home = \App\Models\SportOdd::query()->where('fixture_id', $fixture->id)->where('outcome', 'home')->firstOrFail();
+        $this->assertSame('u-1', $home->market_uid);
+        $this->assertSame('2.40', number_format((float) $home->raw_odd, 2, '.', ''));
+
+        \Illuminate\Support\Facades\Http::swap(new \Illuminate\Http\Client\Factory());
+        \Illuminate\Support\Facades\Http::fake(['*' => \Illuminate\Support\Facades\Http::response(['success' => true, 'types' => [], 'events' => [[
+            'eventid' => 777001, 'sport' => 'football', 'live' => false, 'match_time' => $start,
+            'home_id' => 501, 'home_name' => 'Burgos', 'away_id' => 502, 'away_name' => 'Eldense',
+            'competition_id' => 191, 'competition_name' => 'La Liga 2', 'country_name' => 'İspanya', 'odds' => [],
+        ]]])]);
+        $this->artisan('sport:fenix-prematch')->assertOk();
+        $this->assertTrue((bool) $home->fresh()->suspended);
+    }
 }

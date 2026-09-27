@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 class CasinoGame extends Model
 {
     protected $fillable = [
+        'vendor',
         'provider_id', 'external_id', 'name', 'category', 'image_url',
         'is_live', 'is_active', 'sort_order', 'is_popular',
     ];

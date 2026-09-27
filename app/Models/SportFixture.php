@@ -10,6 +10,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class SportFixture extends Model
 {
     protected $fillable = [
+        'mbs',
+        'betradar_id',
         'api_id', 'league_id', 'home_team_id', 'away_team_id', 'starts_at', 'status', 'elapsed',
         'score_home', 'score_away', 'ht_home', 'ht_away', 'ft_home', 'ft_away',
         'settled_at', 'score_source', 'bulletin_code', 'played_at',
