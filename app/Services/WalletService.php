@@ -201,13 +201,16 @@ class WalletService
         for ($attempt = 0; $attempt < 8; $attempt++) {
             try {
                 return $this->within(function () use ($wallet, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $occurredAt) {
-                    $again = WalletTransaction::query()->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
+                    // Lock the wallet first: every write for this key targets this wallet, so the row lock
+                    // serialises them. A FOR UPDATE on a missing idempotency key takes a gap lock that
+                    // parallel inserts deadlock on (1213); the UNIQUE index stays as the last guard.
+                    $locked = Wallet::query()->whereKey($wallet->id)->lockForUpdate()->firstOrFail();
+
+                    $again = WalletTransaction::query()->where('idempotency_key', $idempotencyKey)->first();
 
                     if ($again !== null) {
                         return $again;
                     }
-
-                    $locked = Wallet::query()->whereKey($wallet->id)->lockForUpdate()->firstOrFail();
 
                     return $this->write($locked, $signedAmount, $type, $product, $idempotencyKey, $reference, $counterpartyUserId, $note, $actor, $ip, $id, $occurredAt);
                 });
