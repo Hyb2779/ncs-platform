@@ -10,4 +10,9 @@ return [
     'throttle' => 'Çok fazla hatalı deneme. Bir dakika sonra tekrar deneyin.',
     'username_required' => 'Kullanıcı adı gerekli.',
     'password_required' => 'Şifre gerekli.',
+    'password_hint' => 'Şifrenizi bayinizden isteyebilirsiniz.',
+    'show_password' => 'Göster',
+    'hide_password' => 'Gizle',
+    'brand_tagline' => 'Spor, slot ve canlı casino tek hesapta.',
+    'close' => 'Kapat',
 ];

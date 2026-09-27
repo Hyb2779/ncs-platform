@@ -57,7 +57,7 @@
                     </div>
                     <a class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[var(--accent)] text-[15px] font-extrabold text-[var(--site-on-accent)]" href="{{ route('site.account') }}" aria-label="{{ __('site.account') }}">{{ mb_strtoupper(mb_substr(auth()->user()->username, 0, 1)) }}</a>
                 @else
-                    <a class="inline-flex h-11 items-center rounded-lg bg-[var(--accent)] px-3 font-semibold text-[var(--site-on-accent)]" href="{{ route('login') }}">{{ __('site.login') }}</a>
+                    <a class="inline-flex h-11 items-center rounded-lg bg-[var(--accent)] px-3 font-semibold text-[var(--site-on-accent)]" href="{{ route('login') }}" onclick="const d = document.getElementById('login-dialog'); if (d) { event.preventDefault(); d.showModal(); }">{{ __('site.login') }}</a>
                 @endauth
             </div>
         </div>
@@ -101,5 +101,19 @@
             @endif
         @endforeach
     </nav>
+@guest
+    @unless (request()->routeIs('login'))
+        <dialog id="login-dialog" class="m-0 mt-auto w-full max-w-none rounded-t-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-start text-[var(--site-text)] backdrop:bg-black/70 md:m-auto md:max-w-md md:rounded-2xl md:p-7">
+            <div class="mb-5 flex items-center justify-between">
+                <h2 class="text-2xl font-extrabold">{{ __('auth.login_title') }}</h2>
+                <form method="dialog"><button class="inline-flex h-11 w-11 items-center justify-center rounded-xl text-2xl text-[var(--site-muted)]" type="submit" aria-label="{{ __('auth.close') }}">&times;</button></form>
+            </div>
+            @include('auth._form', ['prefix' => 'modal'])
+        </dialog>
+        @if ($errors->has('username'))
+            <script>document.getElementById('login-dialog').showModal();</script>
+        @endif
+    @endunless
+@endguest
 </body>
 </html>

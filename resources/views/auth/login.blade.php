@@ -2,30 +2,24 @@
 
 @section('heading', __('auth.login_title'))
 
-@section('mainClass', 'flex min-h-[calc(100dvh-7.5rem)] w-full items-center justify-center px-0 py-6 md:min-h-[calc(100dvh-4rem)] md:px-4')
+@section('mainClass', 'flex min-h-[calc(100dvh-7.5rem)] w-full items-center justify-center px-4 py-6 md:min-h-[calc(100dvh-4rem)]')
 
 @section('content')
-    <div class="w-full md:max-w-sm">
-        <div class="mb-4 flex justify-center gap-2 text-sm">
-            @foreach (['tr', 'en', 'de', 'ar'] as $locale)
-                <a class="inline-flex h-11 items-center rounded-lg border border-[var(--site-line)] px-3" href="{{ route('login', ['lang' => $locale]) }}">{{ $locale }}</a>
-            @endforeach
+    <div class="grid w-full max-w-4xl overflow-hidden rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] md:grid-cols-2">
+        <div class="hidden flex-col justify-between gap-10 bg-[var(--site-panel-2)] p-10 md:flex">
+            <span class="font-numeric text-5xl font-bold text-[var(--site-text)]">{{ brand()->name() }}<span class="text-[var(--accent)]">.</span></span>
+            <p class="font-numeric text-4xl font-bold leading-tight text-[var(--site-text)]">{{ __('auth.brand_tagline') }}</p>
+            <span class="h-1 w-16 rounded-full bg-[var(--accent)]"></span>
         </div>
-        <form class="grid w-full gap-4 rounded-xl bg-[var(--site-panel)] p-6" method="POST" action="{{ route('login.store') }}">
-            @csrf
-            <h1 class="text-center text-2xl font-semibold">{{ __('auth.login_title') }}</h1>
-            <label class="grid gap-1 text-sm">
-                <span>{{ __('auth.username') }}</span>
-                <input class="h-11 rounded-md border border-[var(--site-line)] bg-[var(--site-bg)] px-3" name="username" value="{{ old('username') }}" autocomplete="username">
-            </label>
-            <label class="grid gap-1 text-sm">
-                <span>{{ __('auth.password') }}</span>
-                <input class="h-11 rounded-md border border-[var(--site-line)] bg-[var(--site-bg)] px-3" type="password" name="password" autocomplete="current-password">
-            </label>
-            @error('username')
-                <p class="text-sm text-red-400">{{ $message }}</p>
-            @enderror
-            <button class="inline-flex h-11 items-center justify-center rounded-lg bg-[var(--accent)] font-semibold text-[var(--site-on-accent)]" type="submit">{{ __('auth.submit') }}</button>
-        </form>
+        <div class="flex flex-col gap-6 p-6 md:p-10">
+            <nav class="flex self-end rounded-xl border border-[var(--site-line)] p-1" aria-label="Language">
+                @foreach (['tr', 'en', 'de', 'ar'] as $locale)
+                    <a class="inline-flex h-9 items-center rounded-lg px-3 text-sm font-bold {{ app()->getLocale() === $locale ? 'bg-[var(--accent)] text-[var(--site-on-accent)]' : 'text-[var(--site-muted)]' }}" href="{{ route('login', ['lang' => $locale]) }}" lang="{{ $locale }}">{{ strtoupper($locale) }}</a>
+                @endforeach
+            </nav>
+            <span class="font-numeric text-4xl font-bold text-[var(--site-text)] md:hidden">{{ brand()->name() }}<span class="text-[var(--accent)]">.</span></span>
+            <h1 class="text-3xl font-extrabold text-[var(--site-text)]">{{ __('auth.login_title') }}</h1>
+            @include('auth._form', ['prefix' => 'page'])
+        </div>
     </div>
 @endsection
