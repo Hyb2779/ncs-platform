@@ -17,6 +17,7 @@ class WalletTransaction extends Model
     public const UPDATED_AT = null;
 
     protected $fillable = [
+        'sequence',
         'id',
         'wallet_id',
         'user_id',

@@ -287,6 +287,7 @@ class WalletService
         ?Carbon $occurredAt = null,
     ): WalletTransaction {
         $before = $this->normalize((string) $wallet->balance);
+        $sequence = (int) $wallet->last_sequence + 1;
         $amount = $this->normalize($signedAmount);
         $after = bcadd($before, $amount, 2);
         $overdraft = $this->normalize((string) ($wallet->settlement_overdraft_amount ?? '0'));
@@ -305,6 +306,7 @@ class WalletService
         $cleared = bccomp($after, '0', 2) >= 0 && bccomp($overdraft, '0', 2) === 1;
         $payload = [
             'balance' => $after,
+            'last_sequence' => $sequence,
             'updated_at' => now(),
         ];
         if ($cleared) {
@@ -321,6 +323,7 @@ class WalletService
         }
 
         $wallet->balance = $after;
+        $wallet->last_sequence = $sequence;
         if ($cleared) {
             $wallet->settlement_overdraft_amount = '0.00';
             SportWarning::query()
@@ -337,6 +340,7 @@ class WalletService
             'type' => $type,
             'product' => $product,
             'amount' => $amount,
+            'sequence' => $sequence,
             'balance_before' => $before,
             'balance_after' => $after,
             'idempotency_key' => $idempotencyKey,

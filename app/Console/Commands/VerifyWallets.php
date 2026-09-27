@@ -19,8 +19,14 @@ class VerifyWallets extends Command
         Wallet::query()->orderBy('id')->each(function (Wallet $wallet) use (&$problems): void {
             $expected = '0.00';
             $sum = '0.00';
+            $position = 0;
 
-            foreach ($wallet->transactions()->orderBy('created_at')->orderBy('id')->cursor() as $transaction) {
+            foreach ($wallet->transactions()->orderBy('sequence')->cursor() as $transaction) {
+                $position++;
+                if ((int) $transaction->sequence !== $position) {
+                    $problems[] = "wallet {$wallet->id} transaction {$transaction->id}: sequence ".var_export($transaction->sequence, true)." != {$position}";
+                }
+
                 $before = bcadd((string) $transaction->balance_before, '0', 2);
                 $amount = bcadd((string) $transaction->amount, '0', 2);
                 $after = bcadd((string) $transaction->balance_after, '0', 2);
