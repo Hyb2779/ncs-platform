@@ -17,6 +17,7 @@
             <nav class="hidden flex-1 items-center gap-1 text-sm md:flex" aria-label="{{ __('site.sport') }}">
                 @foreach ([
                     ['route' => 'site.sport', 'match' => ['site.sport', 'site.sport.show'], 'label' => __('site.sport')],
+                    ...(wegas_sport_available(auth()->user()) ? [['route' => 'site.wegas_sport', 'match' => 'site.wegas_sport', 'label' => brand()->name().' '.__('site.sport')]] : []),
                     ['route' => 'site.sport.live', 'match' => 'site.sport.live', 'label' => __('site.live'), 'badge' => 'live'],
                     ['route' => 'site.slots', 'match' => 'site.slots', 'label' => __('site.slots')],
                     ['route' => 'site.live_casino', 'match' => 'site.live_casino', 'label' => __('site.live_casino')],

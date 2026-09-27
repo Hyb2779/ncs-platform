@@ -67,4 +67,6 @@ return [
     ],
     'all_providers' => 'All providers',
     'popular_games' => 'Popular',
+    'wegas_sport_error' => ':brand Sport cannot be opened right now, please try again shortly.',
+    'wegas_sport_sub' => 'Live and pre-match',
 ];

@@ -40,10 +40,11 @@
         </section>
     @endif
 
-    <section class="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-4">
+    <section class="grid grid-cols-2 gap-3 md:grid-cols-3 md:gap-4 xl:grid-cols-5">
         @foreach ([
             ['route' => 'site.sport.live', 'title' => __('home.quick_live'), 'sub' => __('home.quick_live_sub', ['count' => $quick['live']])],
             ['route' => 'site.sport', 'title' => __('home.quick_sport'), 'sub' => __('home.quick_sport_sub', ['count' => $quick['today']])],
+            ...(wegas_sport_available(auth()->user()) ? [['route' => 'site.wegas_sport', 'title' => brand()->name().' '.__('site.sport'), 'sub' => __('site.wegas_sport_sub')]] : []),
             ['route' => 'site.slots', 'title' => __('home.quick_slot'), 'sub' => __('home.quick_slot_sub', ['count' => number_format($quick['slots'], 0, ',', '.')])],
             ['route' => 'site.live_casino', 'title' => __('home.quick_casino'), 'sub' => $quick['casino'] > 0 ? __('home.quick_slot_sub', ['count' => $quick['casino']]) : __('home.soon')],
         ] as $tile)

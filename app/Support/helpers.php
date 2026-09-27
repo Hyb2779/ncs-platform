@@ -158,3 +158,17 @@ function site_theme(): string
 
     return in_array($default, \App\Enums\Theme::values(), true) ? $default : \App\Enums\Theme::Classic->value;
 }
+
+function wegas_sport_available(?\App\Models\User $user): bool
+{
+    if ((string) config('services.ncs_bridge.secret') === '') {
+        return false;
+    }
+    if ($user === null) {
+        return app()->getLocale() !== 'ar';
+    }
+
+    return $user->role === \App\Enums\UserRole::Uye
+        && $user->currency->value === 'TRY'
+        && $user->language->value !== 'ar';
+}

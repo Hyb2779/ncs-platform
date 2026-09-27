@@ -67,4 +67,6 @@ return [
     ],
     'all_providers' => 'Tüm sağlayıcılar',
     'popular_games' => 'Popüler',
+    'wegas_sport_error' => ':brand Spor şu an açılamıyor, lütfen biraz sonra tekrar deneyin.',
+    'wegas_sport_sub' => 'Canlı ve maç önü',
 ];

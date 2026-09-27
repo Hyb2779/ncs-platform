@@ -67,4 +67,6 @@ return [
     ],
     'all_providers' => 'جميع المزودين',
     'popular_games' => 'الشائعة',
+    'wegas_sport_error' => 'لا يمكن فتح :brand Sport الآن، يرجى المحاولة بعد قليل.',
+    'wegas_sport_sub' => 'مباشر وقبل المباراة',
 ];

@@ -54,6 +54,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/sport/coupon/place', [SportController::class, 'place'])->name('site.sport.coupon.place');
     Route::post('/account/password', [SiteController::class, 'password'])->name('site.password');
     Route::post('/account/theme', [SiteController::class, 'theme'])->name('site.theme');
+    Route::get('/wegas-spor', [\App\Http\Controllers\Site\WegasSportController::class, 'show'])->name('site.wegas_sport');
     Route::get('/account/balance', [SiteController::class, 'balance'])->name('site.balance');
     Route::get('/play/{game}', [SiteController::class, 'launch'])->name('site.launch');
     Route::post('/play/{game}/favorite', [SiteController::class, 'favorite'])->name('site.favorite');

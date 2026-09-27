@@ -301,6 +301,22 @@ class CouponPlaceTest extends TestCase
         $this->artisan('wallet:verify')->assertOk();
     }
 
+    public function test_wegas_sport_page_opens_the_bridge_iframe(): void
+    {
+        [$member] = $this->player('10.00');
+        config(['services.ncs_bridge.secret' => 'test-secret', 'services.ncs_bridge.url' => 'https://ncs.test']);
+        \Illuminate\Support\Facades\Http::fake(['https://ncs.test/callback/wegas-session' => \Illuminate\Support\Facades\Http::response(['success' => true, 'url' => 'https://sports.test/play?t=1'])]);
+
+        $this->actingAs($member)->get('/wegas-spor')->assertOk()->assertSee('https://sports.test/play?t=1', false);
+        \Illuminate\Support\Facades\Http::assertSent(fn ($request) => $request->url() === 'https://ncs.test/callback/wegas-session'
+            && $request->hasHeader('X-Bridge-Signature')
+            && json_decode($request->body(), true)['user_id'] === $member->id);
+        $this->actingAs($member)->get('/sport')->assertSee(route('site.wegas_sport'), false);
+
+        $member->forceFill(['language' => 'ar'])->save();
+        $this->actingAs($member->fresh())->get('/wegas-spor')->assertNotFound();
+    }
+
     public function test_started_match_is_rejected(): void
     {
         [$user] = $this->player('40.00');
