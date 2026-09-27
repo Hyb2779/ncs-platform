@@ -192,6 +192,34 @@ class CouponPlaceTest extends TestCase
         $this->artisan('wallet:verify')->assertOk();
     }
 
+    public function test_superadmin_adjusts_members_in_its_tree_from_its_own_wallet(): void
+    {
+        [$member, $bayi] = $this->player('40.00');
+        [$other] = $this->player('40.00');
+        $superadmin = $bayi->parent;
+        $balance = fn (User $user) => number_format((float) \DB::table('wallets')->where('user_id', $user->id)->where('currency', 'TRY')->value('balance'), 2, '.', '');
+        $send = fn (User $actor, string $direction, string $amount) => $this->actingAs($actor)->post('/panel/users/'.$member->id.'/balance', [
+            'direction' => $direction, 'amount' => $amount, 'note' => 'test', 'idempotency_key' => (string) Str::uuid(),
+        ]);
+        $owner = User::query()->where('role', 'owner')->firstOrFail();
+        app(WalletService::class)->transfer($owner, $superadmin, '100.00', (string) Str::uuid(), $owner);
+        $bayiBefore = $balance($bayi);
+        $superBefore = $balance($superadmin);
+
+        $send($superadmin, 'add', '25.00')->assertSessionHasNoErrors();
+        $this->assertSame('65.00', $balance($member));
+        $this->assertSame($bayiBefore, $balance($bayi));
+        $this->assertSame(number_format((float) $superBefore - 25, 2, '.', ''), $balance($superadmin));
+
+        $send($superadmin, 'remove', '100.00')->assertSessionHasErrors();
+        $this->assertSame('65.00', $balance($member));
+
+        $send($other->parent->parent, 'add', '5.00')->assertNotFound();
+        $send(User::query()->where('role', 'owner')->firstOrFail(), 'add', '5.00')->assertNotFound();
+        $this->actingAs($superadmin)->get('/panel/users?parent='.$bayi->id)->assertOk()->assertSee('openAdjust', false);
+        $this->artisan('wallet:verify')->assertOk();
+    }
+
     public function test_started_match_is_rejected(): void
     {
         [$user] = $this->player('40.00');

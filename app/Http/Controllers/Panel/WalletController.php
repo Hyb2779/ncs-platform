@@ -22,7 +22,11 @@ class WalletController extends Controller
     public function adjust(AdjustBalanceRequest $request, User $user, WalletService $wallets): RedirectResponse
     {
         $actor = $request->user();
-        abort_unless($user->parent_id === $actor->id, 404);
+        abort_unless(
+            $user->parent_id === $actor->id
+                || ($actor->role === \App\Enums\UserRole::Superadmin && $user->role === \App\Enums\UserRole::Uye && $user->isInSubtreeOf($actor)),
+            404,
+        );
 
         $amount = $request->string('amount')->toString();
 
