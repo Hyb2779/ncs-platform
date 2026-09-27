@@ -278,7 +278,7 @@ class SportLimits
 
     private function guardActor(User $actor, Currency $currency): void
     {
-        if (! in_array($actor->role, [UserRole::Owner, UserRole::Superadmin, UserRole::Bayi], true)) {
+        if (! in_array($actor->role, [UserRole::Owner, UserRole::Superadmin], true)) {
             abort(404);
         }
         if ($actor->role !== UserRole::Owner && $actor->currency !== $currency) {

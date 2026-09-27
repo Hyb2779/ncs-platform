@@ -138,7 +138,7 @@ class CouponSettleTest extends TestCase
             ['outcome' => 'home', 'odd' => '2.00', 'ft' => [2, 0]],
             ['outcome' => 'home', 'odd' => '1.50', 'ft' => [1, 0]],
         ]);
-        app(CouponCanceller::class)->cancel($bayi, $coupon, 'panel', '127.0.0.1');
+        app(CouponCanceller::class)->cancel($bayi->parent, $coupon, 'panel', '127.0.0.1');
 
         $this->travelAndSettle();
         $coupon->refresh();
@@ -157,7 +157,7 @@ class CouponSettleTest extends TestCase
                 $this->pricedOdd('1.50', now()->addMinutes(5)),
             ]);
             if ($status === 'cancelled') {
-                app(CouponCanceller::class)->cancel($bayi, $coupon, 'panel', '127.0.0.1');
+                app(CouponCanceller::class)->cancel($bayi->parent, $coupon, 'panel', '127.0.0.1');
             } else {
                 $coupon->status = $status;
                 $coupon->save();
@@ -202,7 +202,7 @@ class CouponSettleTest extends TestCase
             $this->pricedOdd('2.00', now()->addMinutes(30)),
             $this->pricedOdd('1.50', now()->addMinutes(30)),
         ]);
-        app(CouponCanceller::class)->cancel($bayi, $coupon, 'panel', '127.0.0.1');
+        app(CouponCanceller::class)->cancel($bayi->parent, $coupon, 'panel', '127.0.0.1');
         $coupon->refresh();
 
         $this->assertSame('pending', $coupon->selections()->first()->status);
@@ -219,13 +219,14 @@ class CouponSettleTest extends TestCase
             ->assertSee(__('wallet.upper_account'), false)
             ->assertSee(__('sport.coupon.cancelled_by'), false)
             ->assertSee(__('sport.coupon.cancelled_at'), false)
-            ->assertDontSee($bayi->username, false);
+            ->assertDontSee($bayi->parent->username, false);
 
         $this->actingAs($bayi)->get(route('panel.coupons.show', $coupon))
             ->assertOk()
             ->assertSee(__('sport.selection.cancelled'), false)
             ->assertDontSee(__('sport.selection.pending'), false)
-            ->assertSee($bayi->username, false)
+            ->assertSee(__('wallet.upper_account'), false)
+            ->assertDontSee($bayi->parent->username, false)
             ->assertSee(__('sport.coupon.refund_amount'), false);
     }
 
@@ -595,8 +596,9 @@ class CouponSettleTest extends TestCase
         $this->assertSame('-40.00', $member->wallet()->first()->fresh()->balance);
 
         $this->actingAs($owner)->get(route('panel.sport.overdrafts'))->assertOk()->assertSee(__('sport.panel.overdraft'), false)->assertSee($member->username, false);
-        $this->actingAs($bayi)->get(route('panel.sport.overdrafts'))->assertOk()->assertSee($member->username, false);
-        $outsider = $this->otherBayi($owner);
+        $this->actingAs($bayi->parent)->get(route('panel.sport.overdrafts'))->assertOk()->assertSee($member->username, false);
+        $this->actingAs($bayi)->get(route('panel.sport.overdrafts'))->assertNotFound();
+        $outsider = $this->otherBayi($owner)->parent;
         $this->actingAs($outsider)->get(route('panel.sport.overdrafts'))->assertOk()->assertDontSee($member->username, false);
 
         Carbon::setTestNow(now()->addSeconds(5));

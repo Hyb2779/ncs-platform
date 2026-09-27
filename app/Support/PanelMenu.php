@@ -21,12 +21,12 @@ class PanelMenu
             self::item(__('site.panel_sessions'), 'panel.casino.sessions', ['panel.casino.sessions']),
             self::item(__('sport.panel.coupons'), 'panel.coupons.index', ['panel.coupons.index', 'panel.coupons.show']),
             self::item(__('sport.panel.lookup'), 'panel.coupons.lookup', ['panel.coupons.lookup']),
-            self::item(__('sport.panel.overdraft'), 'panel.sport.overdrafts', ['panel.sport.overdrafts']),
-            self::item(__('sport.panel.risky'), 'panel.coupons.risky', ['panel.coupons.risky']),
         ];
 
-        if (in_array($user->role, [UserRole::Owner, UserRole::Superadmin, UserRole::Bayi], true)) {
+        if (in_array($user->role, [UserRole::Owner, UserRole::Superadmin], true)) {
             $network[] = self::item(__('sport.panel.limits'), 'panel.sport.limits', ['panel.sport.limits']);
+            $network[] = self::item(__('sport.panel.overdraft'), 'panel.sport.overdrafts', ['panel.sport.overdrafts']);
+            $network[] = self::item(__('sport.panel.risky'), 'panel.coupons.risky', ['panel.coupons.risky']);
         }
 
         if ($user->role === UserRole::Owner) {

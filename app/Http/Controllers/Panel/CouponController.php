@@ -28,6 +28,8 @@ class CouponController extends Controller
 
     public function risky(Request $request): View
     {
+        abort_unless(in_array($request->user()->role, [\App\Enums\UserRole::Owner, \App\Enums\UserRole::Superadmin], true), 404);
+
         return view('panel.coupons.risky', [
             'coupons' => $this->visible($request)->with('user')->withCount('selections')->where('status', 'pending')->orderByDesc('potential_win')->limit(200)->get(),
         ]);

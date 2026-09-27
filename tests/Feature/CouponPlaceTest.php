@@ -176,13 +176,16 @@ class CouponPlaceTest extends TestCase
 
         SportLimit::query()->whereNull('user_id')->where('currency', 'TRY')->update(['cancel_minutes' => 10]);
         $this->actingAs($right->parent)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'other branch'])->assertNotFound();
+        $this->actingAs($right->parent->parent)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'other branch'])->assertNotFound();
+        $this->actingAs($bayiLeft)->get('/panel/coupons/'.$coupon->id)->assertOk()->assertDontSee('coupon-cancel', false);
+        $this->actingAs($bayiLeft)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'bayi cannot'])->assertForbidden();
         $this->assertSame('pending', $coupon->fresh()->status);
 
-        $this->actingAs($bayiLeft)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'customer request'])->assertRedirect();
+        $this->actingAs($bayiLeft->parent)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'customer request'])->assertRedirect();
         $this->assertSame('cancelled', $coupon->fresh()->status);
         $this->assertSame('10.00', WalletTransaction::query()->where('type', 'refund')->first()->amount);
 
-        $this->actingAs($bayiLeft)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'again']);
+        $this->actingAs($bayiLeft->parent)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'again']);
         $this->assertSame(1, WalletTransaction::query()->where('type', 'refund')->count());
         $this->assertSame('40.00', number_format((float) \DB::table('wallets')->where('user_id', $left->id)->where('currency', 'TRY')->value('balance'), 2, '.', ''));
         $this->assertTrue(ActivityLog::query()->where('action', 'coupon.cancelled')->exists());
@@ -308,7 +311,15 @@ class CouponPlaceTest extends TestCase
     public function test_a_lower_level_cannot_exceed_the_parent_and_the_tightest_value_applies(): void
     {
         [$member, $bayi] = $this->player('100.00');
-        $this->actingAs($bayi)->get('/panel/sport/limits')
+        $this->actingAs($bayi)->get('/panel/sport/limits')->assertNotFound();
+        $this->actingAs($bayi)->put('/panel/sport/limits', ['currency' => 'TRY'])->assertNotFound();
+        $this->actingAs($bayi)->post('/panel/sport/limits/restore', ['currency' => 'TRY'])->assertNotFound();
+        $this->actingAs($bayi)->get('/panel/coupons/risky')->assertNotFound();
+        $this->actingAs($bayi)->get('/panel/sport/overdrafts')->assertNotFound();
+        $this->actingAs($bayi)->get('/panel/coupons')->assertOk()->assertDontSee(route('panel.sport.limits'), false);
+
+        $superadmin = $bayi->parent;
+        $this->actingAs($superadmin)->get('/panel/sport/limits')
             ->assertOk()
             ->assertSee('Bahis Limitleri', false)
             ->assertSee('Üst sınır: 10.000 ₺', false)
@@ -317,12 +328,12 @@ class CouponPlaceTest extends TestCase
         $payload['currency'] = 'TRY';
         $payload['max_stake_general'] = '50000';
         $payload['unlimited'] = ['max_coupon_odds' => '1'];
-        $this->actingAs($bayi)->from('/panel/sport/limits')->put('/panel/sport/limits', $payload)
+        $this->actingAs($superadmin)->from('/panel/sport/limits')->put('/panel/sport/limits', $payload)
             ->assertSessionHasErrors(['max_stake_general', 'max_coupon_odds']);
 
         unset($payload['unlimited']);
         $payload['max_stake_general'] = '40.00';
-        $this->actingAs($bayi)->put('/panel/sport/limits', $payload)->assertRedirect();
+        $this->actingAs($superadmin)->put('/panel/sport/limits', $payload)->assertRedirect();
         $this->assertTrue(ActivityLog::query()->where('action', 'sport.limits.updated')->exists());
 
         $this->actingAs($member)->post('/sport/odds/'.$this->odd('1.50')->id);

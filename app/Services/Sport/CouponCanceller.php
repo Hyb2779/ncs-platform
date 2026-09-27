@@ -100,7 +100,7 @@ class CouponCanceller
             return;
         }
 
-        if ($actor->role === UserRole::Uye || ! $coupon->user->isInSubtreeOf($actor) || $actor->id === $coupon->user_id) {
+        if (in_array($actor->role, [UserRole::Uye, UserRole::Bayi], true) || ! $coupon->user->isInSubtreeOf($actor) || $actor->id === $coupon->user_id) {
             throw new CouponException('sport.errors.cancel_forbidden');
         }
     }

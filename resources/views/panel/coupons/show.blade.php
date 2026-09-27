@@ -27,7 +27,7 @@
         ]"
         :rows="$rows"
     />
-    @if ($coupon->status === 'pending')
+    @if ($coupon->status === 'pending' && auth()->user()->role !== \App\Enums\UserRole::Bayi)
         <form id="coupon-cancel" class="mt-4 grid max-w-md gap-2 pb-24" method="POST" action="{{ route('panel.coupons.cancel', $coupon) }}">
             @csrf
             <input class="h-11 rounded-md border px-3" name="reason" placeholder="{{ __('sport.coupon.cancel_reason') }}" required>

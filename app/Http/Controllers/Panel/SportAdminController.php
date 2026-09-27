@@ -67,6 +67,8 @@ class SportAdminController extends Controller
 
     public function overdrafts(Request $request): View
     {
+        abort_unless(in_array($request->user()->role, [\App\Enums\UserRole::Owner, \App\Enums\UserRole::Superadmin], true), 404);
+
         return view('panel.sport.overdrafts', [
             'overdrafts' => SportWarning::query()
                 ->open()
@@ -258,7 +260,7 @@ class SportAdminController extends Controller
     public function limits(Request $request, SportLimits $limits): View
     {
         $user = $request->user();
-        abort_unless(in_array($user->role, [UserRole::Owner, UserRole::Superadmin, UserRole::Bayi], true), 404);
+        $this->authorizeLimitEditor($request);
         $currency = $this->limitCurrency($request);
         $row = $user->role === UserRole::Owner
             ? $limits->owner($currency)
@@ -274,6 +276,7 @@ class SportAdminController extends Controller
 
     public function updateLimits(Request $request, SportLimits $limits): RedirectResponse
     {
+        $this->authorizeLimitEditor($request);
         $currency = $this->limitCurrency($request);
         $limits->save($request->user(), $currency, $request->all());
 
@@ -282,9 +285,15 @@ class SportAdminController extends Controller
 
     public function restoreLimits(Request $request, SportLimits $limits): RedirectResponse
     {
+        $this->authorizeLimitEditor($request);
         $limits->restore($request->user(), $this->limitCurrency($request));
 
         return back()->with('status', __('sport.panel.saved'));
+    }
+
+    private function authorizeLimitEditor(Request $request): void
+    {
+        abort_unless(in_array($request->user()->role, [UserRole::Owner, UserRole::Superadmin], true), 404);
     }
 
     private function limitCurrency(Request $request): Currency
