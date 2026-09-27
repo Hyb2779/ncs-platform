@@ -175,9 +175,16 @@ class CouponPlaceTest extends TestCase
         $this->assertSame('pending', $coupon->fresh()->status);
 
         SportLimit::query()->whereNull('user_id')->where('currency', 'TRY')->update(['cancel_minutes' => 10]);
+        $this->actingAs($right->parent)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'other branch'])->assertNotFound();
+        $this->assertSame('pending', $coupon->fresh()->status);
+
         $this->actingAs($bayiLeft)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'customer request'])->assertRedirect();
         $this->assertSame('cancelled', $coupon->fresh()->status);
         $this->assertSame('10.00', WalletTransaction::query()->where('type', 'refund')->first()->amount);
+
+        $this->actingAs($bayiLeft)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'again']);
+        $this->assertSame(1, WalletTransaction::query()->where('type', 'refund')->count());
+        $this->assertSame('40.00', number_format((float) \DB::table('wallets')->where('user_id', $left->id)->where('currency', 'TRY')->value('balance'), 2, '.', ''));
         $this->assertTrue(ActivityLog::query()->where('action', 'coupon.cancelled')->exists());
         $this->artisan('wallet:verify')->assertOk();
     }
