@@ -88,7 +88,7 @@
                                     $savedOpen = $canOpen && ($limit->exists ? $limit->{$field} === null : true);
                                     $open = $canOpen && (string) old('unlimited.'.$field, $savedOpen ? '1' : '') === '1';
                                     $raw = $fields::canonical($field, old($field, $savedRaw === '' ? null : $savedRaw));
-                                    $hintValue = $cap === null ? '' : $fields::formatHint($field, $fields::canonical($field, $cap), $decimal, $thousands, $symbol);
+                                    $hintValue = $cap === null ? '' : $fields::display($field, $cap, $currency);
                                     $hint = $cap === null
                                         ? __($floor ? 'sport.panel.floor_unlimited' : 'sport.panel.ceiling_unlimited')
                                         : __($floor ? 'sport.panel.floor' : 'sport.panel.ceiling', ['value' => $hintValue]);

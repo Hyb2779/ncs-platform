@@ -39,7 +39,7 @@ class SportLimits
     {
         $this->guardActor($actor, $currency);
         $ceiling = $this->ceiling($actor);
-        $values = $this->values($input, $ceiling);
+        $values = $this->values($input, $ceiling, $currency);
         $row = $actor->role === UserRole::Owner
             ? $this->owner($currency)
             : SportLimit::query()->firstOrNew(['user_id' => $actor->id]);
@@ -165,7 +165,7 @@ class SportLimits
      * @param  array<string, mixed>  $input
      * @return array<string, mixed>
      */
-    private function values(array $input, EffectiveSportLimit $ceiling): array
+    private function values(array $input, EffectiveSportLimit $ceiling, Currency $currency): array
     {
         $unlimited = (array) ($input['unlimited'] ?? []);
         $errors = [];
@@ -182,7 +182,7 @@ class SportLimits
             $wantsOpen = isset($unlimited[$field]);
             if ($wantsOpen) {
                 if ($cap !== null) {
-                    $errors[$field] = $this->boundMessage($field, $cap);
+                    $errors[$field] = $this->boundMessage($field, $cap, $currency);
                 }
                 $values[$field] = $cap === null ? null : $cap;
 
@@ -192,7 +192,7 @@ class SportLimits
             if ($raw === null || $raw === '') {
                 $errors[$field] = $cap === null
                     ? __('sport.panel.limit_invalid')
-                    : $this->boundMessage($field, $cap);
+                    : $this->boundMessage($field, $cap, $currency);
                 $values[$field] = $cap;
 
                 continue;
@@ -201,12 +201,12 @@ class SportLimits
             if ($value === null) {
                 $errors[$field] = $cap === null
                     ? __('sport.panel.limit_invalid')
-                    : $this->boundMessage($field, $cap);
+                    : $this->boundMessage($field, $cap, $currency);
 
                 continue;
             }
             if ($cap !== null && $this->exceeds($field, $value, $cap, SportLimitFields::isFloor($field))) {
-                $errors[$field] = $this->boundMessage($field, $cap);
+                $errors[$field] = $this->boundMessage($field, $cap, $currency);
             }
             $values[$field] = $value;
         }
@@ -218,11 +218,11 @@ class SportLimits
         return $values;
     }
 
-    private function boundMessage(string $field, mixed $cap): string
+    private function boundMessage(string $field, mixed $cap, Currency $currency): string
     {
         $key = SportLimitFields::isFloor($field) ? 'sport.panel.at_least' : 'sport.panel.at_most';
 
-        return __($key, ['value' => $cap]);
+        return __($key, ['value' => SportLimitFields::display($field, $cap, $currency)]);
     }
 
     private function exceeds(string $field, mixed $value, mixed $cap, bool $isMin): bool
