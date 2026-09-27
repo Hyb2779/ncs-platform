@@ -56,4 +56,13 @@ return [
     'operation' => 'Operation',
     'device' => 'Device',
     'password_wrong' => 'Current password is wrong.',
+    'theme' => 'Theme',
+    'theme_hint' => 'Choose the site color theme.',
+    'theme_default' => 'Default',
+    'theme_saved' => 'Theme saved.',
+    'themes' => [
+        'classic' => 'Classic Casino',
+        'neon' => 'Neon Strip',
+        'desert' => 'Desert Night',
+    ],
 ];

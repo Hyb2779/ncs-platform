@@ -56,4 +56,13 @@ return [
     'operation' => 'Vorgang',
     'device' => 'Gerät',
     'password_wrong' => 'Das aktuelle Passwort ist falsch.',
+    'theme' => 'Design',
+    'theme_hint' => 'Wählen Sie das Farbdesign der Seite.',
+    'theme_default' => 'Standard',
+    'theme_saved' => 'Design gespeichert.',
+    'themes' => [
+        'classic' => 'Classic Casino',
+        'neon' => 'Neon Strip',
+        'desert' => 'Desert Night',
+    ],
 ];

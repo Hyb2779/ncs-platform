@@ -71,3 +71,5 @@ details.limit-group > summary::marker {
     --site-muted: #B79FB0; --accent: #FF7A2F; --site-on-accent: #1E0B02; --site-second: #B45CFF;
     --site-live: #FF7A2F; --site-gold: #FFB547;
 }
+
+html[data-theme] { color-scheme: dark; }

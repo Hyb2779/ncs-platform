@@ -136,4 +136,7 @@ return [
         'timezone_invalid' => 'Zeitzone ist ungültig.',
         'status_required' => 'Status ist erforderlich.',
     ],
+    'theme_title' => 'Seitendesign',
+    'theme_hint' => 'Standarddesign für Spieler in Ihrem Baum. Spieler können es in ihrem Konto ändern.',
+    'theme_save' => 'Speichern',
 ];

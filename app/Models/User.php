@@ -44,6 +44,7 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
+            'theme' => \App\Enums\Theme::class,
             'role' => UserRole::class,
             'status' => UserStatus::class,
             'language' => Language::class,

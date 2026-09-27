@@ -56,4 +56,13 @@ return [
     'operation' => 'العملية',
     'device' => 'الجهاز',
     'password_wrong' => 'كلمة المرور الحالية غير صحيحة.',
+    'theme' => 'السمة',
+    'theme_hint' => 'اختر سمة ألوان الموقع.',
+    'theme_default' => 'الافتراضي',
+    'theme_saved' => 'تم حفظ السمة.',
+    'themes' => [
+        'classic' => 'Classic Casino',
+        'neon' => 'Neon Strip',
+        'desert' => 'Desert Night',
+    ],
 ];

@@ -136,4 +136,7 @@ return [
         'timezone_invalid' => 'Saat dilimi geçersiz.',
         'status_required' => 'Durum gerekli.',
     ],
+    'theme_title' => 'Site teması',
+    'theme_hint' => 'Ağacınızdaki oyuncuların varsayılan teması. Oyuncular kendi hesaplarından değiştirebilir.',
+    'theme_save' => 'Kaydet',
 ];

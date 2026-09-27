@@ -52,6 +52,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/account/coupons/{coupon}/cancel', [CouponController::class, 'cancel'])->name('site.coupons.cancel');
     Route::post('/sport/coupon/place', [SportController::class, 'place'])->name('site.sport.coupon.place');
     Route::post('/account/password', [SiteController::class, 'password'])->name('site.password');
+    Route::post('/account/theme', [SiteController::class, 'theme'])->name('site.theme');
     Route::get('/account/balance', [SiteController::class, 'balance'])->name('site.balance');
     Route::get('/play/{game}', [SiteController::class, 'launch'])->name('site.launch');
     Route::post('/play/{game}/favorite', [SiteController::class, 'favorite'])->name('site.favorite');
@@ -84,6 +85,8 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::get('/coupons/{coupon}', [PanelCouponController::class, 'show'])->name('coupons.show');
     Route::post('/coupons/{coupon}/cancel', [PanelCouponController::class, 'cancel'])->name('coupons.cancel');
     Route::get('/sport/limits', [SportAdminController::class, 'limits'])->name('sport.limits');
+    Route::get('/theme', [\App\Http\Controllers\Panel\ThemeController::class, 'edit'])->name('theme');
+    Route::post('/theme', [\App\Http\Controllers\Panel\ThemeController::class, 'update'])->name('theme.update');
     Route::put('/sport/limits', [SportAdminController::class, 'updateLimits'])->name('sport.limits.update');
     Route::post('/sport/limits/restore', [SportAdminController::class, 'restoreLimits'])->name('sport.limits.restore');
     Route::get('/sport/status', [SportAdminController::class, 'status'])->name('sport.status');

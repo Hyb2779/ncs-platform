@@ -56,4 +56,13 @@ return [
     'operation' => 'İşlem',
     'device' => 'Cihaz',
     'password_wrong' => 'Mevcut şifre hatalı.',
+    'theme' => 'Tema',
+    'theme_hint' => 'Sitenin renk temasını seçin.',
+    'theme_default' => 'Varsayılan',
+    'theme_saved' => 'Tema kaydedildi.',
+    'themes' => [
+        'classic' => 'Classic Casino',
+        'neon' => 'Neon Strip',
+        'desert' => 'Desert Night',
+    ],
 ];

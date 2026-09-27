@@ -248,6 +248,30 @@ class CouponPlaceTest extends TestCase
         $this->assertTrue(ActivityLog::query()->where('action', 'user.password_reset')->exists());
     }
 
+    public function test_theme_follows_player_then_superadmin_then_classic(): void
+    {
+        [$member, $bayi] = $this->player('10.00');
+        [$other] = $this->player('10.00');
+        $superadmin = $bayi->parent;
+
+        $this->get('/sport')->assertOk()->assertSee('data-theme="classic"', false);
+        $this->actingAs($member)->get('/sport')->assertSee('data-theme="classic"', false);
+
+        $this->actingAs($bayi)->get('/panel/theme')->assertNotFound();
+        $this->actingAs($bayi)->post('/panel/theme', ['theme' => 'neon'])->assertNotFound();
+        $this->actingAs($superadmin)->get('/panel/theme')->assertOk();
+        $this->actingAs($superadmin)->post('/panel/theme', ['theme' => 'neon'])->assertSessionHasNoErrors();
+        $this->actingAs($member)->get('/sport')->assertSee('data-theme="neon"', false);
+        $this->actingAs($other)->get('/sport')->assertSee('data-theme="classic"', false);
+
+        $this->actingAs($member)->post('/account/theme', ['theme' => 'desert'])->assertSessionHasNoErrors();
+        $this->actingAs($member)->get('/sport')->assertSee('data-theme="desert"', false);
+        $this->actingAs($member)->post('/account/theme', ['theme' => 'pink'])->assertSessionHasErrors('theme');
+        $this->actingAs($member)->get('/account')->assertOk()->assertSee('Desert Night', false);
+        $this->actingAs($member)->post('/account/theme', ['theme' => ''])->assertSessionHasNoErrors();
+        $this->actingAs($member)->get('/sport')->assertSee('data-theme="neon"', false);
+    }
+
     public function test_started_match_is_rejected(): void
     {
         [$user] = $this->player('40.00');

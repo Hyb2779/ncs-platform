@@ -213,4 +213,12 @@ class SiteController extends Controller
             ->where('is_active', true)
             ->whereHas('provider', fn ($query) => $query->where('status', 'active'));
     }
+
+    public function theme(\Illuminate\Http\Request $request): \Illuminate\Http\RedirectResponse
+    {
+        $data = $request->validate(['theme' => ['nullable', \Illuminate\Validation\Rule::in(\App\Enums\Theme::values())]]);
+        $request->user()->forceFill(['theme' => $data['theme'] ?? null])->save();
+
+        return back()->with('status', __('site.theme_saved'));
+    }
 }

@@ -145,5 +145,16 @@ function sport_date(Carbon $date, string $format): string
 
 function site_theme(): string
 {
-    return 'classic';
+    $user = auth()->user();
+    if ($user === null) {
+        return \App\Enums\Theme::Classic->value;
+    }
+    if ($user->theme !== null) {
+        return $user->theme->value;
+    }
+    $default = $user->superadmin_id
+        ? \App\Models\User::query()->whereKey($user->superadmin_id)->toBase()->value('theme')
+        : null;
+
+    return in_array($default, \App\Enums\Theme::values(), true) ? $default : \App\Enums\Theme::Classic->value;
 }

@@ -27,6 +27,9 @@ class PanelMenu
             $network[] = self::item(__('sport.panel.limits'), 'panel.sport.limits', ['panel.sport.limits']);
             $network[] = self::item(__('sport.panel.overdraft'), 'panel.sport.overdrafts', ['panel.sport.overdrafts']);
             $network[] = self::item(__('sport.panel.risky'), 'panel.coupons.risky', ['panel.coupons.risky']);
+            if ($user->role === UserRole::Superadmin) {
+                $network[] = self::item(__('panel.theme_title'), 'panel.theme', ['panel.theme']);
+            }
         }
 
         if ($user->role === UserRole::Owner) {

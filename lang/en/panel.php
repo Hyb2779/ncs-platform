@@ -136,4 +136,7 @@ return [
         'timezone_invalid' => 'Timezone is invalid.',
         'status_required' => 'Status is required.',
     ],
+    'theme_title' => 'Site theme',
+    'theme_hint' => 'Default theme for players in your tree. Players can change it in their account.',
+    'theme_save' => 'Save',
 ];
