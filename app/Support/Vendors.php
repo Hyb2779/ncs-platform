@@ -10,6 +10,8 @@ class Vendors
         'bng' => 'Booongo', 'hab' => 'Habanero', 'jili' => 'JILI', 'cq9' => 'CQ9', '3oaks' => '3 Oaks',
         'tada' => 'TaDa', 'spribe' => 'Spribe', 'playstar' => 'PlayStar', 'xgaming' => 'XGaming',
         'atlasv' => 'AtlasV', 'solidicon' => 'Solidicon', 'beon' => 'BEON', 'tydo' => 'Tydo',
+        'evolution' => 'Evolution', 'pragmaticplaylive' => 'Pragmatic Play Live', 'vivogaming' => 'Vivo Gaming', 'goldenrace' => 'GoldenRace', 'bgaming' => 'BGaming',
+        'aviator' => 'Aviator', 'jetx' => 'JetX', 'rocketman' => 'Rocketman', 'spaceman' => 'Spaceman',
     ];
 
     public static function fromImage(?string $url): ?string
