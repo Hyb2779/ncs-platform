@@ -10,7 +10,7 @@
 @endphp
 <div class="flex flex-col gap-5 md:gap-7">
 
-    <section class="grid overflow-hidden rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] lg:grid-cols-[minmax(0,1fr)_28rem]">
+    <section class="grid grid-cols-1 overflow-hidden rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] lg:grid-cols-[minmax(0,1fr)_28rem]">
         <div class="flex flex-col justify-center gap-3 p-5 md:gap-4 md:p-12">
             <span class="self-start rounded-lg bg-[var(--site-panel-2)] px-3 py-1.5 text-xs font-extrabold tracking-wider text-[var(--accent)]">{{ __('home.hero_badge') }}</span>
             <h1 class="font-numeric text-3xl font-bold leading-none text-[var(--site-text)] md:text-6xl">{{ __('home.hero_title', ['brand' => brand()->name()]) }}</h1>
@@ -56,7 +56,7 @@
         @endforeach
     </section>
 
-    <section class="grid gap-4 lg:grid-cols-3 lg:gap-5">
+    <section class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
         <div class="order-2 flex flex-col gap-3 rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-4 md:p-5 lg:order-1">
             <div class="flex items-center justify-between"><h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.upcoming') }}</h2><a class="text-[13px] font-bold text-[var(--accent)]" href="{{ route('site.wegas_sport') }}">{{ __('home.all') }}</a></div>
             @forelse ($upcoming as $m)
