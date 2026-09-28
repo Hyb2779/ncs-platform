@@ -10,7 +10,7 @@
     @else
         <div class="mx-auto max-w-lg px-4 py-16 text-center">
             <p class="text-lg font-bold text-[var(--site-text)]">{{ __('site.wegas_sport_error', ['brand' => brand()->name()]) }}</p>
-            <a class="mt-4 inline-flex h-11 items-center rounded-xl bg-[var(--accent)] px-5 font-extrabold text-[var(--site-on-accent)]" href="{{ route('site.sport') }}">{{ __('site.sport') }}</a>
+            <a class="mt-4 inline-flex h-11 items-center rounded-xl bg-[var(--accent)] px-5 font-extrabold text-[var(--site-on-accent)]" href="{{ route('site.virtual') }}">{{ __('site.virtual') }}</a>
         </div>
     @endif
 @endsection

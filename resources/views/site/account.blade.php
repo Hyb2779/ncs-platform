@@ -4,7 +4,6 @@
 
 @section('content')
     <p class="font-numeric text-2xl" data-balance>{{ $headerBalance }}</p>
-    <a class="mt-3 inline-flex h-11 items-center rounded-lg border border-[var(--site-line)] px-3 text-sm font-semibold" href="{{ route('site.coupons') }}">{{ __('sport.my_coupons') }}</a>
     <p class="mt-2 text-sm text-[var(--site-muted)]">{{ __('site.language') }}: {{ auth()->user()->language->value }} · {{ __('site.currency') }}: {{ auth()->user()->currency->value }}</p>
     <form class="mt-4 flex flex-wrap gap-2" method="GET">
         <input class="h-11 rounded-md border border-[var(--site-line)] bg-[var(--site-panel)] px-3" type="date" name="from" value="{{ request('from') }}">
