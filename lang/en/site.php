@@ -5,6 +5,7 @@ return [
     'live' => 'Live Betting',
     'slots' => 'Slots',
     'live_casino' => 'Live Casino',
+    'virtual' => 'Virtual Sports',
     'results' => 'Results',
     'casino' => 'Casino',
     'account' => 'My account',

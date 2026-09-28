@@ -5,6 +5,7 @@ return [
     'live' => 'Live-Wetten',
     'slots' => 'Slots',
     'live_casino' => 'Live-Casino',
+    'virtual' => 'Virtuelle Sportwetten',
     'results' => 'Ergebnisse',
     'casino' => 'Casino',
     'account' => 'Mein Konto',

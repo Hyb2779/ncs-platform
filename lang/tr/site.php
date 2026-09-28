@@ -5,6 +5,7 @@ return [
     'live' => 'Canlı Bahis',
     'slots' => 'Slot',
     'live_casino' => 'Canlı Casino',
+    'virtual' => 'Sanal Bahis',
     'results' => 'Sonuçlar',
     'casino' => 'Casino',
     'account' => 'Hesabım',

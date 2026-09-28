@@ -24,25 +24,30 @@ class SiteController extends Controller
 {
     public function home(\App\Services\HomeFeed $feed): View
     {
-        $pool = $this->games(false)->where('is_popular', true)->limit(60)->get();
+        $pool = $this->games('slot')->where('is_popular', true)->limit(60)->get();
         $seed = crc32(now()->toDateString());
         $daily = $pool->sortBy(fn ($game) => crc32($seed.'-'.$game->id))->take(6)->values();
 
         return view('site.home', $feed->build(auth()->user()) + [
             'dailyGames' => $daily,
             'slots' => $pool->reject(fn ($game) => $daily->contains('id', $game->id))->take(12)->values(),
-            'live' => $this->games(true)->limit(12)->get(),
+            'live' => $this->games('live')->limit(12)->get(),
         ]);
     }
 
     public function slots(Request $request): View
     {
-        return view('site.lobby', $this->lobby($request, false));
+        return view('site.lobby', $this->lobby($request, 'slot'));
     }
 
     public function live(Request $request): View
     {
-        return view('site.lobby', $this->lobby($request, true));
+        return view('site.lobby', $this->lobby($request, 'live'));
+    }
+
+    public function virtual(Request $request): View
+    {
+        return view('site.lobby', $this->lobby($request, 'virtual'));
     }
 
     public function account(Request $request): View
@@ -180,9 +185,9 @@ class SiteController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function lobby(Request $request, bool $live): array
+    private function lobby(Request $request, string $mode): array
     {
-        $query = $this->games($live);
+        $query = $this->games($mode);
 
         if ($request->filled('q')) {
             $query->where('name', 'like', '%'.$request->string('q').'%');
@@ -215,12 +220,12 @@ class SiteController extends Controller
         $plays = DB::table('game_rounds as r')
             ->join('casino_games as g', 'g.id', '=', 'r.game_id')
             ->where('r.created_at', '>=', now()->subDays(30))
-            ->where('g.is_live', $live)
+            ->whereIn('r.game_id', $this->games($mode)->select('casino_games.id'))
             ->groupBy('g.vendor')
             ->selectRaw('g.vendor AS vendor, COUNT(*) AS c')
             ->pluck('c', 'vendor');
 
-        $vendors = $this->games($live)
+        $vendors = $this->games($mode)
             ->whereNotNull('vendor')
             ->groupBy('vendor')
             ->selectRaw('vendor, COUNT(*) AS c, SUM(CASE WHEN is_popular THEN 1 ELSE 0 END) AS p')
@@ -236,24 +241,31 @@ class SiteController extends Controller
             ->values();
 
         return [
-            'live' => $live,
+            'live' => $mode === 'live',
+            'mode' => $mode,
             'total' => (clone $query)->count(),
             'games' => $query->orderByDesc('is_popular')->orderBy('sort_order')->orderBy('name')->limit($vendor !== '' ? 200 : 90)->get(),
             'providers' => CasinoProvider::query()->where('status', 'active')->orderBy('name')->get(),
             'vendors' => $vendors,
             'vendor' => $vendor,
             'list' => $list,
-            'categories' => CasinoGame::query()->where('is_live', $live)->where('is_active', true)->distinct()->orderBy('category')->pluck('category'),
+            'categories' => $this->games($mode)->distinct()->orderBy('category')->pluck('category'),
         ];
     }
 
-    private function games(bool $live)
+    /** slot | live | virtual — sanal oyunlar (category=virtual) slot listesine karışmaz. */
+    private function games(string $mode)
     {
-        return CasinoGame::query()
+        $query = CasinoGame::query()
             ->with('provider')
-            ->where('is_live', $live)
             ->where('is_active', true)
             ->whereHas('provider', fn ($query) => $query->where('status', 'active'));
+
+        return match ($mode) {
+            'live' => $query->where('is_live', true),
+            'virtual' => $query->where('category', 'virtual'),
+            default => $query->where('is_live', false)->where(fn ($q) => $q->whereNull('category')->orWhere('category', '!=', 'virtual')),
+        };
     }
 
     public function theme(\Illuminate\Http\Request $request): \Illuminate\Http\RedirectResponse
