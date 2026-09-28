@@ -50,14 +50,17 @@ class OneGameXProvider implements CasinoProvider
                 if (! is_array($game) || ! isset($game['id'])) {
                     continue;
                 }
+                // Sadece 'live' kategorisi canlı casinoda; virtual/crashgames/slots/minigames şimdilik pasif.
+                $category = strtolower((string) ($game['type'] ?? 'live'));
+                $isLive = $category === 'live';
                 $record = CasinoGame::query()->updateOrCreate(
                     ['provider_id' => $provider->id, 'external_id' => (string) $game['id']],
                     [
                         'name' => (string) ($game['name'] ?? $game['id']),
-                        'category' => (string) ($game['type'] ?? 'live'),
+                        'category' => $category,
                         'image_url' => $game['thumbnails']['landscape'] ?? ($game['image'] ?? null),
-                        'is_live' => true,
-                        'is_active' => true,
+                        'is_live' => $isLive,
+                        'is_active' => $isLive,
                         'vendor' => strtolower((string) $brand),
                         'sort_order' => $order++,
                     ],
