@@ -38,13 +38,12 @@
                 @guest
                     <div class="relative" x-data="{ open: false }">
                         <button class="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--site-line-strong)] px-2.5 text-xs font-bold md:h-10 md:px-3 md:text-[13px] md:font-semibold" type="button" aria-label="{{ __('site.language') }}" @click="open = !open">
-                            <svg class="hidden h-4 w-4 md:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20"></path></svg>
-                            <span class="md:hidden">{{ strtoupper(app()->getLocale()) }}</span>
+                            <img src="/images/flags/{{ ['tr' => 'tr', 'en' => 'gb', 'de' => 'de', 'ar' => 'sa'][app()->getLocale()] ?? 'tr' }}.svg" alt="" width="20" height="15" style="width:20px;height:15px" class="shrink-0 rounded-sm object-cover">
                             <span class="hidden md:inline">{{ __('panel.languages.'.app()->getLocale()) }}</span>
                         </button>
                         <div class="absolute end-0 z-30 mt-2 min-w-36 rounded-lg border border-[var(--site-line)] bg-[var(--site-panel)] py-1 text-sm" x-show="open" x-cloak @click.outside="open = false" style="display: none;">
                             @foreach (['tr', 'en', 'de', 'ar'] as $locale)
-                                <a class="block px-3 py-2 {{ app()->getLocale() === $locale ? 'text-white' : 'text-[var(--site-text-2)]' }}" href="{{ request()->fullUrlWithQuery(['lang' => $locale]) }}">{{ __('panel.languages.'.$locale) }}</a>
+                                <a class="flex items-center gap-2.5 px-3 py-2 {{ app()->getLocale() === $locale ? 'text-white' : 'text-[var(--site-text-2)]' }}" href="{{ request()->fullUrlWithQuery(['lang' => $locale]) }}" lang="{{ $locale }}"><img src="/images/flags/{{ ['tr' => 'tr', 'en' => 'gb', 'de' => 'de', 'ar' => 'sa'][$locale] ?? 'tr' }}.svg" alt="" width="20" height="15" style="width:20px;height:15px" class="shrink-0 rounded-sm object-cover">{{ __('panel.languages.'.$locale) }}</a>
                             @endforeach
                         </div>
                     </div>
