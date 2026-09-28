@@ -18,7 +18,6 @@
                 @foreach ([
                     ['route' => 'site.virtual', 'match' => 'site.virtual', 'label' => __('site.virtual')],
                     ...(wegas_sport_available(auth()->user()) ? [['route' => 'site.wegas_sport', 'match' => 'site.wegas_sport', 'label' => brand()->name().' '.__('site.sport')]] : []),
-                    ['route' => 'site.sport.live', 'match' => 'site.sport.live', 'label' => __('site.live'), 'badge' => 'live'],
                     ['route' => 'site.slots', 'match' => 'site.slots', 'label' => __('site.slots')],
                     ['route' => 'site.live_casino', 'match' => 'site.live_casino', 'label' => __('site.live_casino')],
                     ['route' => 'site.sport.results', 'match' => 'site.sport.results', 'label' => __('site.results')],
@@ -81,7 +80,6 @@
         @foreach ([
             ...(wegas_sport_available(auth()->user()) ? [['route' => 'site.wegas_sport', 'match' => 'site.wegas_sport', 'label' => brand()->name().' '.__('site.sport'), 'path' => 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7l4 3-1.5 5h-5L8 10z']] : []),
             ['route' => 'site.virtual', 'match' => 'site.virtual', 'label' => __('site.virtual'), 'path' => 'M3 5h18v12H3zM8 21h8M12 17v4'],
-            ['route' => 'site.sport.live', 'match' => 'site.sport.live', 'label' => __('site.live'), 'path' => 'M5.6 5.6a9 9 0 000 12.8M18.4 5.6a9 9 0 010 12.8M12 12a3 3 0 100-6 3 3 0 000 6z', 'badge' => 'live'],
             ['route' => 'site.slots', 'match' => 'site.slots', 'label' => __('site.casino'), 'path' => 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'],
             ['route' => 'site.account', 'match' => 'site.account', 'label' => __('site.account'), 'path' => 'M12 8a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0'],
         ] as $item)
