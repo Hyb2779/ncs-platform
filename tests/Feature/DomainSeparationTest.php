@@ -52,8 +52,8 @@ class DomainSeparationTest extends TestCase
         $this->get('http://site.test/panel/users')->assertRedirect('https://panel.test/panel/users');
         $this->get('http://panel.test/slots')->assertRedirect('/panel');
         $this->get('http://panel.test/')->assertRedirect('/panel');
-        $this->get('http://panel.test/login')->assertOk();
-        $this->get('http://site.test/login')->assertOk();
+        $this->get('http://panel.test/login')->assertOk()->assertSee(__('auth.panel_title'))->assertDontSee(__('auth.password_hint'));
+        $this->get('http://site.test/login')->assertOk()->assertSee(__('auth.password_hint'))->assertDontSee(__('auth.panel_title'));
     }
 
     private function owner(): User

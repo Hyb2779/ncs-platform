@@ -15,5 +15,7 @@
         <p class="rounded-xl border border-[var(--site-live)] px-3 py-2 text-sm text-[var(--site-text)]" role="alert">{{ $message }}</p>
     @enderror
     <button class="h-12 rounded-xl bg-[var(--accent)] text-[15px] font-extrabold text-[var(--site-on-accent)]" type="submit">{{ __('auth.submit') }}</button>
-    <p class="text-center text-xs text-[var(--site-muted)]">{{ __('auth.password_hint') }}</p>
+    @if ($hint ?? true)
+        <p class="text-center text-xs text-[var(--site-muted)]">{{ __('auth.password_hint') }}</p>
+    @endif
 </form>

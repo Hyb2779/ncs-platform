@@ -15,4 +15,6 @@ return [
     'hide_password' => 'Hide',
     'brand_tagline' => 'Sports, slots and live casino in one account.',
     'close' => 'Close',
+    'panel_title' => 'Admin Panel',
+    'panel_note' => 'This page is for administrator accounts only.',
 ];

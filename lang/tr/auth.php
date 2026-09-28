@@ -15,4 +15,6 @@ return [
     'hide_password' => 'Gizle',
     'brand_tagline' => 'Spor, slot ve canlı casino tek hesapta.',
     'close' => 'Kapat',
+    'panel_title' => 'Yönetim Paneli',
+    'panel_note' => 'Bu sayfa yalnızca yönetici hesapları içindir.',
 ];

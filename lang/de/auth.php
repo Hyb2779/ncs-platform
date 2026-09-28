@@ -15,4 +15,6 @@ return [
     'hide_password' => 'Verbergen',
     'brand_tagline' => 'Sport, Slots und Live-Casino in einem Konto.',
     'close' => 'Schließen',
+    'panel_title' => 'Verwaltung',
+    'panel_note' => 'Diese Seite ist nur für Administratorkonten.',
 ];
