@@ -17,11 +17,16 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\EnsureAccountActive::class,
             \App\Http\Middleware\SetLocale::class,
             \App\Http\Middleware\EnsureOwnSportEnabled::class,
+            \App\Http\Middleware\SeparateDomains::class,
         ]);
         // Kapalı spor route'ları auth yönlendirmesinden önce 404 dönsün.
         $middleware->prependToPriorityList(
             before: \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
             prepend: \App\Http\Middleware\EnsureOwnSportEnabled::class,
+        );
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            prepend: \App\Http\Middleware\SeparateDomains::class,
         );
     })
     ->withExceptions(function (Exceptions $exceptions): void {

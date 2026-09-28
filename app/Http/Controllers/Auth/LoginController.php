@@ -42,6 +42,19 @@ class LoginController extends Controller
                 ->withErrors(['username' => __('auth.failed')]);
         }
 
+        // Yanlış kapı (panelde üye / sitede yönetici): şifre hatası gibi davranılır, rol bilgisi sızmaz.
+        if (! \App\Support\Domains::gateAllows($request, $user)) {
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+            RateLimiter::hit($key, 60);
+            $activity->write($user, 'auth.login_failed', $user, ['reason' => 'wrong_gate']);
+
+            return back()
+                ->withInput($request->only('username'))
+                ->withErrors(['username' => __('auth.failed')]);
+        }
+
         if ($hierarchy->loginBlocked($user)) {
             Auth::logout();
             $request->session()->invalidate();
