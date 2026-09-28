@@ -139,4 +139,5 @@ return [
     'theme_title' => 'Seitendesign',
     'theme_hint' => 'Standarddesign für Spieler in Ihrem Baum. Spieler können es in ihrem Konto ändern.',
     'theme_save' => 'Speichern',
+    'view_site' => 'Website ansehen',
 ];

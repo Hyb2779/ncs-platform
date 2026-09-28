@@ -32,6 +32,8 @@ class DomainSeparationTest extends TestCase
         $this->post('http://panel.test/login', ['username' => $owner->username, 'password' => 'password'])
             ->assertSessionHasNoErrors();
         $this->assertAuthenticatedAs($owner);
+
+        $this->get('http://panel.test/panel')->assertOk()->assertSee(__('panel.view_site'))->assertSee('https://site.test/', false);
     }
 
     public function test_member_logs_in_on_site_but_not_on_panel(): void

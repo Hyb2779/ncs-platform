@@ -139,4 +139,5 @@ return [
     'theme_title' => 'Site theme',
     'theme_hint' => 'Default theme for players in your tree. Players can change it in their account.',
     'theme_save' => 'Save',
+    'view_site' => 'View site',
 ];

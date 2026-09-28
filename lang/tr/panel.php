@@ -139,4 +139,5 @@ return [
     'theme_title' => 'Site teması',
     'theme_hint' => 'Ağacınızdaki oyuncuların varsayılan teması. Oyuncular kendi hesaplarından değiştirebilir.',
     'theme_save' => 'Kaydet',
+    'view_site' => 'Siteyi göster',
 ];
