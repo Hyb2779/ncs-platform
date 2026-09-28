@@ -117,7 +117,6 @@ class SportController extends Controller
                 ->get()
                 ->groupBy(fn (SportFixture $fixture) => $fixture->starts_at->timezone($zone)->toDateString())
                 ->map(fn ($fixtures) => $fixtures->groupBy('league_id')),
-            ...$this->sportFrame($request),
         ]);
     }
 
