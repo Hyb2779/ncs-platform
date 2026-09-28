@@ -33,5 +33,7 @@
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="NIGHTWATCH_ENABLED" value="false"/>
         <env name="OWN_SPORT_ENABLED" value="true"/>
+        <env name="SITE_DOMAIN" value=""/>
+        <env name="PANEL_DOMAIN" value=""/>
     </php>
 </phpunit>
