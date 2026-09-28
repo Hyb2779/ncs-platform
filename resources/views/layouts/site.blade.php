@@ -9,11 +9,15 @@
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Cairo:wght@400;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
+    <link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-32.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/images/brand/icon-512.png">
+    <link rel="apple-touch-icon" href="/images/brand/apple-touch-icon.png">
+    <meta name="theme-color" content="#0B0D22">
 </head>
 <body class="min-h-screen bg-[var(--site-bg)] pb-20 font-sans text-[var(--site-text)] md:pb-0" @auth data-balance-url="{{ route('site.balance') }}" @endauth>
     <header class="sticky top-0 z-20 border-b border-[var(--site-line)] bg-[var(--site-bg-deep)]">
         <div class="mx-auto flex h-14 max-w-[90rem] items-center gap-4 px-4 md:h-16 md:gap-8 md:px-6">
-            <a class="font-numeric text-2xl font-bold tracking-wide text-white md:text-[28px]" href="{{ route('site.home') }}">{{ brand()->name() }}<span class="text-[var(--accent)]">.</span></a>
+            <a class="flex shrink-0 items-center" href="{{ route('site.home') }}" aria-label="{{ brand()->name() }}"><img src="/images/brand/wegas-header.png" alt="{{ brand()->name() }}" width="458" height="128" class="h-8 w-auto md:h-10"></a>
             <nav class="hidden flex-1 items-center gap-1 text-sm md:flex" aria-label="{{ __('site.sport') }}">
                 @foreach ([
                     ['route' => 'site.virtual', 'match' => 'site.virtual', 'label' => __('site.virtual')],
