@@ -4,6 +4,7 @@ return [
     'prematch_url' => env('FENIX_PREMATCH_URL', 'https://fenix5.com/api/prematchEvents'),
     'live_url' => env('FENIX_LIVE_URL', 'https://fenix5.com/api/liveEvents'),
     'result_url' => env('FENIX_RESULT_URL', 'https://fenix5.com/api/resultApi'),
+    'resultbot_url' => env('FENIX_RESULTBOT_URL', 'https://fenix5.com/resultbot.php'),
     'horizon_days' => (int) env('FENIX_HORIZON_DAYS', 4),
 
     // Fenix types sözlüğü: "market adı|seçenek|handikap" => [bizim market kodu, seçenek kodu]

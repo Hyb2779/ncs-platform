@@ -17,3 +17,4 @@ Schedule::command('sport:stats-refresh')->everyTenMinutes()->withoutOverlapping(
 Schedule::command('sport:stats-close')->dailyAt('00:20')->timezone('UTC')->withoutOverlapping();
 Schedule::command('sport:translate')->hourly();
 Schedule::command('sport:fenix-prematch')->everyFiveMinutes()->withoutOverlapping(15);
+Schedule::command('sport:fenix-results')->everyTenMinutes()->withoutOverlapping(15);
