@@ -14,5 +14,7 @@ return [
         'token_name' => env('ONEGAMEX_TOKEN_NAME'),
         'secret_key' => env('ONEGAMEX_SECRET_KEY'),
         'url' => env('ONEGAMEX_API_URL'),
+        'password' => env('ONEGAMEX_PASSWORD'),
+        'verify_signature' => (bool) env('ONEGAMEX_VERIFY_SIGNATURE', false),
     ],
 ];

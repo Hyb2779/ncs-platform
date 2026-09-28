@@ -317,6 +317,32 @@ class CouponPlaceTest extends TestCase
         $this->actingAs($member->fresh())->get('/wegas-spor')->assertNotFound();
     }
 
+    public function test_onegamex_sync_and_wallet_callbacks(): void
+    {
+        [$member] = $this->player('100.00');
+        config(['casino.onegamex.url' => 'https://gx.test', 'casino.onegamex.token_name' => 'tok', 'casino.onegamex.password' => 'pw', 'casino.onegamex.secret_key' => 'sk', 'casino.onegamex.verify_signature' => false]);
+        \Illuminate\Support\Facades\Http::fake(['https://gx.test/GameList' => \Illuminate\Support\Facades\Http::response(['result' => 1, 'games' => [
+            'evolution' => [['id' => 501, 'name' => 'Lightning Roulette', 'type' => 'live', 'image' => 'https://cdn.test/501.png']],
+        ]])]);
+
+        $this->assertSame(1, app(\App\Services\Casino\OneGameXProvider::class)->syncGames());
+        $game = \App\Models\CasinoGame::query()->where('external_id', '501')->firstOrFail();
+        $this->assertSame('evolution', $game->vendor);
+        $this->assertTrue((bool) $game->is_live);
+
+        $code = app(\App\Services\Casino\CasinoUserCode::class)->forUser($member);
+        $call = fn (array $body) => $this->postJson('/api/casino/onegamex/callback', $body + ['userId' => $code, 'signature' => 'in-sig']);
+
+        $call([])->assertOk()->assertJson(['result' => 1, 'balance' => 100, 'signature' => sha1('in-sig'.'sk')]);
+        $call(['transactionId' => 't1', 'gameId' => '501', 'bet' => 30, 'win' => 0])->assertJson(['result' => 1, 'balance' => 70]);
+        $call(['transactionId' => 't1', 'gameId' => '501', 'bet' => 30, 'win' => 0])->assertJson(['result' => 1, 'balance' => 70]);
+        $call(['transactionId' => 't2', 'gameId' => '501', 'bet' => 10, 'win' => 25])->assertJson(['result' => 1, 'balance' => 85]);
+        $call(['transactionId' => 't3', 'gameId' => '501', 'bet' => 500, 'win' => 0])->assertJson(['result' => 0, 'balance' => 85]);
+        $call(['transactionId' => 't1', 'gameId' => '501', 'amount' => 30])->assertJson(['result' => 1, 'balance' => 115]);
+        $call(['transactionId' => 't1', 'gameId' => '501', 'amount' => 30])->assertJson(['result' => 1, 'balance' => 115]);
+        $this->artisan('wallet:verify')->assertOk();
+    }
+
     public function test_started_match_is_rejected(): void
     {
         [$user] = $this->player('40.00');

@@ -84,7 +84,10 @@ class CasinoTest extends TestCase
             'command' => 'bet',
             'data' => ['account' => 'np_'.$member->id, 'trans_guid' => 'g1', 'amount' => 1],
         ], ['Callback-Token' => 'wrong'])->assertStatus(401)->assertJsonPath('status', 'INVALID_TOKEN');
-        $this->postJson('/api/casino/onegamex/callback', ['action' => 'bet', 'user_code' => 'np_'.$member->id, 'transaction_id' => 'o1', 'amount' => '1.00'], ['X-Token-Id' => 'ogx-test-id', 'X-Signature' => 'nope'])->assertStatus(401);
+        config(['casino.onegamex.secret_key' => 'sk', 'casino.onegamex.verify_signature' => true]);
+        $code = app(\App\Services\Casino\CasinoUserCode::class)->forUser($member);
+        $this->postJson('/api/casino/onegamex/callback', ['userId' => $code, 'transactionId' => 'o1', 'gameId' => '501', 'bet' => 1, 'win' => 0, 'signature' => 'nope'])
+            ->assertOk()->assertJsonPath('result', 0);
         $this->assertSame(0, WalletTransaction::query()->where('type', 'bet')->count());
     }
 
@@ -131,12 +134,10 @@ class CasinoTest extends TestCase
             ],
         ])->assertJsonPath('result', 0)->assertJsonPath('status', 'OK');
 
-        $payload = json_encode(['action' => 'bet', 'user_code' => 'np_'.$member->id, 'transaction_id' => 'ogx-bet', 'amount' => '1.00', 'round_id' => 'r2'], JSON_THROW_ON_ERROR);
-        $this->call('POST', '/api/casino/onegamex/callback', [], [], [], [
-            'CONTENT_TYPE' => 'application/json',
-            'HTTP_X_TOKEN_ID' => 'ogx-test-id',
-            'HTTP_X_SIGNATURE' => hash_hmac('sha256', $payload, 'ogx-test-secret'),
-        ], $payload)->assertOk();
+        config(['casino.onegamex.secret_key' => 'sk', 'casino.onegamex.verify_signature' => true]);
+        $body = ['userId' => app(\App\Services\Casino\CasinoUserCode::class)->forUser($member), 'transactionId' => 'ogx-bet', 'roundId' => 'r2', 'gameId' => '501', 'bet' => 1, 'win' => 0];
+        $body['signature'] = sha1(json_encode($body, JSON_UNESCAPED_SLASHES).'sk');
+        $this->postJson('/api/casino/onegamex/callback', $body)->assertOk()->assertJsonPath('result', 1);
 
         $this->assertSame('103.00', $member->wallet()->first()->fresh()->balance);
     }
