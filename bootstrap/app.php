@@ -16,7 +16,13 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->web(append: [
             \App\Http\Middleware\EnsureAccountActive::class,
             \App\Http\Middleware\SetLocale::class,
+            \App\Http\Middleware\EnsureOwnSportEnabled::class,
         ]);
+        // Kapalı spor route'ları auth yönlendirmesinden önce 404 dönsün.
+        $middleware->prependToPriorityList(
+            before: \Illuminate\Contracts\Auth\Middleware\AuthenticatesRequests::class,
+            prepend: \App\Http\Middleware\EnsureOwnSportEnabled::class,
+        );
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
