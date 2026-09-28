@@ -3,7 +3,7 @@
 return [
     'hero_badge' => 'SPIEL DES TAGES',
     'hero_title' => 'Willkommen bei :brand',
-    'hero_text' => 'Füge die Kombi des Tages mit einem Tipp hinzu und verfolge die Spiele live.',
+    'hero_text' => 'Verfolge die Spiele live bei Wegas Sport und platziere deine Wetten.',
     'go_bulletin' => 'Zum Wettprogramm',
     'live_matches' => 'Live-Spiele',
     'quick_live' => 'Live-Wetten',

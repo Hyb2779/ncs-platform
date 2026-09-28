@@ -3,7 +3,7 @@
 return [
     'hero_badge' => 'MATCH OF THE DAY',
     'hero_title' => 'Welcome to :brand',
-    'hero_text' => 'Add the accumulator of the day to your slip in one tap and follow matches live.',
+    'hero_text' => 'Follow matches live on Wegas Sport and place your bets.',
     'go_bulletin' => 'Go to sportsbook',
     'live_matches' => 'Live matches',
     'quick_live' => 'Live betting',

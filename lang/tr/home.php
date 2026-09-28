@@ -3,7 +3,7 @@
 return [
     'hero_badge' => 'GÜNÜN MAÇI',
     'hero_title' => ':brand\'ta maçın nabzı',
-    'hero_text' => 'Günün kombinelerini tek dokunuşla kuponuna ekle, maçları canlı takip et.',
+    'hero_text' => 'Maçları Wegas Spor\'da canlı takip et, bahsini yap.',
     'go_bulletin' => 'Bültene git',
     'live_matches' => 'Canlı maçlar',
     'quick_live' => 'Canlı bahis',
