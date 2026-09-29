@@ -100,6 +100,12 @@ class User extends Authenticatable
         return str_starts_with($this->path, $actor->path);
     }
 
+    /** Owner ve süperadmin tüm para birimlerinde cüzdan tutar; bayi ve üye tek para biriminde. */
+    public function isMultiCurrency(): bool
+    {
+        return in_array($this->role, [UserRole::Owner, UserRole::Superadmin], true);
+    }
+
     public function homePath(): string
     {
         return $this->role === UserRole::Uye ? '/' : '/panel';

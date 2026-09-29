@@ -342,7 +342,7 @@ class WalletTest extends TestCase
         $owner = $this->owner('owner-ledger');
         $hierarchy = app(HierarchyService::class);
         $superadmin = $hierarchy->create($owner, $this->locale('sa-ledger', 'EUR', 'de'));
-        $bayi = $hierarchy->create($superadmin, $this->locale('bayi-ledger'));
+        $bayi = $hierarchy->create($superadmin, $this->locale('bayi-ledger', 'EUR', 'de'));
         $service = app(WalletService::class);
         $service->transfer($owner, $superadmin, '20.00', 'to-sa', $owner, 'down');
         $service->transfer($superadmin, $bayi, '8.00', 'to-bayi', $superadmin, 'down');

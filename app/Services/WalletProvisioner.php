@@ -11,7 +11,7 @@ class WalletProvisioner
 {
     public function openFor(User $user): void
     {
-        $currencies = $user->role === UserRole::Owner
+        $currencies = $user->isMultiCurrency()
             ? Currency::cases()
             : [$user->currency];
 

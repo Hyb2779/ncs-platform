@@ -29,6 +29,10 @@ class WalletController extends Controller
         );
 
         $amount = $request->string('amount')->toString();
+        $currency = $request->filled('currency') ? \App\Enums\Currency::tryFrom($request->string('currency')->toString()) : null;
+        if ($request->filled('currency') && $currency === null) {
+            return back()->withInput()->withErrors(['amount' => __('wallet.errors.currency_mismatch')]);
+        }
 
         if (bccomp($amount, '0', 2) !== 1) {
             return back()->withInput()->withErrors(['amount' => __('wallet.validation.amount_invalid')]);
@@ -36,9 +40,9 @@ class WalletController extends Controller
 
         try {
             if ($request->string('direction')->toString() === 'add') {
-                $wallets->transfer($actor, $user, $amount, $request->string('idempotency_key')->toString(), $actor, $request->input('note'), $request->ip());
+                $wallets->transfer($actor, $user, $amount, $request->string('idempotency_key')->toString(), $actor, $request->input('note'), $request->ip(), $currency);
             } else {
-                $wallets->transfer($user, $actor, $amount, $request->string('idempotency_key')->toString(), $actor, $request->input('note'), $request->ip());
+                $wallets->transfer($user, $actor, $amount, $request->string('idempotency_key')->toString(), $actor, $request->input('note'), $request->ip(), $currency);
             }
         } catch (WalletException $exception) {
             $key = match ($exception->translationKey) {

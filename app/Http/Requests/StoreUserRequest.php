@@ -24,7 +24,7 @@ class StoreUserRequest extends FormRequest
             'note' => ['nullable', 'string', 'max:2000'],
         ];
 
-        if ($this->user()?->role === UserRole::Owner) {
+        if (in_array($this->user()?->role, [\App\Enums\UserRole::Owner, \App\Enums\UserRole::Superadmin], true)) {
             $rules['language'] = ['required', Rule::in(['tr', 'en', 'de', 'ar'])];
             $rules['currency'] = ['required', Rule::in(['TRY', 'USD', 'EUR'])];
             $rules['timezone'] = ['required', 'timezone'];

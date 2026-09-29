@@ -32,7 +32,7 @@
         </select>
     </label>
 @endif
-@if ($creating && auth()->user()->role->value === 'owner')
+@if ($creating && in_array(auth()->user()->role->value, ['owner', 'superadmin'], true))
     <label class="grid gap-1 text-sm">
         <span>{{ __('panel.fields.language') }}</span>
         <select class="rounded-md border border-slate-300 px-3 py-2" name="language">

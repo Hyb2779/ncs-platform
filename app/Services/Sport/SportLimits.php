@@ -281,7 +281,7 @@ class SportLimits
         if (! in_array($actor->role, [UserRole::Owner, UserRole::Superadmin], true)) {
             abort(404);
         }
-        if ($actor->role !== UserRole::Owner && $actor->currency !== $currency) {
+        if (! $actor->isMultiCurrency() && $actor->currency !== $currency) {
             abort(404);
         }
     }

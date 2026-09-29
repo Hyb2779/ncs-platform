@@ -71,9 +71,10 @@ class WalletService
         ?User $actor = null,
         ?string $note = null,
         ?string $ip = null,
+        ?Currency $currency = null,
     ): array {
         $this->assertAmount($amount);
-        $currency = $this->transferCurrency($from, $to);
+        $currency = $this->transferCurrency($from, $to, $currency);
         $fromWallet = $this->walletFor($from, $currency);
         $toWallet = $this->walletFor($to, $currency);
 
@@ -154,24 +155,38 @@ class WalletService
     {
         $wallet = $user->wallets()->where('currency', $currency)->first();
 
-        if ($wallet === null || ($user->role !== UserRole::Owner && $user->currency !== $currency)) {
+        if ($wallet === null || (! $user->isMultiCurrency() && $user->currency !== $currency)) {
             throw new WalletException('wallet.currency_mismatch');
         }
 
         return $wallet;
     }
 
-    private function transferCurrency(User $from, User $to): Currency
+    /**
+     * İki taraf da çok para birimliyse (owner → süperadmin) istenen para birimi, yoksa alıcının varsayılanı.
+     * Bir taraf tek para birimliyse onun para birimi; farklısı istenirse hata.
+     */
+    private function transferCurrency(User $from, User $to, ?Currency $requested = null): Currency
     {
-        if ($from->role === UserRole::Owner && $to->role !== UserRole::Owner) {
-            return $to->currency;
+        if ($from->isMultiCurrency() && $to->isMultiCurrency()) {
+            // Çok para birimli iki taraf arasında sadece owner ↔ süperadmin; iki süperadmin arası transfer yok.
+            if ($from->role !== UserRole::Owner && $to->role !== UserRole::Owner) {
+                throw new WalletException('wallet.currency_mismatch');
+            }
+
+            return $requested ?? ($to->role === UserRole::Owner ? $from->currency : $to->currency);
         }
 
-        if ($to->role === UserRole::Owner && $from->role !== UserRole::Owner) {
-            return $from->currency;
+        $single = $from->isMultiCurrency() ? $to : ($to->isMultiCurrency() ? $from : null);
+        if ($single !== null) {
+            if ($requested !== null && $requested !== $single->currency) {
+                throw new WalletException('wallet.currency_mismatch');
+            }
+
+            return $single->currency;
         }
 
-        if ($from->currency !== $to->currency) {
+        if ($from->currency !== $to->currency || ($requested !== null && $requested !== $from->currency)) {
             throw new WalletException('wallet.currency_mismatch');
         }
 

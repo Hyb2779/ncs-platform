@@ -169,11 +169,12 @@ class HierarchyService
      */
     private function inheritedLocale(User $actor, UserRole $role, array $data): array
     {
-        if ($role === UserRole::Superadmin) {
+        // Süperadmin ve bayi açılırken ülke ayarları seçilir; üye bayiden miras alır.
+        if (in_array($role, [UserRole::Superadmin, UserRole::Bayi], true)) {
             return [
-                'language' => Language::from($data['language']),
-                'currency' => Currency::from($data['currency']),
-                'timezone' => $data['timezone'],
+                'language' => Language::from($data['language'] ?? $actor->language->value),
+                'currency' => Currency::from($data['currency'] ?? $actor->currency->value),
+                'timezone' => $data['timezone'] ?? $actor->timezone,
             ];
         }
 
