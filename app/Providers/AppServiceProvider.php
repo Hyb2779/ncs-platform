@@ -23,6 +23,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // Çeviri tablosu istek başına bir kez okunur (sport_name her çağrıda yeni nesne oluşturmasın).
+        $this->app->singleton(\App\Services\Sport\SportNames::class);
         $this->app->singleton(ProviderRegistry::class, function ($app): ProviderRegistry {
             $providers = [
                 'goldpalace' => $app->make(GoldPalaceProvider::class),
