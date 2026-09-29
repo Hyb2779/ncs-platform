@@ -1,14 +1,14 @@
 <label class="grid gap-1 text-sm">
     <span>{{ __('panel.fields.username') }}</span>
     @if ($creating)
-        <input class="rounded-md border border-slate-300 px-3 py-2" name="username" value="{{ old('username') }}">
+        <input class="rounded-md border border-slate-300 px-3 py-2" name="username" value="{{ old('username') }}" autocomplete="off" autocapitalize="off" spellcheck="false">
     @else
         <input class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2" value="{{ $user->username }}" disabled>
     @endif
 </label>
 <label class="grid gap-1 text-sm">
     <span>{{ $creating ? __('panel.fields.password') : __('panel.fields.password_reset') }}</span>
-    <input class="rounded-md border border-slate-300 px-3 py-2" type="password" name="password">
+    <input class="rounded-md border border-slate-300 px-3 py-2" type="password" name="password" autocomplete="new-password">
 </label>
 <label class="grid gap-1 text-sm">
     <span>{{ __('panel.fields.commission_rate') }}</span>
@@ -51,6 +51,6 @@
     </label>
     <label class="grid gap-1 text-sm">
         <span>{{ __('panel.fields.timezone') }}</span>
-        <input class="rounded-md border border-slate-300 px-3 py-2" name="timezone" value="{{ old('timezone', 'UTC') }}">
+        <input class="rounded-md border border-slate-300 px-3 py-2" name="timezone" value="{{ old('timezone', 'Europe/Istanbul') }}">
     </label>
 @endif

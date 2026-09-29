@@ -1,6 +1,7 @@
 @extends('layouts.panel')
 
-@section('heading', __('panel.create_user'))
+@php $childRole = ['owner' => 'superadmin', 'superadmin' => 'bayi', 'bayi' => 'uye'][auth()->user()->role->value] ?? null; @endphp
+@section('heading', __('panel.create_user').($childRole && trans()->has('panel.roles.'.$childRole) ? ' · '.__('panel.roles.'.$childRole) : ''))
 
 @section('content')
     <form class="grid max-w-lg gap-4" method="POST" action="{{ route('panel.users.store') }}">
