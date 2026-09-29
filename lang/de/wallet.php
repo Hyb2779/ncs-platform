@@ -70,4 +70,7 @@ return [
         'invalid_amount' => 'Betrag ist ungültig.',
         'demo_reset_forbidden' => 'Dieser Befehl läuft nicht in der Produktion.',
     ],
+    'menu_owner' => 'Superadmin-Bewegungen',
+    'menu_superadmin' => 'Händler-Bewegungen',
+    'menu_bayi' => 'Mitglieder-Bewegungen',
 ];

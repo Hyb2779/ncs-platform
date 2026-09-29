@@ -70,4 +70,7 @@ return [
         'invalid_amount' => 'Amount is invalid.',
         'demo_reset_forbidden' => 'This command cannot run in production.',
     ],
+    'menu_owner' => 'Superadmin transactions',
+    'menu_superadmin' => 'Dealer transactions',
+    'menu_bayi' => 'Member transactions',
 ];

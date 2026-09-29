@@ -70,4 +70,7 @@ return [
         'invalid_amount' => 'المبلغ غير صالح.',
         'demo_reset_forbidden' => 'لا يعمل هذا الأمر في بيئة الإنتاج.',
     ],
+    'menu_owner' => 'حركات المشرفين',
+    'menu_superadmin' => 'حركات الوكلاء',
+    'menu_bayi' => 'حركات الأعضاء',
 ];

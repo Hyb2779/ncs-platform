@@ -1,6 +1,6 @@
 @extends('layouts.panel')
 
-@section('heading', __('wallet.ledger_title'))
+@section('heading', \App\Support\PanelMenu::ledgerLabel())
 
 @section('content')
     <x-panel.filter-bar class="mb-4">

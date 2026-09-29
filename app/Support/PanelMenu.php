@@ -16,7 +16,7 @@ class PanelMenu
     {
         $network = [
             self::item(__('panel.users'), 'panel.users.index', ['panel.users.*']),
-            self::item(__('wallet.menu'), 'panel.transactions', ['panel.transactions']),
+            self::item(self::ledgerLabel(), 'panel.transactions', ['panel.transactions']),
             self::item(__('site.panel_rounds'), 'panel.casino.rounds', ['panel.casino.rounds']),
             self::item(__('site.panel_sessions'), 'panel.casino.sessions', ['panel.casino.sessions']),
             self::item(__('sport.panel.coupons'), 'panel.coupons.index', ['panel.coupons.index', 'panel.coupons.show']),
@@ -64,7 +64,7 @@ class PanelMenu
     {
         $fourth = $user->role === UserRole::Owner
             ? self::item(__('sport.panel.status'), 'panel.sport.status', ['panel.sport.status'])
-            : self::item(__('wallet.menu'), 'panel.transactions', ['panel.transactions']);
+            : self::item(self::ledgerLabel(), 'panel.transactions', ['panel.transactions']);
 
         return [
             self::item(__('panel.overview'), 'panel.dashboard', ['panel.dashboard']),
@@ -85,5 +85,13 @@ class PanelMenu
             'route' => $route,
             'active' => $active,
         ];
+    }
+
+    /** Hesap hareketleri menü/başlık etiketi, rolün altındaki seviyeye göre. */
+    public static function ledgerLabel(): string
+    {
+        $key = 'wallet.menu_'.(auth()->user()?->role->value ?? '');
+
+        return trans()->has($key) ? __($key) : __('wallet.menu');
     }
 }

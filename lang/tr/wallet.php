@@ -70,4 +70,7 @@ return [
         'invalid_amount' => 'Tutar geçersiz.',
         'demo_reset_forbidden' => 'Bu komut üretimde çalışmaz.',
     ],
+    'menu_owner' => 'Süperadmin hareketleri',
+    'menu_superadmin' => 'Bayi hareketleri',
+    'menu_bayi' => 'Üye hareketleri',
 ];
