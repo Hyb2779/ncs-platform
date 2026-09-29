@@ -73,4 +73,8 @@ return [
     'menu_owner' => 'Superadmin transactions',
     'menu_superadmin' => 'Dealer transactions',
     'menu_bayi' => 'Member transactions',
+    'overdraft_help_title' => 'What is a correction debt?',
+    'overdraft_help_1' => 'If a winning coupon\'s result is later corrected to a loss, the paid winnings are taken back from the member. If the member has already spent it, the available balance is taken and the remainder is recorded as correction debt, so the balance goes negative by that amount.',
+    'overdraft_help_2' => 'Every later credit to the member (deposit or winnings) first pays off this debt. This page lists members with an outstanding debt and the amounts.',
+    'overdraft_help_3' => 'Since sports bets are currently settled in Wegas Sport, this page normally stays empty.',
 ];

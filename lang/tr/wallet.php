@@ -73,4 +73,8 @@ return [
     'menu_owner' => 'Süperadmin hareketleri',
     'menu_superadmin' => 'Bayi hareketleri',
     'menu_bayi' => 'Üye hareketleri',
+    'overdraft_help_title' => 'Düzeltme borcu nedir?',
+    'overdraft_help_1' => 'Kazanmış bir kuponun sonucu sonradan düzeltilip kaybetmiş sayılırsa, ödenen kazanç üyeden geri alınır. Üye bu parayı harcamışsa hesabındaki tutar alınır, eksik kalan kısım düzeltme borcu olarak yazılır ve bakiyesi bu tutar kadar eksiye düşer.',
+    'overdraft_help_2' => 'Üyeye sonradan gelen her tutar (yükleme veya kazanç) önce bu borcu kapatır. Bu sayfa, borcu bulunan üyeleri ve tutarlarını listeler.',
+    'overdraft_help_3' => 'Spor bahisleri şu an Wegas Spor\'da sonuçlandığı için bu sayfa normalde boş kalır.',
 ];
