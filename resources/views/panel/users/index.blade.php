@@ -42,6 +42,8 @@
             'name' => $user->username,
             'balance' => (string) ($wallet?->balance ?? '0'),
             'symbol' => $symbols[$user->currency->value] ?? '',
+            'currency' => $user->currency->value,
+            'balances' => $user->isMultiCurrency() ? $user->wallets->mapWithKeys(fn ($w) => [$w->currency->value => (string) $w->balance])->all() : null,
             'status' => $user->status->value,
             'canAdjust' => $user->parent_id === $viewer->id || ($isSuper && $isMember),
             'editUrl' => route('panel.users.edit', $user),
@@ -77,7 +79,6 @@
         ['key' => 'status', 'label' => __('panel.fields.status')],
         ['key' => 'balance', 'label' => __('wallet.balance')],
         ['key' => 'commission', 'label' => __('panel.fields.commission_rate'), 'priority' => 'detail'],
-        ['key' => 'limit', 'label' => __('panel.fields.user_limit'), 'priority' => 'detail'],
         ['key' => 'login', 'label' => __('panel.fields.last_login')],
         ['key' => 'actions', 'label' => __('panel.fields.actions')],
     ]));
@@ -85,7 +86,7 @@
         ->map(fn ($total, $currency) => \App\Support\Money::format((string) $total, \App\Enums\Currency::from($currency)))
         ->implode(' · ');
 @endphp
-<div x-data="balanceSheet(@js(['own' => (string) ($viewer->wallets()->where('currency', $viewer->currency)->value('balance') ?? '0'), 'unlimited' => $viewer->role === \App\Enums\UserRole::Owner]))">
+<div x-data="balanceSheet(@js(['own' => (string) ($viewer->wallets()->where('currency', $viewer->currency)->value('balance') ?? '0'), 'ownBy' => $viewer->wallets()->get()->mapWithKeys(fn ($w) => [$w->currency->value => (string) $w->balance])->all(), 'symbols' => $symbols ?? [], 'unlimited' => $viewer->role === \App\Enums\UserRole::Owner]))">
     @if (count($breadcrumb) > 1)
         <nav class="mb-3 flex flex-wrap gap-2 text-sm text-start">
             @foreach ($breadcrumb as $crumb)
@@ -235,6 +236,7 @@
             @csrf
             <input type="hidden" name="idempotency_key" value="{{ (string) \Illuminate\Support\Str::uuid() }}" :value="key">
             <input type="hidden" name="direction" :value="direction">
+            <input type="hidden" name="currency" :value="balances ? currency : ''">
             <input type="hidden" name="amount" :value="amount() ? amount().toFixed(2) : ''">
             <div class="flex items-center justify-between gap-3">
                 <div class="min-w-0">
@@ -246,6 +248,11 @@
             <div class="grid grid-cols-2 gap-1 rounded-lg bg-slate-100 p-1">
                 <button class="h-10 rounded-md text-sm font-semibold" type="button" :class="direction === 'add' ? 'bg-white text-emerald-700 shadow' : 'text-slate-500'" @click="direction = 'add'">{{ __('wallet.add') }}</button>
                 <button class="h-10 rounded-md text-sm font-semibold" type="button" :class="direction === 'remove' ? 'bg-white text-rose-700 shadow' : 'text-slate-500'" @click="direction = 'remove'">{{ __('wallet.remove') }}</button>
+            </div>
+            <div class="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1" x-show="balances">
+                <template x-for="c in ['TRY', 'USD', 'EUR']" :key="c">
+                    <button class="h-10 rounded-md text-sm font-semibold" type="button" :class="currency === c ? 'bg-white text-slate-900 shadow' : 'text-slate-500'" @click="pickCurrency(c)" x-text="c"></button>
+                </template>
             </div>
             <div class="flex items-center justify-between text-sm">
                 <span class="text-slate-500">{{ __('wallet.current_balance') }}</span>
@@ -291,14 +298,22 @@
 
     window.balanceSheet = (me = {}) => ({
         own: Number(me.own ?? 0), unlimited: Boolean(me.unlimited),
+        ownBy: me.ownBy ?? {}, symbols: me.symbols ?? {}, currency: '', balances: null,
         open: false, actions: false, password: false, loading: false, current: {},
         target: '', name: '', balance: 0, symbol: '', direction: 'add', raw: '', key: makeUuid(),
+        pickCurrency(c) {
+            this.currency = c;
+            if (this.balances) this.balance = Number(this.balances[c] ?? 0);
+            this.symbol = this.symbols[c] ?? c;
+            this.own = Number(this.ownBy[c] ?? 0);
+        },
         openActions(user) {
             this.current = user;
             this.actions = true;
         },
         openAdjust(user, direction) {
-            Object.assign(this, { actions: false, target: user.id, name: user.name, balance: Number(user.balance), symbol: user.symbol, direction, raw: '', key: makeUuid(), open: true });
+            const cur = user.currency || '';
+            Object.assign(this, { actions: false, target: user.id, name: user.name, balance: Number(user.balance), symbol: user.symbol, currency: cur, balances: user.balances || null, own: Number(this.ownBy[cur] ?? this.own), direction, raw: '', key: makeUuid(), open: true });
             this.$nextTick(() => this.$refs.amount.focus());
         },
         async loadMore(button) {

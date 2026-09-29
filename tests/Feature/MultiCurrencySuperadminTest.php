@@ -61,6 +61,20 @@ class MultiCurrencySuperadminTest extends TestCase
         $this->artisan('wallet:verify')->assertOk();
     }
 
+    public function test_owner_loads_superadmin_in_chosen_currency_from_panel(): void
+    {
+        $owner = $this->owner();
+        $sa = app(HierarchyService::class)->create($owner, $this->data('sa-panel', 'tr', 'TRY', 'Europe/Istanbul'));
+
+        $this->actingAs($owner)->post('/panel/users/'.$sa->id.'/balance', [
+            'direction' => 'add', 'amount' => '25.00', 'currency' => 'USD', 'idempotency_key' => (string) \Illuminate\Support\Str::uuid(),
+        ])->assertSessionHasNoErrors();
+
+        $w = app(WalletService::class);
+        $this->assertSame('25.00', $w->walletFor($sa, Currency::Usd)->fresh()->balance);
+        $this->assertSame('0.00', $w->walletFor($sa, Currency::Try)->fresh()->balance);
+    }
+
     private function owner(): User
     {
         $owner = User::query()->create([

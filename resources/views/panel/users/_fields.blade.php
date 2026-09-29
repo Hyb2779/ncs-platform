@@ -15,10 +15,6 @@
     <input class="rounded-md border border-slate-300 px-3 py-2" name="commission_rate" value="{{ old('commission_rate', $creating ? '' : $user->commission_rate) }}">
 </label>
 <label class="grid gap-1 text-sm">
-    <span>{{ __('panel.fields.user_limit') }}</span>
-    <input class="rounded-md border border-slate-300 px-3 py-2" name="user_limit" value="{{ old('user_limit', $creating ? '' : $user->user_limit) }}">
-</label>
-<label class="grid gap-1 text-sm">
     <span>{{ __('panel.fields.note') }}</span>
     <textarea class="rounded-md border border-slate-300 px-3 py-2" name="note">{{ old('note', $creating ? '' : $user->note) }}</textarea>
 </label>
