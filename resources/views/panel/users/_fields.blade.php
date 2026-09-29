@@ -47,6 +47,10 @@
     </label>
     <label class="grid gap-1 text-sm">
         <span>{{ __('panel.fields.timezone') }}</span>
-        <input class="rounded-md border border-slate-300 px-3 py-2" name="timezone" value="{{ old('timezone', 'Europe/Istanbul') }}">
+        <select class="rounded-md border border-slate-300 px-3 py-2" name="timezone">
+            @foreach (['Europe/Istanbul', 'Europe/London', 'Europe/Berlin', 'Europe/Amsterdam', 'Europe/Paris', 'Europe/Brussels', 'Europe/Vienna', 'Europe/Zurich', 'Europe/Belgrade', 'Europe/Athens', 'Europe/Moscow', 'Asia/Baku', 'Asia/Tbilisi', 'Asia/Dubai', 'Asia/Riyadh', 'Asia/Qatar', 'Asia/Kuwait', 'Asia/Baghdad', 'UTC'] as $zone)
+                <option value="{{ $zone }}" @selected(old('timezone', 'Europe/Istanbul') === $zone)>{{ $zone }} (UTC{{ now($zone)->format('P') }})</option>
+            @endforeach
+        </select>
     </label>
 @endif
