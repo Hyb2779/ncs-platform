@@ -5,7 +5,7 @@
 <a class="group flex flex-col gap-2 rounded-2xl" href="{{ $href }}" @guest onclick="const d = document.getElementById('login-dialog'); if (d) { event.preventDefault(); d.showModal(); }" @endguest>
     <span class="relative block aspect-square overflow-hidden rounded-2xl bg-[var(--site-panel-2)]">
         @if ($game->image_url)
-            <img class="h-full w-full object-cover transition duration-200 group-hover:scale-105" src="{{ $game->image_url }}" alt="" loading="lazy" decoding="async">
+            <img class="h-full w-full object-cover transition duration-200 group-hover:scale-105" src="{{ app(\App\Services\GameImages::class)->url($game) }}" alt="" loading="lazy" decoding="async">
         @endif
         @if ($game->is_live)
             <span class="absolute start-2 top-2 rounded-md bg-[var(--site-live)] px-2 py-0.5 text-[11px] font-extrabold text-white">{{ __('site.live_badge') }}</span>

@@ -103,3 +103,5 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::get('/sport/margins', [SportAdminController::class, 'margins'])->name('sport.margins');
     Route::post('/sport/margins', [SportAdminController::class, 'storeMargin'])->name('sport.margins.store');
 });
+
+Route::get('/cache/g/{file}', \App\Http\Controllers\Site\GameImageController::class)->where('file', '[0-9]+-[0-9a-f]{8}\.webp')->name('game.image');
