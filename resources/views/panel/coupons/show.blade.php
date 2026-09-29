@@ -3,6 +3,7 @@
 @section('heading', $coupon->coupon_no)
 
 @section('content')
+    @include('panel.partials.own_sport_notice')
     <p class="mb-4 text-sm text-slate-600">{{ $coupon->user->username }} · {{ $coupon->ip }} · {{ __('sport.coupon.statuses.'.$coupon->status) }}</p>
     <x-panel.card class="mb-4 max-w-lg">
         @include('sport._coupon_facts')

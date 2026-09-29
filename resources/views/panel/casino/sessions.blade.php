@@ -3,7 +3,7 @@
 @section('heading', __('site.panel_sessions'))
 
 @section('content')
-    <x-panel.filter-bar class="mb-4" />
+    <x-panel.filter-bar class="mb-4" :username="true" />
     @php
         $tableRows = [];
         foreach ($rows as $row) {

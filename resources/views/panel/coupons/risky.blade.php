@@ -3,6 +3,7 @@
 @section('heading', __('sport.panel.risky'))
 
 @section('content')
+    @include('panel.partials.own_sport_notice')
     @php
         $rows = [];
         foreach ($coupons as $coupon) {

@@ -3,6 +3,7 @@
 @section('heading', __('sport.panel.lookup'))
 
 @section('content')
+    @include('panel.partials.own_sport_notice')
     <x-panel.filter-bar :dates="false">
         <form class="flex gap-2" method="GET" action="{{ route('panel.coupons.lookup') }}">
             <input class="h-11 rounded-md border px-3" name="id" value="{{ request('id') }}" placeholder="{{ __('sport.panel.lookup_id') }}" inputmode="numeric">

@@ -140,4 +140,7 @@ return [
     'theme_hint' => 'Default theme for players in your tree. Players can change it in their account.',
     'theme_save' => 'Save',
     'view_site' => 'View site',
+    'own_sport_notice_title' => 'This section is not in use yet',
+    'own_sport_notice_body' => 'Sports bets are currently placed and settled in Wegas Sport. The data on this page belongs to Wegas\'s own sportsbook, so it stays empty. This section will become active automatically when Wegas\'s own sportsbook is launched (together with the international launch).',
+    'filter_username' => 'Username',
 ];

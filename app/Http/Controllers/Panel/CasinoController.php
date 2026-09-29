@@ -66,14 +66,12 @@ class CasinoController extends Controller
     {
         [$ids, $query] = $this->scoped($request, GameRound::query()->with(['user', 'game']));
         $this->between($request, $query, 'created_at');
+        $this->byUsername($request, $query);
+        // Toplamlar ekrandaki 100 tur değil, filtredeki tüm turlar üzerinden
+        $totals = (clone $query)->toBase()->selectRaw('COALESCE(SUM(bet), 0) AS b, COALESCE(SUM(win), 0) AS w')->first();
+        $bet = bcadd((string) $totals->b, '0', 2);
+        $win = bcadd((string) $totals->w, '0', 2);
         $rows = $query->orderByDesc('created_at')->limit(100)->get();
-        $bet = '0.00';
-        $win = '0.00';
-
-        foreach ($rows as $row) {
-            $bet = bcadd($bet, (string) $row->bet, 2);
-            $win = bcadd($win, (string) $row->win, 2);
-        }
 
         return view('panel.casino.rounds', [
             'rows' => $rows,
@@ -87,6 +85,7 @@ class CasinoController extends Controller
     {
         [, $query] = $this->scoped($request, GameSession::query()->with(['user', 'game.provider']));
         $this->between($request, $query, 'opened_at');
+        $this->byUsername($request, $query);
 
         return view('panel.casino.sessions', [
             'rows' => $query->orderByDesc('opened_at')->limit(100)->get(),
@@ -104,6 +103,15 @@ class CasinoController extends Controller
         $query->whereIn('user_id', $ids);
 
         return [$ids, $query];
+    }
+
+    /** Üye adıyla kısmi arama (hiyerarşi kapsamının üzerine). */
+    private function byUsername(Request $request, $query): void
+    {
+        $name = trim((string) $request->query('username', ''));
+        if ($name !== '') {
+            $query->whereHas('user', fn ($q) => $q->where('username', 'like', '%'.addcslashes($name, '%_\\').'%'));
+        }
     }
 
     private function between(Request $request, $query, string $column): void

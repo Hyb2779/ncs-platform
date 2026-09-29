@@ -3,6 +3,7 @@
 @section('heading', __('sport.panel.translations'))
 
 @section('content')
+    @include('panel.partials.own_sport_notice')
     <p class="mb-4 text-sm text-slate-600">{{ __('sport.panel.pending', ['count' => $pending]) }}</p>
     <x-panel.filter-bar class="mb-4" :dates="false">
         <form class="flex flex-wrap items-center gap-2" method="GET">

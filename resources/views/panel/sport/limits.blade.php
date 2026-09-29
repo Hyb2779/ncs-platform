@@ -3,6 +3,7 @@
 @section('heading', __('sport.panel.limits'))
 
 @section('content')
+    @include('panel.partials.own_sport_notice')
     @php
         $separators = \App\Services\Sport\SportLimitFields::separators(app()->getLocale());
         $decimal = $separators['decimal'];

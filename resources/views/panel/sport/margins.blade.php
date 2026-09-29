@@ -3,6 +3,7 @@
 @section('heading', __('sport.panel.margins'))
 
 @section('content')
+    @include('panel.partials.own_sport_notice')
     <x-panel.card class="mb-4" :title="__('sport.panel.margins')">
         <form class="flex flex-wrap gap-2" method="POST" action="{{ route('panel.sport.margins.store') }}">
             @csrf

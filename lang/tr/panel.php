@@ -140,4 +140,7 @@ return [
     'theme_hint' => 'Ağacınızdaki oyuncuların varsayılan teması. Oyuncular kendi hesaplarından değiştirebilir.',
     'theme_save' => 'Kaydet',
     'view_site' => 'Siteyi göster',
+    'own_sport_notice_title' => 'Bu bölüm şu an kullanılmıyor',
+    'own_sport_notice_body' => 'Spor bahisleri şu anda Wegas Spor üzerinden alınıyor ve orada sonuçlanıyor. Bu sayfadaki veriler Wegas\'ın kendi spor sistemine aittir, bu yüzden boş görünür. Wegas\'ın kendi spor bülteni devreye alındığında (uluslararası açılışla birlikte) bu bölüm otomatik olarak aktif olacaktır.',
+    'filter_username' => 'Üye adı',
 ];

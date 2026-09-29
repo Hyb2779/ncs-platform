@@ -8,7 +8,7 @@
         <x-panel.stat :label="__('site.total_win')" :value="$win" />
         <x-panel.stat :label="__('site.net')" :value="$net" />
     </div>
-    <x-panel.filter-bar class="mb-4" />
+    <x-panel.filter-bar class="mb-4" :username="true" />
     @php
         $tableRows = [];
         foreach ($rows as $row) {

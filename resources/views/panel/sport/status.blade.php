@@ -3,6 +3,7 @@
 @section('heading', __('sport.panel.status'))
 
 @section('content')
+    @include('panel.partials.own_sport_notice')
     <div class="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <x-panel.stat :label="__('sport.panel.requests')" :value="$used" />
         <x-panel.stat :label="__('sport.panel.remaining')" :value="$remaining ?? __('panel.empty_value')" />

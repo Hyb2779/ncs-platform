@@ -3,6 +3,7 @@
 @section('heading', __('sport.panel.coupons'))
 
 @section('content')
+    @include('panel.partials.own_sport_notice')
     <div class="mb-4 grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
         @foreach (['placed', 'won', 'lost', 'pending', 'balance', 'cancelled'] as $card)
             <x-panel.stat :label="__('sport.panel.cards.'.$card)" :value="$cards[$card]" />

@@ -3,6 +3,7 @@
 @section('heading', __('sport.panel.fixture_detail'))
 
 @section('content')
+    @include('panel.partials.own_sport_notice')
     <p class="mb-4 text-sm text-slate-600">{{ sport_name($fixture->home) }} – {{ sport_name($fixture->away) }} · {{ sport_status($fixture->status) }}</p>
     <form id="fixture-score" class="mb-6 max-w-lg pb-24" method="POST" action="{{ route('panel.sport.fixtures.score', $fixture) }}">
         @csrf

@@ -140,4 +140,7 @@ return [
     'theme_hint' => 'Standarddesign für Spieler in Ihrem Baum. Spieler können es in ihrem Konto ändern.',
     'theme_save' => 'Speichern',
     'view_site' => 'Website ansehen',
+    'own_sport_notice_title' => 'Dieser Bereich wird derzeit nicht genutzt',
+    'own_sport_notice_body' => 'Sportwetten werden derzeit über Wegas Sport platziert und dort abgerechnet. Die Daten auf dieser Seite gehören zum eigenen Wettsystem von Wegas und bleiben daher leer. Dieser Bereich wird automatisch aktiv, sobald das eigene Sportwettenangebot von Wegas startet (zusammen mit dem internationalen Start).',
+    'filter_username' => 'Benutzername',
 ];

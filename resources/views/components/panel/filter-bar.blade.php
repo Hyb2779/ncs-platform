@@ -1,4 +1,4 @@
-@props(['dates' => true])
+@props(['dates' => true, 'username' => false])
 
 @php
     $zone = auth()->user()?->timezone ?: 'UTC';
@@ -32,7 +32,13 @@
                 {{ __('panel.filter_to') }}
                 <input class="h-11 rounded-lg border border-[#E3E6EB] px-2 text-sm" type="date" name="to" value="{{ $currentTo }}">
             </label>
-            @foreach (request()->except(['from', 'to', 'page']) as $name => $value)
+            @if ($username)
+            <label class="grid gap-1 text-xs text-slate-500">
+                {{ __('panel.filter_username') }}
+                <input class="h-11 rounded-lg border border-[#E3E6EB] px-2 text-sm" type="search" name="username" value="{{ request('username') }}" autocomplete="off">
+            </label>
+            @endif
+            @foreach (request()->except(['from', 'to', 'page', 'username']) as $name => $value)
                 @if (is_scalar($value))
                     <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                 @endif
@@ -66,7 +72,13 @@
                     {{ __('panel.filter_to') }}
                     <input class="h-11 rounded-lg border border-[#E3E6EB] px-2 text-sm" type="date" name="to" value="{{ $currentTo }}">
                 </label>
-                @foreach (request()->except(['from', 'to', 'page']) as $name => $value)
+                @if ($username)
+                <label class="grid gap-1 text-xs text-slate-500">
+                    {{ __('panel.filter_username') }}
+                    <input class="h-11 rounded-lg border border-[#E3E6EB] px-2 text-sm" type="search" name="username" value="{{ request('username') }}" autocomplete="off">
+                </label>
+                @endif
+                @foreach (request()->except(['from', 'to', 'page', 'username']) as $name => $value)
                     @if (is_scalar($value))
                         <input type="hidden" name="{{ $name }}" value="{{ $value }}">
                     @endif
