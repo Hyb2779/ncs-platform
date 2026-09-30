@@ -17,7 +17,7 @@ class UpdateUserRequest extends FormRequest
         return [
             'password' => ['nullable', 'string', 'min:8', 'max:255'],
             'status' => ['required', Rule::in(['active', 'passive', 'banned'])],
-            'commission_rate' => ['required', 'numeric', 'min:0', 'max:100'],
+            'commission_rate' => $this->route('user')?->role?->value === 'uye' ? ['exclude'] : ['required', 'numeric', 'min:0', 'max:100'],
             'user_limit' => ['nullable', 'integer', 'min:0'],
             'note' => ['nullable', 'string', 'max:2000'],
         ];

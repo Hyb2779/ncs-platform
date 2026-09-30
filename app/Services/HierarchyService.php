@@ -39,7 +39,7 @@ class HierarchyService
                 'language' => $inherited['language'],
                 'currency' => $inherited['currency'],
                 'timezone' => $inherited['timezone'],
-                'commission_rate' => $data['commission_rate'],
+                'commission_rate' => $data['commission_rate'] ?? 0,
                 'status' => UserStatus::Active,
                 'user_limit' => $data['user_limit'] ?? null,
                 'note' => $data['note'] ?? null,
