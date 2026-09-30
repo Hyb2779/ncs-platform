@@ -53,7 +53,8 @@ class GoldPalaceProvider implements CasinoProvider
                         'image_url' => $game['game_image'] ?? null,
                         'vendor' => \App\Support\Vendors::fromImage($game['game_image'] ?? null),
                         'is_live' => false,
-                        'is_active' => (bool) ($game['launch_enable'] ?? true),
+                        // 30.09: mini oyunlar RomaSpin'den; GoldPalace'in mini kategorisi pasif.
+                        'is_active' => (bool) ($game['launch_enable'] ?? true) && ($game['category'] ?? '') !== 'mini',
                         'sort_order' => $index,
                         'is_popular' => $index < 12,
                     ],
