@@ -82,6 +82,8 @@ class SportTranslationTest extends TestCase
 
     public function test_arabic_page_keeps_western_odds_and_uses_an_arabic_month(): void
     {
+        // Ay adı sabit kalsın: saat Eylül ortasına dondurulur (ay sonunda maç tarihi Ekim'e taşıyordu).
+        $this->travelTo(\Illuminate\Support\Carbon::parse('2026-09-10 12:00:00', 'UTC'));
         $fixture = $this->fixture();
         $market = SportMarket::query()->where('code', '1X2')->first();
         SportOdd::query()->create([
