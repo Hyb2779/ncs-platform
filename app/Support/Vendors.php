@@ -6,6 +6,12 @@ namespace App\Support;
 class Vendors
 {
     public const NAMES = [
+        'casino-evolution' => 'Evolution',
+        'casino-pragmatic' => 'Pragmatic Live',
+        'casino-ezugi' => 'Ezugi',
+        'casino-dream' => 'Dream Gaming',
+        'casino-sa' => 'SA Gaming',
+        'casino-playace' => 'PlayAce',
         'pp' => 'Pragmatic Play', 'pg' => 'PG Soft', 'hacksaw' => 'Hacksaw', 'egt' => 'EGT', 'amusnet' => 'Amusnet',
         'bng' => 'Booongo', 'hab' => 'Habanero', 'jili' => 'JILI', 'cq9' => 'CQ9', '3oaks' => '3 Oaks',
         'tada' => 'TaDa', 'spribe' => 'Spribe', 'playstar' => 'PlayStar', 'xgaming' => 'XGaming',

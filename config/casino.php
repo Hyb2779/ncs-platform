@@ -17,4 +17,10 @@ return [
         'password' => env('ONEGAMEX_PASSWORD'),
         'verify_signature' => (bool) env('ONEGAMEX_VERIFY_SIGNATURE', false),
     ],
+    'romaspin' => [
+        'url' => env('ROMASPIN_API_URL'),
+        'client_id' => env('ROMASPIN_CLIENT_ID'),
+        'client_secret' => env('ROMASPIN_CLIENT_SECRET'),
+        'currency' => env('ROMASPIN_CURRENCY', 'TRY'),
+    ],
 ];

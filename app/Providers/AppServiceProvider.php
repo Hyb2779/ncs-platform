@@ -29,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
             $providers = [
                 'goldpalace' => $app->make(GoldPalaceProvider::class),
                 'onegamex' => $app->make(OneGameXProvider::class),
+                'romaspin' => $app->make(\App\Services\Casino\RomaSpinProvider::class),
             ];
 
             if (! $app->isProduction()) {
