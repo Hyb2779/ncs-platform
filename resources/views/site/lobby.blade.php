@@ -1,6 +1,6 @@
 @extends('layouts.site')
 
-@section('heading', (($mode ?? '') === 'virtual' ? __('site.virtual') : ($live ? __('site.live_casino') : __('site.slots'))))
+@section('heading', (in_array($mode ?? '', ['virtual', 'mini'], true) ? __('site.'.$mode) : ($live ? __('site.live_casino') : __('site.slots'))))
 
 @section('mainClass', 'mx-auto w-full max-w-[90rem] px-4 py-4 md:px-6 md:py-6')
 
@@ -17,7 +17,7 @@
         <div class="flex flex-col gap-3 rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h1 class="flex items-center gap-2 text-xl font-extrabold text-[var(--site-text)] md:text-2xl">
-                    {{ (($mode ?? '') === 'virtual' ? __('site.virtual') : ($live ? __('site.live_casino') : __('site.slots'))) }}
+                    {{ (in_array($mode ?? '', ['virtual', 'mini'], true) ? __('site.'.$mode) : ($live ? __('site.live_casino') : __('site.slots'))) }}
                     <span class="rounded-full border border-[var(--site-line)] px-2.5 py-0.5 font-numeric text-sm font-bold text-[var(--accent)]">{{ number_format($total, 0, ',', '.') }}</span>
                 </h1>
                 <nav class="no-scrollbar flex gap-2 overflow-x-auto">

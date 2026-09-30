@@ -6,6 +6,7 @@ return [
     'slots' => 'Slots',
     'live_casino' => 'Live-Casino',
     'virtual' => 'Virtuelle Sportwetten',
+    'mini' => 'Minispiele',
     'results' => 'Ergebnisse',
     'casino' => 'Casino',
     'account' => 'Mein Konto',

@@ -20,7 +20,7 @@
             <a class="flex shrink-0 items-center" href="{{ route('site.home') }}" aria-label="{{ brand()->name() }}"><img src="/images/brand/wegas-header.png" alt="{{ brand()->name() }}" width="458" height="128" class="h-8 w-auto md:h-10"></a>
             <nav class="hidden flex-1 items-center gap-1 text-sm md:flex" aria-label="{{ __('site.sport') }}">
                 @foreach ([
-                    ['route' => 'site.virtual', 'match' => 'site.virtual', 'label' => __('site.virtual')],
+                    ['route' => 'site.mini', 'match' => 'site.mini', 'label' => __('site.mini')],
                     ...(wegas_sport_available(auth()->user()) ? [['route' => 'site.wegas_sport', 'match' => 'site.wegas_sport', 'label' => brand()->name().' '.__('site.sport')]] : []),
                     ['route' => 'site.slots', 'match' => 'site.slots', 'label' => __('site.slots')],
                     ['route' => 'site.live_casino', 'match' => 'site.live_casino', 'label' => __('site.live_casino')],
@@ -79,7 +79,7 @@
     <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[var(--site-line)] bg-[var(--site-bg-deep)] md:hidden" aria-label="{{ __('site.sport') }}">
         @foreach ([
             ...(wegas_sport_available(auth()->user()) ? [['route' => 'site.wegas_sport', 'match' => 'site.wegas_sport', 'label' => brand()->name().' '.__('site.sport'), 'path' => 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7l4 3-1.5 5h-5L8 10z']] : []),
-            ['route' => 'site.virtual', 'match' => 'site.virtual', 'label' => __('site.virtual'), 'path' => 'M3 5h18v12H3zM8 21h8M12 17v4'],
+            ['route' => 'site.mini', 'match' => 'site.mini', 'label' => __('site.mini'), 'path' => 'M13 2 3 14h9l-1 8 10-12h-9l1-8z'],
             ['route' => 'site.slots', 'match' => 'site.slots', 'label' => __('site.slots'), 'path' => 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z'],
             ['route' => 'site.live_casino', 'match' => 'site.live_casino', 'label' => __('site.live_casino'), 'path' => 'M15 10l5-3v10l-5-3M3 6h12v12H3z'],
             ['route' => 'site.account', 'match' => 'site.account', 'label' => __('site.account'), 'path' => 'M12 8a4 4 0 100-8 4 4 0 000 8zM4 21a8 8 0 0116 0'],

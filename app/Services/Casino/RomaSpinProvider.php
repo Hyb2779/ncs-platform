@@ -16,13 +16,14 @@ use Symfony\Component\HttpFoundation\Response;
 /**
  * RomaSpin (OroPlay protokolü). Bearer token: POST /auth/createtoken (Redis'te önbellekli, 5 dk erken yenilenir).
  * Seamless callback: {callback_url}/api/balance, /api/transaction, /api/batch-transaction; Basic base64(clientId:clientSecret).
- * Sadece vendor type=1 (canlı casino) senkronlanır. external_id = vendorCode|gameCode (lobby kodu sağlayıcılar arasında tekrar eder).
+ * Vendor type=1 (canlı casino) ve type=3 (mini oyun) senkronlanır. external_id = vendorCode|gameCode (lobby kodu sağlayıcılar arasında tekrar eder).
  */
 class RomaSpinProvider implements CasinoProvider
 {
     private const CODE = 'romaspin';
 
-    private const LIVE_TYPE = 1;
+    /** vendor type -> kategori: 1 canlı casino, 3 mini oyun (Aviator, Spribe...). */
+    private const TYPES = [1 => 'live', 3 => 'mini'];
 
     private const TOKEN_KEY = 'casino:romaspin:token';
 
@@ -56,7 +57,8 @@ class RomaSpinProvider implements CasinoProvider
         $order = 0;
 
         foreach ($vendors['message'] as $vendor) {
-            if (! is_array($vendor) || (int) ($vendor['type'] ?? 0) !== self::LIVE_TYPE) {
+            $category = is_array($vendor) ? (self::TYPES[(int) ($vendor['type'] ?? 0)] ?? null) : null;
+            if ($category === null) {
                 continue;
             }
             $vendorCode = (string) ($vendor['vendorCode'] ?? '');
@@ -91,9 +93,9 @@ class RomaSpinProvider implements CasinoProvider
                     ['provider_id' => $provider->id, 'external_id' => $vendorCode.'|'.$gameCode],
                     [
                         'name' => $name,
-                        'category' => 'live',
+                        'category' => $category,
                         'image_url' => $game['thumbnail'] ?? null,
-                        'is_live' => true,
+                        'is_live' => $category === 'live',
                         'is_active' => ! (bool) ($game['underMaintenance'] ?? false),
                         'vendor' => $vendorCode,
                         'sort_order' => $order++,
@@ -128,7 +130,7 @@ class RomaSpinProvider implements CasinoProvider
             'gameCode' => $gameCode,
             'userCode' => $this->codes->forUser($user),
             'language' => $language ?: 'en',
-            'lobbyUrl' => route('site.live_casino'),
+            'lobbyUrl' => $game->is_live ? route('site.live_casino') : route('site.mini'),
         ];
 
         $json = $this->api('POST', '/game/launch-url', $body);

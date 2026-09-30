@@ -26,7 +26,8 @@ Route::get('/', function () {
 
 Route::get('/slots', [SiteController::class, 'slots'])->name('site.slots');
 Route::get('/live-casino', [SiteController::class, 'live'])->name('site.live_casino');
-Route::get('/virtual', [SiteController::class, 'virtual'])->name('site.virtual');
+Route::get('/mini', [SiteController::class, 'mini'])->name('site.mini');
+Route::redirect('/virtual', '/mini')->name('site.virtual');
 Route::redirect('/live', '/live-casino');
 Route::get('/sport', [SportController::class, 'index'])->name('site.sport');
 Route::get('/sport/live', [SportController::class, 'live'])->name('site.sport.live');

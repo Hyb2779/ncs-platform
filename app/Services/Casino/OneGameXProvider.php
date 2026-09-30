@@ -60,8 +60,8 @@ class OneGameXProvider implements CasinoProvider
                         'category' => $category,
                         'image_url' => $game['thumbnails']['landscape'] ?? ($game['image'] ?? null),
                         'is_live' => $isLive,
-                        // Canlı casino RomaSpin'den (30.09); 1GameX'ten sadece Sanal Bahis aktif.
-                        'is_active' => $category === 'virtual',
+                        // 30.09: canlı casino ve mini oyunlar RomaSpin'den; 1GameX (Sanal Bahis dahil) kullanılmıyor.
+                        'is_active' => false,
                         'vendor' => strtolower((string) $brand),
                         'sort_order' => $order++,
                     ],

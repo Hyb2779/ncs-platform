@@ -45,9 +45,9 @@ class SiteController extends Controller
         return view('site.lobby', $this->lobby($request, 'live'));
     }
 
-    public function virtual(Request $request): View
+    public function mini(Request $request): View
     {
-        return view('site.lobby', $this->lobby($request, 'virtual'));
+        return view('site.lobby', $this->lobby($request, 'mini'));
     }
 
     public function account(Request $request): View
@@ -253,7 +253,7 @@ class SiteController extends Controller
         ];
     }
 
-    /** slot | live | virtual — sanal oyunlar (category=virtual) slot listesine karışmaz. */
+    /** slot | live | virtual | mini — virtual ve mini (RomaSpin tip 3) slot listesine karışmaz. */
     private function games(string $mode)
     {
         $query = CasinoGame::query()
@@ -264,7 +264,8 @@ class SiteController extends Controller
         return match ($mode) {
             'live' => $query->where('is_live', true),
             'virtual' => $query->where('category', 'virtual'),
-            default => $query->where('is_live', false)->where(fn ($q) => $q->whereNull('category')->orWhere('category', '!=', 'virtual')),
+            'mini' => $query->where('category', 'mini'),
+            default => $query->where('is_live', false)->where(fn ($q) => $q->whereNull('category')->orWhereNotIn('category', ['virtual', 'mini'])),
         };
     }
 

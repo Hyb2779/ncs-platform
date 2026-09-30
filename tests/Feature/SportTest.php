@@ -200,8 +200,8 @@ class SportTest extends TestCase
         $this->get('/live')->assertRedirect('/live-casino');
 
         $html = $this->get('/sport?lang=tr')->assertOk()->getContent();
-        $this->assertStringContainsString(__('site.virtual', [], 'tr'), $html);
-        $this->assertStringContainsString('/virtual', $html);
+        $this->assertStringContainsString(__('site.mini', [], 'tr'), $html);
+        $this->assertStringContainsString('/mini', $html);
         $this->assertStringContainsString('/live-casino', $html);
         $this->assertStringContainsString('/sport/results', $html);
         $this->assertStringNotContainsString('href="'.url('/live').'"', $html);

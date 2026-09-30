@@ -6,6 +6,7 @@ return [
     'slots' => 'Slot',
     'live_casino' => 'Canlı Casino',
     'virtual' => 'Sanal Bahis',
+    'mini' => 'Mini Oyunlar',
     'results' => 'Sonuçlar',
     'casino' => 'Casino',
     'account' => 'Hesabım',
