@@ -214,6 +214,11 @@ class RomaSpinProviderTest extends TestCase
         $this->assertSame('hacksaw', $extra->vendor);
     }
 
+    public function test_sync_command_rejects_unknown_provider(): void
+    {
+        $this->artisan('casino:sync', ['provider' => 'yok'])->assertFailed();
+    }
+
     private function rs(string $action, array $body, ?string $auth = null): TestResponse
     {
         return $this->withHeaders(['Authorization' => $auth ?? 'Basic '.base64_encode('wegas-test:secret-test')])

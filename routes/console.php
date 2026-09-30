@@ -18,3 +18,6 @@ Schedule::command('sport:stats-close')->dailyAt('00:20')->timezone('UTC')->witho
 Schedule::command('sport:translate')->hourly();
 Schedule::command('sport:fenix-prematch')->everyFiveMinutes()->withoutOverlapping(15);
 Schedule::command('sport:fenix-results')->everyTenMinutes()->withoutOverlapping(15);
+
+// RomaSpin oyun listesi: yeni oyunlar + GoldPalace önceliği (04:30 TR).
+Schedule::command('casino:sync romaspin')->dailyAt('01:30')->withoutOverlapping(60);
