@@ -57,7 +57,7 @@ class RomaSpinProvider implements CasinoProvider
         $order = 0;
 
         foreach ($vendors['message'] as $vendor) {
-            $category = is_array($vendor) ? (self::TYPES[(int) ($vendor['type'] ?? 0)] ?? null) : null;
+            $category = is_array($vendor) ? $this->categoryFor((int) ($vendor['type'] ?? 0), (string) ($vendor['vendorCode'] ?? '')) : null;
             if ($category === null) {
                 continue;
             }
@@ -130,7 +130,7 @@ class RomaSpinProvider implements CasinoProvider
             'gameCode' => $gameCode,
             'userCode' => $this->codes->forUser($user),
             'language' => $language ?: 'en',
-            'lobbyUrl' => $game->is_live ? route('site.live_casino') : route('site.mini'),
+            'lobbyUrl' => $game->is_live ? route('site.live_casino') : ($game->category === 'mini' ? route('site.mini') : url('/slots')),
         ];
 
         $json = $this->api('POST', '/game/launch-url', $body);
@@ -250,6 +250,16 @@ class RomaSpinProvider implements CasinoProvider
         }
 
         return $this->respond(true, $balance, 0);
+    }
+
+    /** type 1 canlı, 3 mini; type 2 (slot) sadece casino.romaspin.slot_vendors listesindekiler. */
+    private function categoryFor(int $type, string $vendorCode): ?string
+    {
+        if ($type === 2) {
+            return in_array($vendorCode, (array) config('casino.romaspin.slot_vendors', []), true) ? 'slot' : null;
+        }
+
+        return self::TYPES[$type] ?? null;
     }
 
     private function findGame(string $vendorCode, string $gameCode): ?CasinoGame

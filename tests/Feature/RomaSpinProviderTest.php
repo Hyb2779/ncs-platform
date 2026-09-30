@@ -167,6 +167,27 @@ class RomaSpinProviderTest extends TestCase
         app(ProviderRegistry::class)->get('romaspin')->launch($member, $game, 'desktop');
     }
 
+    public function test_sync_takes_only_listed_slot_vendors(): void
+    {
+        config(['casino.romaspin.slot_vendors' => ['slot-novomatic']]);
+        Http::fake([
+            '*/auth/createtoken' => Http::response(['token' => 'tkn', 'expiration' => time() + 3600]),
+            '*/vendors/list' => Http::response(['success' => true, 'errorCode' => 0, 'message' => [
+                ['vendorCode' => 'slot-novomatic', 'type' => 2, 'name' => 'Novomatic'],
+                ['vendorCode' => 'slot-pgsoft', 'type' => 2, 'name' => 'PGSoft'],
+            ]]),
+            '*/games/list' => Http::response(['success' => true, 'errorCode' => 0, 'message' => [
+                ['vendorCode' => 'slot-novomatic', 'gameCode' => 'bookofra', 'gameName' => 'Book of Ra', 'thumbnail' => 'https://img.test/bor.jpg', 'underMaintenance' => false],
+            ]]),
+        ]);
+
+        $this->assertSame(1, app(ProviderRegistry::class)->get('romaspin')->syncGames());
+        $game = CasinoGame::query()->where('external_id', 'slot-novomatic|bookofra')->firstOrFail();
+        $this->assertSame('slot', $game->category);
+        $this->assertFalse((bool) $game->is_live);
+        Http::assertNotSent(fn (HttpRequest $r) => str_contains($r->url(), '/games/list') && $r['vendorCode'] === 'slot-pgsoft');
+    }
+
     private function rs(string $action, array $body, ?string $auth = null): TestResponse
     {
         return $this->withHeaders(['Authorization' => $auth ?? 'Basic '.base64_encode('wegas-test:secret-test')])

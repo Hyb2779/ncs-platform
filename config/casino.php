@@ -22,5 +22,7 @@ return [
         'client_id' => env('ROMASPIN_CLIENT_ID'),
         'client_secret' => env('ROMASPIN_CLIENT_SECRET'),
         'currency' => env('ROMASPIN_CURRENCY', 'TRY'),
+        // Slot (vendor type 2) sadece bu listedekiler; örn. slot-novomatic (GoldPalace'ta olmayanlar).
+        'slot_vendors' => array_values(array_filter(array_map('trim', explode(',', (string) env('ROMASPIN_SLOT_VENDORS', ''))))),
     ],
 ];
