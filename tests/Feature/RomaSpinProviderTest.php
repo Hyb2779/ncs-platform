@@ -100,6 +100,7 @@ class RomaSpinProviderTest extends TestCase
 
     public function test_sync_takes_live_vendors_and_keeps_failed_vendor_games(): void
     {
+        config(['casino.romaspin.slot_vendors' => [], 'casino.romaspin.overlap_vendors' => []]);
         $provider = $this->provider();
         $sa = $this->game($provider, 'casino-sa|lobby', 'casino-sa');
         $old = $this->game($provider, 'casino-ezugi|old', 'casino-ezugi');
@@ -169,7 +170,7 @@ class RomaSpinProviderTest extends TestCase
 
     public function test_sync_takes_only_listed_slot_vendors(): void
     {
-        config(['casino.romaspin.slot_vendors' => ['slot-novomatic']]);
+        config(['casino.romaspin.slot_vendors' => ['slot-novomatic'], 'casino.romaspin.overlap_vendors' => []]);
         Http::fake([
             '*/auth/createtoken' => Http::response(['token' => 'tkn', 'expiration' => time() + 3600]),
             '*/vendors/list' => Http::response(['success' => true, 'errorCode' => 0, 'message' => [
@@ -186,6 +187,31 @@ class RomaSpinProviderTest extends TestCase
         $this->assertSame('slot', $game->category);
         $this->assertFalse((bool) $game->is_live);
         Http::assertNotSent(fn (HttpRequest $r) => str_contains($r->url(), '/games/list') && $r['vendorCode'] === 'slot-pgsoft');
+    }
+
+    public function test_overlap_vendor_keeps_goldpalace_priority(): void
+    {
+        config(['casino.romaspin.slot_vendors' => [], 'casino.romaspin.overlap_vendors' => ['slot-hacksaw' => 'hacksaw']]);
+        $gp = CasinoProvider::query()->create(['code' => 'goldpalace', 'name' => 'GoldPalace', 'status' => 'active', 'is_live' => false]);
+        CasinoGame::query()->create(['provider_id' => $gp->id, 'external_id' => '37:wanted', 'name' => 'Wanted Dead or a Wild', 'category' => 'slot', 'is_live' => false, 'is_active' => true, 'vendor' => 'hacksaw']);
+        Http::fake([
+            '*/auth/createtoken' => Http::response(['token' => 'tkn', 'expiration' => time() + 3600]),
+            '*/vendors/list' => Http::response(['success' => true, 'errorCode' => 0, 'message' => [
+                ['vendorCode' => 'slot-hacksaw', 'type' => 2, 'name' => 'Hacksaw'],
+            ]]),
+            '*/games/list' => Http::response(['success' => true, 'errorCode' => 0, 'message' => [
+                ['vendorCode' => 'slot-hacksaw', 'gameCode' => 'wanted', 'gameName' => 'Wanted Dead or a Wild™', 'thumbnail' => 'https://img.test/w.jpg', 'underMaintenance' => false],
+                ['vendorCode' => 'slot-hacksaw', 'gameCode' => 'lebandit', 'gameName' => 'Le Bandit', 'thumbnail' => 'https://img.test/l.jpg', 'underMaintenance' => false],
+            ]]),
+        ]);
+
+        app(ProviderRegistry::class)->get('romaspin')->syncGames();
+
+        $copy = CasinoGame::query()->where('external_id', 'slot-hacksaw|wanted')->firstOrFail();
+        $extra = CasinoGame::query()->where('external_id', 'slot-hacksaw|lebandit')->firstOrFail();
+        $this->assertFalse((bool) $copy->is_active);
+        $this->assertTrue((bool) $extra->is_active);
+        $this->assertSame('hacksaw', $extra->vendor);
     }
 
     private function rs(string $action, array $body, ?string $auth = null): TestResponse

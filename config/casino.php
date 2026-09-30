@@ -24,5 +24,11 @@ return [
         'currency' => env('ROMASPIN_CURRENCY', 'TRY'),
         // Slot (vendor type 2) sadece bu listedekiler; örn. slot-novomatic (GoldPalace'ta olmayanlar).
         'slot_vendors' => array_values(array_filter(array_map('trim', explode(',', (string) env('ROMASPIN_SLOT_VENDORS', ''))))),
+        // Ortak sağlayıcılar: RomaSpin kodu => GoldPalace etiketi. GoldPalace'ta aynı adla aktif oyun varsa RomaSpin kopyası pasif.
+        'overlap_vendors' => [
+            'slot-pragmatic' => 'pp', 'slot-pgsoft' => 'pg', 'slot-habanero' => 'hab', 'slot-booongo' => 'bng',
+            'slot-hacksaw' => 'hacksaw', 'slot-cq9' => 'cq9', 'slot-3oaks' => '3oaks', 'slot-jili' => 'jili',
+            'slot-tada' => 'tada', 'slot-egt' => 'egt', 'slot-amusnet' => 'amusnet',
+        ],
     ],
 ];

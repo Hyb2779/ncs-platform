@@ -65,18 +65,21 @@ class RomaSpinProvider implements CasinoProvider
             if ($vendorCode === '') {
                 continue;
             }
+            // Ortak sağlayıcı: GoldPalace etiketiyle kaydet, GoldPalace'ta aktif olan aynı adlı oyunları pasif bırak.
+            $storedVendor = ((array) config('casino.romaspin.overlap_vendors', []))[$vendorCode] ?? $vendorCode;
+            $taken = $storedVendor !== $vendorCode ? $this->goldPalaceNames($storedVendor) : [];
 
             try {
                 $list = $this->api('POST', '/games/list', ['vendorCode' => $vendorCode, 'language' => 'en']);
             } catch (\Throwable $e) {
-                $failed[] = $vendorCode;
+                $failed[] = $storedVendor;
                 Log::warning('casino.romaspin.vendor_skipped', ['vendor' => $vendorCode, 'error' => $e->getMessage()]);
 
                 continue;
             }
 
             if ((int) ($list['errorCode'] ?? -1) !== 0 || ! is_array($list['message'] ?? null)) {
-                $failed[] = $vendorCode;
+                $failed[] = $storedVendor;
                 Log::warning('casino.romaspin.vendor_skipped', ['vendor' => $vendorCode, 'response' => $list]);
 
                 continue;
@@ -89,6 +92,7 @@ class RomaSpinProvider implements CasinoProvider
                     continue;
                 }
                 $name = $gameCode === 'lobby' ? $vendorName.' Lobby' : (string) ($game['gameName'] ?? $gameCode);
+                $duplicate = $taken !== [] && isset($taken[$this->normalize($name)]);
                 $record = CasinoGame::query()->updateOrCreate(
                     ['provider_id' => $provider->id, 'external_id' => $vendorCode.'|'.$gameCode],
                     [
@@ -96,8 +100,8 @@ class RomaSpinProvider implements CasinoProvider
                         'category' => $category,
                         'image_url' => $game['thumbnail'] ?? null,
                         'is_live' => $category === 'live',
-                        'is_active' => ! (bool) ($game['underMaintenance'] ?? false),
-                        'vendor' => $vendorCode,
+                        'is_active' => ! (bool) ($game['underMaintenance'] ?? false) && ! $duplicate,
+                        'vendor' => $storedVendor,
                         'sort_order' => $order++,
                     ],
                 );
@@ -256,10 +260,31 @@ class RomaSpinProvider implements CasinoProvider
     private function categoryFor(int $type, string $vendorCode): ?string
     {
         if ($type === 2) {
-            return in_array($vendorCode, (array) config('casino.romaspin.slot_vendors', []), true) ? 'slot' : null;
+            $listed = in_array($vendorCode, (array) config('casino.romaspin.slot_vendors', []), true);
+
+            return $listed || array_key_exists($vendorCode, (array) config('casino.romaspin.overlap_vendors', [])) ? 'slot' : null;
         }
 
         return self::TYPES[$type] ?? null;
+    }
+
+    /** @return array<string, true> GoldPalace'ta bu etiketteki aktif oyunların normalize adları. */
+    private function goldPalaceNames(string $vendor): array
+    {
+        return CasinoGame::query()->where('vendor', $vendor)->where('is_active', true)
+            ->whereHas('provider', fn ($q) => $q->where('code', 'goldpalace'))
+            ->pluck('name')->mapWithKeys(fn ($n) => [$this->normalize((string) $n) => true])->all();
+    }
+
+    /** Küçük harf, ™/® ve noktalama/boşluk temizlenir; "deluxe" gibi sürüm farkları korunur. */
+    private function normalize(string $name): string
+    {
+        $name = str_replace(['™', '®', '&'], ['', '', 'and'], mb_strtolower($name));
+        // Roma rakamı = sayı (Big Bass Halloween II = 2); sağlayıcının bilinen yazım hataları.
+        $name = (string) preg_replace(['/\biv\b/u', '/\biii\b/u', '/\bii\b/u'], ['4', '3', '2'], $name);
+        $name = strtr($name, ['chrismas' => 'christmas']);
+
+        return (string) preg_replace('/[^\p{L}\p{N}]+/u', '', $name);
     }
 
     private function findGame(string $vendorCode, string $gameCode): ?CasinoGame
