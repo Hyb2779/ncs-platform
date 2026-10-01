@@ -106,7 +106,7 @@ class SiteController extends Controller
         ]);
     }
 
-    public function launch(Request $request, CasinoGame $game, GameLauncher $launcher): RedirectResponse
+    public function launch(Request $request, CasinoGame $game, GameLauncher $launcher): RedirectResponse|\Illuminate\Contracts\View\View
     {
         $device = $request->header('User-Agent') && preg_match('/Mobile|Android/i', (string) $request->userAgent()) ? 'mobile' : 'desktop';
 
@@ -116,7 +116,15 @@ class SiteController extends Controller
             return back()->withErrors(['game' => __('wallet.errors.insufficient_balance')]);
         }
 
-        return redirect()->away($url);
+        // Oyun kendi ekranımızda (iframe + Geri Dön) açılır; üye siteden çıkmaz.
+        $back = $game->is_live ? 'site.live_casino' : (str_starts_with((string) $game->vendor, 'mini-') ? 'site.mini' : 'site.slots');
+
+        return view('site.play', [
+            'gameUrl' => $url,
+            'gameName' => (string) $game->name,
+            'backUrl' => route($back),
+            'isLive' => (bool) $game->is_live,
+        ]);
     }
 
     public function favorite(Request $request, CasinoGame $game): RedirectResponse

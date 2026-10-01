@@ -71,4 +71,5 @@ return [
     'popular_games' => 'Popüler',
     'wegas_sport_error' => ':brand Spor şu an açılamıyor, lütfen biraz sonra tekrar deneyin.',
     'wegas_sport_sub' => 'Canlı ve maç önü',
+    'game_back' => 'Geri Dön',
 ];

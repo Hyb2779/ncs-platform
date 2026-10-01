@@ -71,4 +71,5 @@ return [
     'popular_games' => 'Beliebt',
     'wegas_sport_error' => ':brand Sport ist gerade nicht verfügbar, bitte versuche es gleich noch einmal.',
     'wegas_sport_sub' => 'Live und vor dem Spiel',
+    'game_back' => 'Zurück',
 ];
