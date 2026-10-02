@@ -84,7 +84,7 @@ class SiteController extends Controller
         $user = $request->user();
         $data = $request->validate([
             'current_password' => ['required', 'string'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', 'min:4', 'confirmed'],
         ]);
 
         if (! Hash::check($data['current_password'], $user->password)) {

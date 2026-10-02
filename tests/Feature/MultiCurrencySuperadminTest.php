@@ -37,7 +37,7 @@ class MultiCurrencySuperadminTest extends TestCase
         $bayi = $h->create($sa, $this->data('bayi-de', 'de', 'EUR', 'Europe/Berlin'));
         $this->assertSame(Currency::Eur, $bayi->currency);
         $this->assertSame(Language::De, $bayi->language);
-        $this->assertSame('Europe/Berlin', $bayi->timezone);
+        $this->assertSame('Europe/Istanbul', $bayi->timezone); // formdan Berlin gelse de Istanbul
         $this->assertSame(1, $bayi->wallets()->count());
         $uye = $h->create($bayi, $this->data('uye-de', 'tr', 'TRY', 'UTC'));
         $this->assertSame(Currency::Eur, $uye->currency);

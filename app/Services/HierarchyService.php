@@ -70,8 +70,8 @@ class HierarchyService
             $changes = [];
 
             if (array_key_exists('commission_rate', $data)) {
-                $target->commission_rate = $data['commission_rate'];
-                $changes['commission_rate'] = $data['commission_rate'];
+                $target->commission_rate = $data['commission_rate'] ?? 0;
+                $changes['commission_rate'] = $data['commission_rate'] ?? 0;
             }
 
             if (array_key_exists('user_limit', $data)) {
@@ -174,7 +174,8 @@ class HierarchyService
             return [
                 'language' => Language::from($data['language'] ?? $actor->language->value),
                 'currency' => Currency::from($data['currency'] ?? $actor->currency->value),
-                'timezone' => $data['timezone'] ?? $actor->timezone,
+                // Saat dilimi formda yok: tüm süperadmin/bayi Türkiye saatiyle açılır (daily_stats.stat_date buna bağlı).
+                'timezone' => 'Europe/Istanbul',
             ];
         }
 

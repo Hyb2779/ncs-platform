@@ -15,9 +15,9 @@ class UpdateUserRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'password' => ['nullable', 'string', 'min:8', 'max:255'],
+            'password' => ['nullable', 'string', 'min:4', 'max:255'],
             'status' => ['required', Rule::in(['active', 'passive', 'banned'])],
-            'commission_rate' => $this->route('user')?->role?->value === 'uye' ? ['exclude'] : ['required', 'numeric', 'min:0', 'max:100'],
+            'commission_rate' => $this->route('user')?->role?->value === 'uye' ? ['exclude'] : ['nullable', 'numeric', 'min:0', 'max:100'],
             'user_limit' => ['nullable', 'integer', 'min:0'],
             'note' => ['nullable', 'string', 'max:2000'],
         ];
@@ -28,7 +28,6 @@ class UpdateUserRequest extends FormRequest
         return [
             'password.min' => __('panel.validation.password_min'),
             'status.required' => __('panel.validation.status_required'),
-            'commission_rate.required' => __('panel.validation.commission_required'),
             'commission_rate.numeric' => __('panel.validation.commission_numeric'),
             'user_limit.integer' => __('panel.validation.user_limit_integer'),
         ];

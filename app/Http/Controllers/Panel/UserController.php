@@ -119,7 +119,7 @@ class UserController extends Controller
         abort_if($target->id === $actor->id, 404);
 
         $data = $request->validate(
-            ['password' => ['nullable', 'string', 'min:8', 'max:255']],
+            ['password' => ['nullable', 'string', 'min:4', 'max:255']],
             ['password.min' => __('panel.validation.password_min')],
         );
         $password = $data['password'] ?? \Illuminate\Support\Str::password(10, symbols: false);

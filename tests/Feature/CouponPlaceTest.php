@@ -240,7 +240,7 @@ class CouponPlaceTest extends TestCase
         $this->assertNotSame($old, $member->fresh()->password);
         $this->actingAs($bayi)->post($url($member, 'password'), ['password' => 'yeniSifre1'])->assertSessionHasNoErrors();
         $this->assertTrue(\Illuminate\Support\Facades\Hash::check('yeniSifre1', $member->fresh()->password));
-        $this->actingAs($bayi)->post($url($member, 'password'), ['password' => 'kisa'])->assertSessionHasErrors('password');
+        $this->actingAs($bayi)->post($url($member, 'password'), ['password' => 'abc'])->assertSessionHasErrors('password');
 
         $this->actingAs($bayi->parent)->post($url($member, 'password'))->assertSessionHas('reset_password');
         $this->actingAs($bayi)->post($url($bayi->parent, 'password'))->assertNotFound();
