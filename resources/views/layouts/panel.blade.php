@@ -73,10 +73,6 @@
                     @endif
                 </div>
                 <span class="hidden h-6 items-center rounded-md bg-[#F3F4F6] px-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:inline-flex" title="{{ __('panel.languages.'.auth()->user()->language->value) }}">{{ auth()->user()->language->value }}</span>
-                <a class="inline-flex h-11 items-center gap-1.5 rounded-lg border border-[#E3E6EB] bg-white px-3 text-sm" href="{{ \App\Support\Domains::siteUrl() }}" target="_blank" rel="noopener" title="{{ __('panel.view_site') }}">
-                    <svg class="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 3h7v7M10 14L21 3M21 14v7H3V3h7"></path></svg>
-                    <span class="hidden sm:inline">{{ __('panel.view_site') }}</span>
-                </a>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button class="inline-flex h-11 items-center rounded-lg border border-[#E3E6EB] bg-white px-3 text-sm" type="submit">{{ __('panel.logout') }}</button>
