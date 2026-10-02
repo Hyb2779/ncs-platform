@@ -282,7 +282,7 @@ class RomaSpinProvider implements CasinoProvider
         $name = str_replace(['™', '®', '&'], ['', '', 'and'], mb_strtolower($name));
         // Roma rakamı = sayı (Big Bass Halloween II = 2); sağlayıcının bilinen yazım hataları.
         $name = (string) preg_replace(['/\biv\b/u', '/\biii\b/u', '/\bii\b/u'], ['4', '3', '2'], $name);
-        $name = strtr($name, ['chrismas' => 'christmas']);
+        $name = strtr($name, ['chrismas' => 'christmas', 'dead of a wild' => 'dead or a wild']);
 
         return (string) preg_replace('/[^\p{L}\p{N}]+/u', '', $name);
     }

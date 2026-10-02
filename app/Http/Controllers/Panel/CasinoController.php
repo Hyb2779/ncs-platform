@@ -42,19 +42,16 @@ class CasinoController extends Controller
         return back()->with('status', __('site.synced', ['count' => $count]));
     }
 
-    public function games(): View
+    public function games(): RedirectResponse
     {
         abort_unless(auth()->user()->role === UserRole::Owner, 404);
 
-        return view('panel.casino.games', [
-            'games' => CasinoGame::query()->with('provider')->orderBy('sort_order')->limit(100)->get(),
-        ]);
+        return redirect()->route('panel.games.index');
     }
 
     public function updateGame(Request $request, CasinoGame $game): RedirectResponse
     {
         abort_unless($request->user()->role === UserRole::Owner, 404);
-        $game->is_active = $request->boolean('is_active');
         $game->is_popular = $request->boolean('is_popular');
         $game->sort_order = (int) $request->input('sort_order', $game->sort_order);
         $game->save();

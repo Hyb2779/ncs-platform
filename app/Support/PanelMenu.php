@@ -27,6 +27,7 @@ class PanelMenu
             $network[] = self::item(__('sport.panel.limits'), 'panel.sport.limits', ['panel.sport.limits']);
             $network[] = self::item(__('sport.panel.overdraft'), 'panel.sport.overdrafts', ['panel.sport.overdrafts']);
             $network[] = self::item(__('sport.panel.risky'), 'panel.coupons.risky', ['panel.coupons.risky']);
+            $network[] = self::item(__('panel.games_title'), 'panel.games.index', ['panel.games.index', 'panel.casino.games']);
             if ($user->role === UserRole::Superadmin) {
                 $network[] = self::item(__('panel.theme_title'), 'panel.theme', ['panel.theme']);
             }
@@ -38,7 +39,6 @@ class PanelMenu
             $network[] = self::item(__('sport.panel.translations'), 'panel.sport.translations', ['panel.sport.translations']);
             $network[] = self::item(__('sport.panel.margins'), 'panel.sport.margins', ['panel.sport.margins']);
             $network[] = self::item(__('site.panel_providers'), 'panel.casino.providers', ['panel.casino.providers']);
-            $network[] = self::item(__('site.panel_games'), 'panel.casino.games', ['panel.casino.games']);
         }
 
         return [

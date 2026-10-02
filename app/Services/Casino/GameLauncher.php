@@ -21,7 +21,8 @@ class GameLauncher
 
         $provider = $game->provider;
 
-        if (! $game->is_active || $provider === null || ! $provider->isActive()) {
+        if (! $game->is_active || $provider === null || ! $provider->isActive()
+            || ! app(GameAvailability::class)->isPlayable($game, $user)) {
             abort(404);
         }
 

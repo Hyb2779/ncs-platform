@@ -236,7 +236,8 @@ class GoldPalaceTest extends TestCase
         $this->actingAs($member)
             ->withHeaders(['User-Agent' => 'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Mobile'])
             ->get('/play/'.$game->id)
-            ->assertRedirect('https://gp.test/play');
+            ->assertOk()
+            ->assertSee('https://gp.test/play', false);
 
         Http::assertSent(fn ($request) => str_contains($request->url(), '/v4/user/create')
             && ($request->data()['name'] ?? null) === 'np_'.$member->id);
@@ -274,7 +275,7 @@ class GoldPalaceTest extends TestCase
             $member->language = Language::from($locale);
             $member->save();
 
-            $this->actingAs($member)->get('/play/'.$game->id)->assertRedirect('https://gp.test/play');
+            $this->actingAs($member)->get('/play/'.$game->id)->assertOk()->assertSee('https://gp.test/play', false);
             Http::assertSent(fn ($request) => str_contains($request->url(), '/v4/game/game-url')
                 && (int) ($request->data()['lang'] ?? 0) === $lang
                 && (int) ($request->data()['user_code'] ?? 0) === 409499073);

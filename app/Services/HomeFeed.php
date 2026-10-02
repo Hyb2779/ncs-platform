@@ -38,8 +38,8 @@ class HomeFeed
             'quick' => [
                 'live' => SportFixture::query()->inPlay()->count(),
                 'today' => Bulletin::query()->whereBetween('starts_at', [$now->copy()->startOfDay(), $now->copy()->endOfDay()])->count(),
-                'slots' => CasinoGame::query()->where('is_active', true)->where('is_live', false)->count(),
-                'casino' => CasinoGame::query()->where('is_active', true)->where('is_live', true)->count(),
+                'slots' => app(\App\Services\Casino\GameAvailability::class)->apply(CasinoGame::query()->where('is_active', true)->where('is_live', false), $viewer)->count(),
+                'casino' => app(\App\Services\Casino\GameAvailability::class)->apply(CasinoGame::query()->where('is_active', true)->where('is_live', true), $viewer)->count(),
             ],
             'upcoming' => $candidates->take(5)->map(fn ($f) => $this->match($f, $zone))->values(),
             'popular' => $popular->map(fn ($f) => $this->match($f, $zone))->values(),

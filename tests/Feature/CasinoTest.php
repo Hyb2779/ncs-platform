@@ -199,7 +199,7 @@ class CasinoTest extends TestCase
             'is_popular' => true,
         ]);
 
-        $this->actingAs($member)->get('/play/'.$game->id)->assertRedirect('https://games.example/play');
+        $this->actingAs($member)->get('/play/'.$game->id)->assertOk()->assertSee('https://games.example/play', false);
 
         Http::assertSent(fn ($request) => str_contains($request->url(), '/v4/user/create')
             && ($request->data()['name'] ?? null) === 'np_'.$member->id);

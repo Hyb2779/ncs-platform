@@ -269,6 +269,9 @@ class SiteController extends Controller
             ->where('is_active', true)
             ->whereHas('provider', fn ($query) => $query->where('status', 'active'));
 
+        // Admin engelleri (genel + uyenin superadmini) — oyun ac/kapat
+        app(\App\Services\Casino\GameAvailability::class)->apply($query, auth()->user());
+
         return match ($mode) {
             'live' => $query->where('is_live', true),
             'virtual' => $query->where('category', 'virtual'),

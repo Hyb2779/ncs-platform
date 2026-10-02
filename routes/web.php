@@ -83,6 +83,8 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::put('/casino/games/{game}', [CasinoController::class, 'updateGame'])->name('casino.games.update');
     Route::get('/casino/rounds', [CasinoController::class, 'rounds'])->name('casino.rounds');
     Route::get('/casino/sessions', [CasinoController::class, 'sessions'])->name('casino.sessions');
+    Route::get('/games', [\App\Http\Controllers\Panel\GameControlController::class, 'index'])->name('games.index');
+    Route::post('/games/block', [\App\Http\Controllers\Panel\GameControlController::class, 'toggle'])->name('games.block');
     Route::get('/coupons', [PanelCouponController::class, 'index'])->name('coupons.index');
     Route::get('/coupons/lookup', [PanelCouponController::class, 'lookup'])->name('coupons.lookup');
     Route::get('/coupons/risky', [PanelCouponController::class, 'risky'])->name('coupons.risky');
