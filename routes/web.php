@@ -70,6 +70,7 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::post('/credit-fees/payments', [\App\Http\Controllers\Panel\CreditFeeController::class, 'store'])->name('credit-fees.payments.store');
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::post('/users/{user}/balance', [WalletController::class, 'adjust'])->name('wallets.adjust');

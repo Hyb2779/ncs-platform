@@ -15,6 +15,7 @@ use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use App\Services\Sport\FootballBudget;
 use App\Support\Money;
+use App\Services\Stats\CreditFees;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Blade;
@@ -40,6 +41,7 @@ class PanelDashboard
         $data['currencies'] = array_map(fn (Currency $item): string => $item->value, Currency::cases());
         $data['currency'] = $currency->value;
         $data['ops'] = $this->operations($owner, $budget);
+        $data['creditFees'] = $owner->isRootOwner() ? app(CreditFees::class)->summary() : []; // sadece kök owner görür
         $data['columns'] = [
             ['key' => 'username', 'label' => __('panel.fields.username'), 'priority' => 'primary'],
             ['key' => 'balance', 'label' => __('wallet.balance'), 'priority' => 'primary'],

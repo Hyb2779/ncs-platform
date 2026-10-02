@@ -14,6 +14,9 @@
             <a class="text-sm" href="{{ route('panel.coupons.risky') }}">{{ __('panel.risky_count') }}: <span class="font-numeric">{{ $ops['risky'] }}</span></a>
         </div>
     </x-panel.card>
+    @if (! empty($creditFees))
+        @include('panel.dashboard._credit_fees')
+    @endif
     <div class="mt-4">
         <x-panel.table :columns="$columns" :rows="$rows" />
     </div>
