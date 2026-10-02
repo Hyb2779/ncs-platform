@@ -82,9 +82,15 @@ class User extends Authenticatable
         );
     }
 
+    /** Kök owner (üstü yok) tüm sistemi görür; alt owner (ör. Volkan) diğer roller gibi sadece kendi ağacını. */
+    public function isRootOwner(): bool
+    {
+        return $this->role === UserRole::Owner && $this->parent_id === null;
+    }
+
     public function scopeSubtreeOf(Builder $query, self $actor): Builder
     {
-        if ($actor->role === UserRole::Owner) {
+        if ($actor->isRootOwner()) {
             return $query;
         }
 
@@ -93,7 +99,7 @@ class User extends Authenticatable
 
     public function isInSubtreeOf(self $actor): bool
     {
-        if ($actor->role === UserRole::Owner) {
+        if ($actor->isRootOwner()) {
             return true;
         }
 

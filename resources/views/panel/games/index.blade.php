@@ -90,7 +90,7 @@
                             @if ($gameState) · <span class="text-red-700">{{ $gameLocked ? __('panel.games_global_closed') : __('panel.games_closed') }}</span>@endif
                         </div>
                     </div>
-                    @if ($isOwner)
+                    @if ($canCurate)
                         <form method="POST" action="{{ route('panel.casino.games.update', $game) }}" class="flex items-center gap-2">
                             @csrf
                             @method('PUT')

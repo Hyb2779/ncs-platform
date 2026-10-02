@@ -35,17 +35,44 @@ class GameAvailability
         };
     }
 
-    /** @return array<string, list<string>> genel + (varsa) superadmin engelleri */
-    public function blocked(?int $superadminId): array
+    /**
+     * Kullanicinin bagli oldugu engel katmanlari: yolundaki tum ustler (alt owner, superadmin, bayi) + superadmin_id.
+     * Kok owner engelleri NULL saklanir (genel); alt owner (or. Volkan) kendi id'siyle, sadece kendi agacina uygulanir.
+     *
+     * @return list<int>
+     */
+    public static function scopeIdsFor(?User $user): array
+    {
+        if ($user === null || $user->isRootOwner()) {
+            return [];
+        }
+        $ids = array_map('intval', array_filter(explode('/', (string) $user->path), fn ($v) => $v !== ''));
+        if ($user->superadmin_id !== null) {
+            $ids[] = (int) $user->superadmin_id;
+        }
+        $ids = array_values(array_unique($ids));
+        sort($ids);
+
+        return $ids;
+    }
+
+    /**
+     * @param  int|list<int>|null  $scope  eski cagrilar icin tek superadmin id'si de kabul edilir
+     * @return array<string, list<string>> genel + verilen katmanlarin engelleri
+     */
+    public function blocked(int|array|null $scope): array
     {
         $version = (int) Cache::get(self::VERSION_KEY, 1);
 
-        return Cache::remember("casino:game_blocks:{$version}:".($superadminId ?? 'g'), 600, function () use ($superadminId) {
+        $ids = is_array($scope) ? $scope : ($scope === null ? [] : [$scope]);
+        $key = $ids === [] ? 'g' : implode('-', $ids);
+
+        return Cache::remember("casino:game_blocks:{$version}:".$key, 600, function () use ($ids) {
             $rows = GameBlock::query()
-                ->where(function ($q) use ($superadminId) {
+                ->where(function ($q) use ($ids) {
                     $q->whereNull('superadmin_id');
-                    if ($superadminId !== null) {
-                        $q->orWhere('superadmin_id', $superadminId);
+                    if ($ids !== []) {
+                        $q->orWhereIn('superadmin_id', $ids);
                     }
                 })
                 ->get(['scope', 'value']);
@@ -63,7 +90,7 @@ class GameAvailability
 
     public function apply(Builder $query, ?User $user): Builder
     {
-        $b = $this->blocked(self::superadminIdFor($user));
+        $b = $this->blocked(self::scopeIdsFor($user));
         $t = $query->getModel()->getTable();
 
         if ($b['provider'] !== []) {
@@ -89,7 +116,7 @@ class GameAvailability
 
     public function isPlayable(CasinoGame $game, ?User $user): bool
     {
-        $b = $this->blocked(self::superadminIdFor($user));
+        $b = $this->blocked(self::scopeIdsFor($user));
 
         if (in_array((string) $game->provider?->code, $b['provider'], true)) {
             return false;

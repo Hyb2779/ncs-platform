@@ -31,7 +31,7 @@ class DashboardController extends Controller
         $actor = request()->user();
 
         if ($user->role === UserRole::Superadmin) {
-            abort_unless($actor->role === UserRole::Owner, 404);
+            abort_unless($actor->role === UserRole::Owner && $user->isInSubtreeOf($actor), 404);
 
             return view('panel.dashboard.account', $dashboard->account($actor, $user));
         }

@@ -31,6 +31,7 @@ class PanelDashboard
         $range = $this->range($owner);
         $supers = User::query()
             ->where('role', UserRole::Superadmin)
+            ->subtreeOf($owner) // alt owner (Volkan) sadece kendi süperadminlerini görür
             ->where('currency', $currency)
             ->orderBy('username')
             ->get();
@@ -364,15 +365,19 @@ class PanelDashboard
             'settle' => $format(SportSyncState::query()->where('code', 'settle-check')->first()),
             'live' => $format(SportSyncState::query()->where('code', 'live-sync')->first()),
             'manual' => CouponSelection::query()
+                ->when(! $viewer->isRootOwner(), fn ($query) => $query->whereHas('coupon.user', fn ($user) => $user->subtreeOf($viewer)))
                 ->where('status', 'pending')
                 ->where('kickoff_at', '<=', now()->subMinutes((int) config('sport.settle_after_minutes')))
                 ->count(),
             'approaching' => CouponSelection::query()
+                ->when(! $viewer->isRootOwner(), fn ($query) => $query->whereHas('coupon.user', fn ($user) => $user->subtreeOf($viewer)))
                 ->where('status', 'pending')
                 ->where('kickoff_at', '<=', $approachFrom)
                 ->whereHas('fixture', fn ($query) => $query->whereIn('status', $voidStatuses))
                 ->count(),
-            'risky' => Coupon::query()->where('status', 'pending')->count(),
+            'risky' => Coupon::query()->where('status', 'pending')
+                ->when(! $viewer->isRootOwner(), fn ($query) => $query->whereHas('user', fn ($user) => $user->subtreeOf($viewer)))
+                ->count(),
         ];
     }
 

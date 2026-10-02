@@ -53,23 +53,25 @@ class GameControlController extends Controller
     public function index(Request $request): View
     {
         $user = $this->actor($request);
-        $sid = GameAvailability::superadminIdFor($user);
+        // Kok owner: kendi engelleri NULL (genel). Alt owner / superadmin: kendi id'si; ustlerin engelleri 'global' (kilitli) gorunur.
+        $sid = $user->isRootOwner() ? null : (int) $user->id;
+        $scopeIds = GameAvailability::scopeIdsFor($user);
 
         // durum[scope][value] = 'global' (Owner kapatti) | 'own' (bu superadmin kapatti)
         $state = array_fill_keys(GameAvailability::SCOPES, []);
         GameBlock::query()
-            ->where(function ($q) use ($sid) {
+            ->where(function ($q) use ($scopeIds) {
                 $q->whereNull('superadmin_id');
-                if ($sid !== null) {
-                    $q->orWhere('superadmin_id', $sid);
+                if ($scopeIds !== []) {
+                    $q->orWhereIn('superadmin_id', $scopeIds);
                 }
             })
             ->get(['superadmin_id', 'scope', 'value'])
-            ->each(function ($b) use (&$state) {
+            ->each(function ($b) use (&$state, $sid) {
                 if (! isset($state[$b->scope])) {
                     return;
                 }
-                $kind = $b->superadmin_id === null ? 'global' : 'own';
+                $kind = $sid !== null && $b->superadmin_id !== null && (int) $b->superadmin_id === $sid ? 'own' : 'global';
                 if (($state[$b->scope][$b->value] ?? null) !== 'global') {
                     $state[$b->scope][$b->value] = $kind;
                 }
@@ -111,7 +113,8 @@ class GameControlController extends Controller
         }
 
         return view('panel.games.index', [
-            'isOwner' => $user->role === UserRole::Owner,
+            'isOwner' => $user->isRootOwner(), // genel engeli acip kapatabilir
+            'canCurate' => $user->role === UserRole::Owner, // populer/sira (sistem ayari; alt owner da)
             'state' => $state,
             'providers' => $providers,
             'categories' => $categories,
@@ -140,7 +143,7 @@ class GameControlController extends Controller
         };
         abort_unless($valid === count($values), 422);
 
-        $sid = $user->role === UserRole::Owner ? null : (int) $user->id;
+        $sid = $user->isRootOwner() ? null : (int) $user->id;
         $blocked = (bool) $data['blocked'];
 
         DB::transaction(function () use ($user, $sid, $data, $values, $blocked) {
