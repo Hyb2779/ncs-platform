@@ -174,4 +174,11 @@ return [
     'credit_fee_note' => 'Notiz',
     'credit_fee_record' => 'Zahlung erfassen',
     'credit_fee_saved' => 'Zahlung gespeichert.',
+    'users_tab_members' => 'Benutzer',
+    'users_tab_dealers' => 'Händler',
+    'users_col_dealer' => 'Händler',
+    'users_col_members' => 'Spieler',
+    'users_col_turnover' => 'Umsatz diesen Monat',
+    'users_movements' => 'Bewegungen',
+    'users_players' => 'Spieler',
 ];

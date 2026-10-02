@@ -50,11 +50,14 @@
             'statusUrl' => route('panel.users.status', $user),
             'passwordUrl' => route('panel.users.password', $user),
             'couponsUrl' => $isMember ? route('panel.coupons.index', ['user' => $user->username]) : null,
-            'childrenUrl' => $isMember ? null : route('panel.users.index', ['parent' => $user->id]),
+            'childrenUrl' => $isMember || $user->role === \App\Enums\UserRole::Bayi ? null : route('panel.users.index', ['tab' => 'dealers', 'parent' => $user->id]),
+            'membersUrl' => $isMember ? null : route('panel.users.index', ['tab' => 'members', 'parent' => $user->id]),
+            'movementsUrl' => route('panel.transactions', ['user' => $user->id]),
         ];
         $payloads[$user->id] = $payload;
         $json = e(json_encode($payload));
         $actions = '<a href="'.e($payload['editUrl']).'">'.e(__('panel.edit')).'</a>';
+        $actions .= '<a class="ms-3" href="'.e($payload['movementsUrl']).'">'.e(__('panel.users_movements')).'</a>';
         if ($payload['canAdjust']) {
             $actions .= '<button class="ms-3 font-semibold text-emerald-700" type="button" @click="openAdjust('.$json.', \'add\')">'.e(__('wallet.add')).'</button>';
             $actions .= '<button class="ms-3 font-semibold text-rose-700" type="button" @click="openAdjust('.$json.', \'remove\')">'.e(__('wallet.remove')).'</button>';
@@ -63,7 +66,10 @@
         $rows[] = [
             'username' => $isMember
                 ? $user->username
-                : new \Illuminate\Support\HtmlString('<a href="'.e($payload['childrenUrl']).'">'.e($user->username).'</a>'),
+                : new \Illuminate\Support\HtmlString('<a href="'.e($payload['childrenUrl'] ?? $payload['membersUrl']).'">'.e($user->username).'</a>'),
+            'dealer' => $parentNames[$user->parent_id] ?? __('panel.empty_value'),
+            'members' => (string) ($memberCounts[$user->id] ?? 0),
+            'turnover' => $turnovers[$user->id] ?? __('panel.empty_value'),
             'role' => __('panel.roles.'.$user->role->value),
             'status' => $badge(__('panel.statuses.'.$user->status->value), $tones[$user->status->value] ?? 'warning'),
             'commission' => $user->formattedCommissionRate(),
@@ -75,9 +81,12 @@
     }
     $columns = array_values(array_filter([
         ['key' => 'username', 'label' => __('panel.fields.username')],
-        $isBayi ? null : ['key' => 'role', 'label' => __('panel.fields.role')],
+        $tab === 'members' && ! $isBayi ? ['key' => 'dealer', 'label' => __('panel.users_col_dealer')] : null,
+        $tab === 'dealers' ? ['key' => 'role', 'label' => __('panel.fields.role')] : null,
         ['key' => 'status', 'label' => __('panel.fields.status')],
         ['key' => 'balance', 'label' => __('wallet.balance')],
+        $tab === 'dealers' ? ['key' => 'members', 'label' => __('panel.users_col_members')] : null,
+        $tab === 'dealers' ? ['key' => 'turnover', 'label' => __('panel.users_col_turnover')] : null,
         ['key' => 'commission', 'label' => __('panel.fields.commission_rate'), 'priority' => 'detail'],
         ['key' => 'login', 'label' => __('panel.fields.last_login')],
         ['key' => 'actions', 'label' => __('panel.fields.actions')],
@@ -87,10 +96,17 @@
         ->implode(' · ');
 @endphp
 <div x-data="balanceSheet(@js(['own' => (string) ($viewer->wallets()->where('currency', $viewer->currency)->value('balance') ?? '0'), 'ownBy' => $viewer->wallets()->get()->mapWithKeys(fn ($w) => [$w->currency->value => (string) $w->balance])->all(), 'symbols' => $symbols ?? [], 'unlimited' => $viewer->role === \App\Enums\UserRole::Owner]))">
+    @if ($showTabs)
+        <nav class="mb-3 flex gap-2 overflow-x-auto">
+            @foreach (['members' => __('panel.users_tab_members'), 'dealers' => __('panel.users_tab_dealers')] as $key => $label)
+                <a class="inline-flex h-10 shrink-0 items-center rounded-lg border px-4 text-sm font-medium {{ $tab === $key ? 'border-[#161A22] bg-[#161A22] text-white' : 'border-[#E3E6EB] bg-white' }}" href="{{ route('panel.users.index', ['tab' => $key]) }}">{{ $label }}</a>
+            @endforeach
+        </nav>
+    @endif
     @if (count($breadcrumb) > 1)
         <nav class="mb-3 flex flex-wrap gap-2 text-sm text-start">
             @foreach ($breadcrumb as $crumb)
-                <a class="text-slate-600" href="{{ route('panel.users.index', $crumb->id === auth()->id() ? [] : ['parent' => $crumb->id]) }}">{{ $crumb->username }}</a>
+                <a class="text-slate-600" href="{{ route('panel.users.index', ['tab' => $tab] + ($crumb->id === auth()->id() ? [] : ['parent' => $crumb->id])) }}">{{ $crumb->username }}</a>
                 @if (! $loop->last)
                     <span aria-hidden="true">›</span>
                 @endif
@@ -205,6 +221,8 @@
             <a class="flex h-12 w-full items-center rounded-lg px-3 text-sm font-medium hover:bg-slate-50" :href="current.editUrl">{{ __('panel.edit') }}</a>
             <a class="flex h-12 w-full items-center rounded-lg px-3 text-sm font-medium hover:bg-slate-50" :href="current.couponsUrl" x-show="current.couponsUrl">{{ __('panel.users_ui.coupons') }}</a>
             <a class="flex h-12 w-full items-center rounded-lg px-3 text-sm font-medium hover:bg-slate-50" :href="current.childrenUrl" x-show="current.childrenUrl">{{ __('panel.users_ui.children') }}</a>
+            <a class="flex h-12 w-full items-center rounded-lg px-3 text-sm font-medium hover:bg-slate-50" :href="current.membersUrl" x-show="current.membersUrl">{{ __('panel.users_players') }}</a>
+            <a class="flex h-12 w-full items-center rounded-lg px-3 text-sm font-medium hover:bg-slate-50" :href="current.movementsUrl" x-show="current.movementsUrl">{{ __('panel.users_movements') }}</a>
         </div>
     </div>
 

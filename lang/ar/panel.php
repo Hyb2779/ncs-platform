@@ -174,4 +174,11 @@ return [
     'credit_fee_note' => 'ملاحظة',
     'credit_fee_record' => 'تسجيل تحصيل',
     'credit_fee_saved' => 'تم حفظ التحصيل.',
+    'users_tab_members' => 'المستخدمون',
+    'users_tab_dealers' => 'الوكلاء',
+    'users_col_dealer' => 'الوكيل',
+    'users_col_members' => 'اللاعبون',
+    'users_col_turnover' => 'حجم هذا الشهر',
+    'users_movements' => 'الحركات',
+    'users_players' => 'اللاعبون',
 ];

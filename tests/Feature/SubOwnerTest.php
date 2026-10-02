@@ -46,8 +46,10 @@ class SubOwnerTest extends TestCase
 
         $this->actingAs($sub)->get('http://panel.test/panel')->assertOk()
             ->assertSee('volkan_sa')->assertDontSee('yusuf_sa');
+        $this->actingAs($sub)->get('http://panel.test/panel/users?tab=dealers')->assertOk()
+            ->assertSee('volkan_sa')->assertDontSee('yusuf_sa')->assertDontSee('yusuf_bayi');
         $this->actingAs($sub)->get('http://panel.test/panel/users')->assertOk()
-            ->assertSee('volkan_sa')->assertDontSee('yusuf_sa');
+            ->assertSee('volkan_uye')->assertDontSee('yusuf_uye');
         $this->actingAs($sub)->get('http://panel.test/panel/network/'.$rootSa->id)->assertNotFound();
         $this->actingAs($sub)->get('http://panel.test/panel/network/'.$subSa->id)->assertOk();
 

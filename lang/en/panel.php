@@ -174,4 +174,11 @@ return [
     'credit_fee_note' => 'Note',
     'credit_fee_record' => 'Record payment',
     'credit_fee_saved' => 'Payment recorded.',
+    'users_tab_members' => 'Users',
+    'users_tab_dealers' => 'Dealers',
+    'users_col_dealer' => 'Dealer',
+    'users_col_members' => 'Players',
+    'users_col_turnover' => 'Turnover this month',
+    'users_movements' => 'Transactions',
+    'users_players' => 'Players',
 ];

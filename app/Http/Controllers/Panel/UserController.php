@@ -25,6 +25,15 @@ class UserController extends Controller
             $parent = $hierarchy->findInSubtree($actor, (int) $request->query('parent'));
         }
 
+        // Faz 4: Kullanicilar (sadece oyuncular) / Bayiler (superadmin + bayi; kok owner alt owner'i da gorur).
+        $showTabs = $actor->role !== \App\Enums\UserRole::Bayi;
+        $tab = $showTabs && $request->query('tab') === 'dealers' ? 'dealers' : 'members';
+        $dealerRoles = match (true) {
+            $actor->isRootOwner() => ['owner', 'superadmin', 'bayi'],
+            $actor->role === \App\Enums\UserRole::Owner => ['superadmin', 'bayi'],
+            default => ['bayi'],
+        };
+
         $balance = \App\Models\Wallet::query()
             ->select('balance')
             ->whereColumn('wallets.user_id', 'users.id')
@@ -33,7 +42,10 @@ class UserController extends Controller
 
         $base = User::query()
             ->subtreeOf($actor)
-            ->where('parent_id', $parent->id)
+            ->where('users.path', 'like', $parent->path.'%')
+            ->where('users.id', '!=', $parent->id)
+            ->when($tab === 'members', fn ($query) => $query->where('role', 'uye'))
+            ->when($tab === 'dealers', fn ($query) => $query->whereIn('role', $dealerRoles))
             ->when($request->filled('q'), function ($query) use ($request) {
                 $query->where('username', 'like', '%'.$request->string('q').'%');
             })
@@ -73,18 +85,73 @@ class UserController extends Controller
             ->withCount('children')
             ->when($sort === 'balance', fn ($query) => $query->orderByDesc(clone $balance))
             ->when($sort === 'login', fn ($query) => $query->orderByRaw('last_login_at IS NULL')->orderByDesc('last_login_at'))
+            ->when($tab === 'dealers' && ! $request->filled('sort'), fn ($query) => $query->orderBy('path'))
             ->orderBy('username')
             ->paginate(50)
             ->withQueryString();
 
+        [$parentNames, $memberCounts, $turnovers] = $this->extras($actor, $tab, $users->getCollection());
+        $child = $actor->role->childRole();
+        $createTab = ($child instanceof \BackedEnum ? $child->value : $child) === 'uye' ? 'members' : 'dealers';
+
         return view('panel.users.index', [
             'parent' => $parent,
+            'tab' => $tab,
+            'showTabs' => $showTabs,
+            'parentNames' => $parentNames,
+            'memberCounts' => $memberCounts,
+            'turnovers' => $turnovers,
             'users' => $users,
             'summary' => $summary,
             'sort' => $sort,
             'breadcrumb' => $this->breadcrumb($actor, $parent),
-            'canCreate' => $actor->role->childRole() !== null && ($parent->id === $actor->id || $parent->role->childRole() !== null) && $parent->role->childRole() !== null && $this->actorCreatesHere($actor, $parent),
+            'canCreate' => $actor->role->childRole() !== null && ($parent->id === $actor->id || $parent->role->childRole() !== null) && $parent->role->childRole() !== null && $this->actorCreatesHere($actor, $parent) && $tab === $createTab,
         ]);
+    }
+
+    /**
+     * Sayfadaki satirlar icin: oyuncunun bayi adi; bayilerde oyuncu sayisi ve bu ayin cirosu (daily_stats, para birimi bazinda).
+     *
+     * @return array{0: \Illuminate\Support\Collection, 1: array<int, int>, 2: array<int, string>}
+     */
+    private function extras(User $actor, string $tab, \Illuminate\Support\Collection $rows): array
+    {
+        $parentNames = User::query()->whereIn('id', $rows->pluck('parent_id')->filter()->unique()->values()->all() ?: [0])->pluck('username', 'id');
+        $memberCounts = [];
+        $turnovers = [];
+        if ($tab !== 'dealers' || $rows->isEmpty()) {
+            return [$parentNames, $memberCounts, $turnovers];
+        }
+
+        $statIds = [];
+        foreach ($rows as $row) {
+            $memberCounts[$row->id] = User::query()->where('role', 'uye')->where('path', 'like', $row->path.'%')->count();
+            // Alt owner'in kendi daily_stats satiri yok: altindaki superadminlerin toplami
+            $statIds[$row->id] = $row->role === \App\Enums\UserRole::Owner
+                ? User::query()->where('parent_id', $row->id)->where('role', 'superadmin')->pluck('id')->all()
+                : [$row->id];
+        }
+        $from = now($actor->timezone ?: 'Europe/Istanbul')->startOfMonth()->toDateString();
+        $to = now($actor->timezone ?: 'Europe/Istanbul')->toDateString();
+        $sums = \Illuminate\Support\Facades\DB::table('daily_stats')
+            ->whereIn('user_id', array_merge(...array_values($statIds)) ?: [0])
+            ->whereBetween('stat_date', [$from, $to])
+            ->groupBy('user_id', 'currency')
+            ->selectRaw('user_id, currency, SUM(turnover) AS total')
+            ->get();
+        foreach ($rows as $row) {
+            $byCurrency = [];
+            foreach ($sums as $sum) {
+                if (in_array((int) $sum->user_id, $statIds[$row->id], true)) {
+                    $byCurrency[$sum->currency] = bcadd($byCurrency[$sum->currency] ?? '0', (string) $sum->total, 2);
+                }
+            }
+            $turnovers[$row->id] = $byCurrency === []
+                ? \App\Support\Money::format('0', $row->currency)
+                : collect($byCurrency)->map(fn ($total, $cur) => \App\Support\Money::format($total, \App\Enums\Currency::from($cur)))->implode(' · ');
+        }
+
+        return [$parentNames, $memberCounts, $turnovers];
     }
 
     public function toggleStatus(Request $request, User $user, HierarchyService $hierarchy): RedirectResponse
@@ -172,7 +239,7 @@ class UserController extends Controller
         }
 
         return redirect()
-            ->route('panel.users.index', ['parent' => $parent->id === $actor->id ? null : $parent->id])
+            ->route('panel.users.index', ['tab' => $this->tabFor($actor->role->childRole()), 'parent' => $parent->id === $actor->id ? null : $parent->id])
             ->with('status', __('panel.user_created'));
     }
 
@@ -205,8 +272,14 @@ class UserController extends Controller
         }
 
         return redirect()
-            ->route('panel.users.index', ['parent' => $target->parent_id === $actor->id ? null : $target->parent_id])
+            ->route('panel.users.index', ['tab' => $this->tabFor($target->role), 'parent' => $target->parent_id === $actor->id ? null : $target->parent_id])
             ->with('status', __('panel.user_updated'));
+    }
+
+    /** Oyuncu → Kullanıcılar sekmesi, diğer roller → Bayiler sekmesi. */
+    private function tabFor(mixed $role): string
+    {
+        return ($role instanceof \BackedEnum ? $role->value : $role) === 'uye' ? 'members' : 'dealers';
     }
 
     private function actorCreatesHere(User $actor, User $parent): bool

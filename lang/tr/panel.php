@@ -174,4 +174,11 @@ return [
     'credit_fee_note' => 'Not',
     'credit_fee_record' => 'Tahsilat gir',
     'credit_fee_saved' => 'Tahsilat kaydedildi.',
+    'users_tab_members' => 'Kullanıcılar',
+    'users_tab_dealers' => 'Bayiler',
+    'users_col_dealer' => 'Bayi',
+    'users_col_members' => 'Oyuncu',
+    'users_col_turnover' => 'Bu ay ciro',
+    'users_movements' => 'Hareketler',
+    'users_players' => 'Oyuncuları',
 ];
