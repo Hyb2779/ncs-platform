@@ -46,6 +46,8 @@
             $tableRows[] = [
                 'when' => $row['when'],
                 'type' => $row['type'],
+                'detail' => $row['detail'],
+                'by' => $row['by'],
                 'amount' => new \Illuminate\Support\HtmlString('<span class="'.e($row['tone']).'">'.$amount.'</span>'),
                 'parties' => $row['parties'],
                 'before' => $row['before'],
@@ -65,8 +67,10 @@
         :columns="[
             ['key' => 'when', 'label' => __('wallet.when')],
             ['key' => 'type', 'label' => __('wallet.type')],
+            ['key' => 'detail', 'label' => __('wallet.detail')],
             ['key' => 'amount', 'label' => __('wallet.amount')],
             ['key' => 'parties', 'label' => __('wallet.parties'), 'priority' => 'detail'],
+            ['key' => 'by', 'label' => __('wallet.by'), 'priority' => 'detail'],
             ['key' => 'before', 'label' => __('wallet.balance_before'), 'priority' => 'detail'],
             ['key' => 'after', 'label' => __('wallet.balance_after'), 'priority' => 'detail'],
             ['key' => 'note', 'label' => __('wallet.note'), 'priority' => 'detail'],

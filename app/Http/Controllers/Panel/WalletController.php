@@ -92,7 +92,7 @@ class WalletController extends Controller
             $query->where('created_at', '<=', Carbon::parse($request->query('to'), $actor->timezone)->endOfDay()->utc());
         }
 
-        $rows = $this->withTransferPartners($query->get());
+        $rows = $this->withGameNames($this->withTransferPartners($query->get()));
         $entries = $this->ledgerEntries($rows, $actor, $focusedId);
 
         return view('panel.wallets.transactions', [
@@ -102,6 +102,36 @@ class WalletController extends Controller
             'ownAccount' => $ownAccount,
             'selectedUser' => $request->query('user'),
         ]);
+    }
+
+    /**
+     * 03.10 oncesi casino satirlarinda note bos: oyun adini game_rounds (provider + provider_transaction_id
+     * = idempotency anahtari) uzerinden sadece EKRAN icin doldurur, deftere yazmaz.
+     *
+     * @param  Collection<int, WalletTransaction>  $rows
+     * @return Collection<int, WalletTransaction>
+     */
+    private function withGameNames($rows)
+    {
+        $keys = $rows->filter(fn (WalletTransaction $row) => ($row->note === null || $row->note === '') && str_contains((string) $row->idempotency_key, ':')
+            && ! in_array($row->type, [WalletTransactionType::TransferIn, WalletTransactionType::TransferOut], true))
+            ->pluck('idempotency_key');
+        if ($keys->isEmpty()) {
+            return $rows;
+        }
+        $txIds = $keys->map(fn ($key) => substr($key, strpos($key, ':') + 1))->unique()->values()->all();
+        $names = \Illuminate\Support\Facades\DB::table('game_rounds')
+            ->join('casino_games', 'casino_games.id', '=', 'game_rounds.game_id')
+            ->whereIn('game_rounds.provider_transaction_id', $txIds)
+            ->get(['game_rounds.provider', 'game_rounds.provider_transaction_id', 'casino_games.name'])
+            ->mapWithKeys(fn ($r) => [$r->provider.':'.$r->provider_transaction_id => $r->name]);
+        foreach ($rows as $row) {
+            if (($row->note === null || $row->note === '') && isset($names[$row->idempotency_key])) {
+                $row->setAttribute('note', $names[$row->idempotency_key]);
+            }
+        }
+
+        return $rows;
     }
 
     /**
@@ -188,6 +218,8 @@ class WalletController extends Controller
                 : null,
             'note' => ($out->note ?: $in->note) ?: __('panel.empty_value'),
             'ip' => ($out->ip ?: $in->ip) ?: __('panel.empty_value'),
+            'detail' => $subject->type === WalletTransactionType::TransferIn ? __('wallet.detail_load') : __('wallet.detail_unload'),
+            'by' => $this->visibleName($out->creator ?? $in->creator, $actor),
         ];
     }
 
@@ -215,6 +247,8 @@ class WalletController extends Controller
             'movement' => null,
             'note' => $row->note ?: __('panel.empty_value'),
             'ip' => $row->ip ?: __('panel.empty_value'),
+            'detail' => \App\Support\LedgerDetail::for($row) ?: __('panel.empty_value'),
+            'by' => $this->visibleName($row->creator, $actor),
         ];
     }
 

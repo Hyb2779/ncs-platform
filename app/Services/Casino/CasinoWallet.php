@@ -118,11 +118,12 @@ class CasinoWallet
 
         $product = ($game?->is_live ?? false) ? WalletProduct::LiveCasino : WalletProduct::Slot;
         $wallet = $user->wallet()->first();
+        $note = $game?->name !== null ? mb_substr((string) $game->name, 0, 120) : null; // hareket ekraninda oyun adi
 
         try {
             $transaction = $debit
-                ? $this->wallets->debit($wallet, $amount, WalletTransactionType::Bet, $product, $key, $roundId, null, null, $user, $ip)
-                : $this->wallets->credit($wallet, $amount, WalletTransactionType::Win, $product, $key, $roundId, null, null, $user, $ip);
+                ? $this->wallets->debit($wallet, $amount, WalletTransactionType::Bet, $product, $key, $roundId, null, $note, $user, $ip)
+                : $this->wallets->credit($wallet, $amount, WalletTransactionType::Win, $product, $key, $roundId, null, $note, $user, $ip);
         } catch (WalletException $exception) {
             if ($exception->translationKey === 'wallet.insufficient_balance') {
                 throw new InsufficientFunds();
@@ -158,7 +159,7 @@ class CasinoWallet
     {
         $key = $provider.':'.$transactionId;
         $product = ($game?->is_live ?? false) ? WalletProduct::LiveCasino : WalletProduct::Slot;
-        $transaction = $this->wallets->credit($user->wallet()->first(), $amount, $type, $product, $key, null, null, null, $user, $ip);
+        $transaction = $this->wallets->credit($user->wallet()->first(), $amount, $type, $product, $key, null, null, $game?->name !== null ? mb_substr((string) $game->name, 0, 120) : null, $user, $ip);
 
         GameRound::query()->create([
             'provider' => $provider,

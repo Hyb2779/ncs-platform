@@ -10,6 +10,10 @@ class ActivityLogger
 {
     public function write(?User $actor, string $action, ?User $target = null, array $payload = []): void
     {
+        // Giris loglarinda cihaz bilgisi (Giris logu ekrani)
+        if (str_starts_with($action, 'auth.') && ! isset($payload['ua']) && Request::userAgent()) {
+            $payload['ua'] = mb_substr((string) Request::userAgent(), 0, 255);
+        }
         ActivityLog::query()->create([
             'actor_id' => $actor?->id,
             'action' => $action,

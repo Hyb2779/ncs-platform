@@ -77,4 +77,10 @@ return [
     'overdraft_help_1' => 'Wird das Ergebnis eines gewonnenen Scheins nachträglich auf verloren korrigiert, wird der ausgezahlte Gewinn vom Mitglied zurückgeholt. Hat das Mitglied das Geld bereits ausgegeben, wird das vorhandene Guthaben eingezogen und der Rest als Korrekturschuld erfasst; der Kontostand wird um diesen Betrag negativ.',
     'overdraft_help_2' => 'Jede spätere Gutschrift an das Mitglied (Einzahlung oder Gewinn) tilgt zuerst diese Schuld. Diese Seite listet Mitglieder mit offener Schuld und die Beträge.',
     'overdraft_help_3' => 'Da Sportwetten derzeit in Wegas Sport abgerechnet werden, bleibt diese Seite normalerweise leer.',
+    'detail' => 'Details',
+    'by' => 'Ausgeführt von',
+    'detail_coupon' => 'Schein #:no',
+    'detail_round' => 'Runde :round',
+    'detail_load' => 'Aufladung',
+    'detail_unload' => 'Rücknahme',
 ];
