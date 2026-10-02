@@ -1,7 +1,81 @@
 # NCS Platform — Sistem ve Durum Dosyası
 
-Güncelleme: 02.10.2026 gece — canlıda (açılış öncesi test hesapları var). Bugün: **Oyun Yönetimi (Faz 1)** bitti ve canlıda (`a4243bd`): `game_blocks` ile Owner genel + süperadmin ağacı bazında oyun aç/kapat; launch testleri iframe oyun ekranına uyarlandı (212 test). Blackeagle/Volkan isteklerine göre **Faz 2–7 planı** çıkarıldı. **Faz 2 ("Siteyi göster" kaldırıldı) tamam** (`4380d5b`); sıradaki **Faz 3**. **Bölüm 0d, 0c, 0b ve 0 bu dosyanın geri kalanından önce gelir; çelişen yerde en yeni bölüm geçerlidir.**
+Güncelleme: 03.10.2026 — Faz 2, 3, 4, 5, alt owner (Volkan) + %12 kredi ücreti canlıda (Bölüm 0f, 0e). Önceki: 02.10.2026 gece — canlıda (açılış öncesi test hesapları var). Bugün: **Oyun Yönetimi (Faz 1)** bitti ve canlıda (`a4243bd`): `game_blocks` ile Owner genel + süperadmin ağacı bazında oyun aç/kapat; launch testleri iframe oyun ekranına uyarlandı (212 test). Blackeagle/Volkan isteklerine göre **Faz 2–7 planı** çıkarıldı. **Faz 2 ("Siteyi göster" kaldırıldı) tamam** (`4380d5b`); sıradaki **Faz 3**. **Bölüm 0f, 0e, 0d, 0c, 0b ve 0 bu dosyanın geri kalanından önce gelir; çelişen yerde en yeni bölüm geçerlidir.**
 Bu dosya yeni sohbete başlarken bağlam olarak verilir. Gizli bilgi (token, şifre, API anahtarı) içermez; hepsi sunucudaki `.env` dosyasında.
+
+---
+
+## 0f. 03.10.2026 (devam) — Faz 4 ve Faz 5 bitti (0e'den de yeni)
+
+### Faz 4 — Kullanıcılar / Bayiler sekmeleri (`e7fd8a7`)
+- `UserController::index` artık **ağaç gezgini değil, sekmeli**: `?tab=members` (varsayılan) = görüntüleyenin **tüm ağacındaki oyuncular** (+ **Bayi** kolonu); `?tab=dealers` = kök owner: alt owner + süperadmin + bayi, owner/alt owner: süperadmin + bayi, süperadmin: bayi. Bayi rolünde sekme yok (hep oyuncular). `?parent=<id>` seçili hesabın **alt ağacına** süzer (eskiden sadece doğrudan alt).
+- Bayiler sekmesi: **Rol** kolonu, **Oyuncu** sayısı (`path` öneki), **Bu ay ciro** (`daily_stats.turnover`, ay başı → bugün, görüntüleyenin saat dilimi, para birimi bazında; alt owner satırında altındaki süperadminlerin toplamı), varsayılan sıra `path` (her süperadmin altında kendi bayileri). Ek veriler `UserController::extras()` ile sadece sayfadaki ≤50 satır için.
+- Satır işlemleri: her satırda **Hareketler** (`panel.transactions?user=<id>`); bayi satırında **Oyuncuları**, süperadmin/alt owner satırında **Alt kullanıcılar** (kendi bayileri). Masaüstü + mobil işlem paneli (`membersUrl`, `movementsUrl`).
+- "+ Yeni" sadece açılacak rolün sekmesinde; kayıt/düzenleme sonrası doğru sekmeye dönülür (`tabFor()`).
+- Ayrı "Bayi hareketleri" menüsü yoktu; menüdeki öğe genel hesap defteri (`ledgerLabel`), kaldı.
+- Test: `UsersTabsTest` (6); `SubOwnerTest` sekmelere göre güncellendi.
+
+### Faz 5 — rapor detay + loglar (`234de05`)
+- **Hareket ekranı:** yeni **Açıklama** kolonu (`App\Support\LedgerDetail`): spor → "Kupon #742263" (`reference tipo:<id>`), casino → "Oyun adı · Round <ilk 12>", transfer → "Yükleme / Geri alma"; **İşlemi yapan** kolonu (`created_by`).
+- **Casino satırlarında oyun adı:** `CasinoWallet` bahis/kazanç/iade satırlarının `note`'una oyun adını yazar (03.10'dan itibaren). Geçmiş kayıtlar: `WalletController::withGameNames()` `game_rounds` (`provider:provider_transaction_id` = idempotency anahtarı) + `casino_games` ile **sadece ekranda** doldurur (482/482 round'da `game_id` var).
+- **İşlem logu** `GET /panel/logs` (`panel.logs.index`) ve **Giriş logu** `GET /panel/logs/logins` (`panel.logs.logins`), `LogController`, menüde Oyun Yönetimi'nin altında. Owner + süperadmin; bayi 404. Kök owner her şeyi; diğerleri kendi ağacındaki kişilerin yaptığı/kişilere yapılan kayıtları. Kullanıcı adı bilinmeyen başarısız girişler sadece kök owner'da (`ad (?)`). `wallet.posted` varsayılan gizli, filtreyle açılır. Filtreler: kullanıcı adı, işlem türü, tarih; 50'şer sayfa (kendi basit sayfalama).
+- **Cihaz:** `ActivityLogger` `auth.*` loglarına `ua` ekler (03.10'dan itibaren); ekranda "Android · Chrome" gibi.
+- Loglanan yönetim işlemleri: `user.created/updated/status_changed/password_reset/role_migrated`, `wallet.transferred`, `casino.games_blocked/unblocked`, `credit_fee.payment`, `auth.login/login_failed` (etiketleri `panel.log_action_*`).
+- Test: `LedgerAndLogsTest` (4).
+
+### Son durum
+- Testler **233**, `lang:check` **661**. Commit'ler: `e7fd8a7` Faz 4, `234de05` Faz 5. CSS her UI değişikliğinden sonra `npm run build` ile derlendi.
+- **Ders (tekrar):** test komutlarının hepsinde **`config:clear` + `route:clear`** birlikte; Komut 94'te önbellek kurulduktan sonra sadece `route:clear` yapılınca 4 yeni test TestCase korumasına takıldı.
+- Sıradaki: **Faz 6** (dönem seçmeli raporlar, bayi/üye ve sağlayıcı kırılımı) veya açık işler (RomaSpin `amount` doğrulaması, GoldPalace `wegas_try`, anahtar yenileme, günlük yedek, `GoLiveCommand` listesine `game_blocks` + `credit_fee_payments`).
+
+---
+
+## 0e. 03.10.2026 güncellemesi — önce bunu oku (0d, 0c, 0b ve 0'dan da yeni)
+
+### Özet
+Faz 2 ✅ (`4380d5b`), Faz 3 ✅ (`7d3b016`), **alt owner yapısı** (`5a2d885`) + canlı taşıma, **alt owner kredi ücreti** (`6320784`). Testler **223**, `lang:check` **619**. Sıradaki: **Faz 4**.
+
+### Faz 3 — hesap formu (`7d3b016`)
+- Formdan **saat dilimi kalktı**; süperadmin/bayi hep `Europe/Istanbul` (`HierarchyService::inheritedLocale` sabit, üye bayiden miras). Owner'ın açtığı hesap da Istanbul (owner'ın kendi saat dilimi miras alınmaz).
+- **Komisyon zorunlu değil** (`StoreUserRequest`/`UpdateUserRequest` `nullable`); boş = 0 (`HierarchyService` create ve update `?? 0`).
+- **Şifre en az 4 karakter** (panel oluşturma/düzenleme/sıfırlama + sitede oyuncunun kendi şifresi; `password_min` 4 dil).
+- Ölü çeviriler silindi: `commission_required`, `timezone_required`, `timezone_invalid`.
+- Test: `PanelUserFormTest` (3). `HierarchyTest`/`MultiCurrencySuperadminTest` formdan Berlin gönderip Istanbul bekler.
+- **Volkan'ın "kullanıcı açamıyorum" teşhisi:** kod hatası değil. panel91'deki gibi Dealer → **Shop** → User kurmaya çalıştı; `shop` bayinin altında **üye** oldu, panele `wrong_gate` ile giremedi. **Karar (Yusuf): Wegas'ta Shop seviyesi yok.** Volkan alt owner yapılınca zincir Volkan(owner) → dealer(süperadmin) → shop(bayi) → oyuncu oldu.
+
+### Alt owner yapısı (`5a2d885`)
+- **Kök owner** = `role=owner` ve `parent_id IS NULL` (`User::isRootOwner()`): her şeyi görür. **Alt owner** = `role=owner`, üstü kök owner: owner yetkileri (süperadmin açma, eksi bakiyeyle kredi üretme, sistem ayarları: spor ayarları, oyun popüler/sıra, sağlayıcılar) **ama sadece kendi ağacını görür**.
+- Görünürlük `path` tabanlı: `scopeSubtreeOf` / `isInSubtreeOf` artık sadece kök owner'a filtresiz geçiş verir. Bunları kullanan her ekran (kullanıcılar, kuponlar/riskli kuponlar, bakiye, spor uyarıları) otomatik filtreli.
+- Ayrıca filtrelenenler: owner dashboard süperadmin listesi (`PanelDashboard::owner` `subtreeOf`), operasyon kutusu `manual/approaching/risky` (sadece alt owner için `whereHas`), `DashboardController::show` süperadmin detayı (`isInSubtreeOf`, açıktı).
+- **Oyun engelleri 3 katman:** `GameAvailability::scopeIdsFor($user)` = yolundaki tüm id'ler + `superadmin_id`; `blocked()` = `NULL` (kök owner, genel) + bu id'lerin kayıtları. Alt owner'ın engeli **kendi id'siyle** yazılır, sadece kendi ağacına uygulanır. Panelde `isOwner` = kök owner (genel engel, kilit), `canCurate` = owner rolü (popüler/sıra). Üst katmanın engeli "Yönetim tarafından kapalı" (kilitli).
+- Kasıtlı ortak bırakılanlar: Football API bütçesi/senkron saatleri, sistem spor uyarıları (`user_id NULL`), **spor limitleri** (owner limiti `user_id NULL` = genel; alt owner değiştirirse herkese uygulanır).
+- Test: `SubOwnerTest` (4).
+
+### Canlı taşıma (03.10)
+- Yedek: `/root/bak/pre_subowner_2026-10-02_2114.sql` (`users, wallets, game_blocks, daily_stats`). DB adı **`ncsvip`**.
+- **Volkan #1000 → owner** (alt owner, `parent 1`, yol `/1/1000/`, 3 cüzdanda `allow_negative`), **dealer #1004 → süperadmin** (`superadmin_id 1004`, TRY/USD/EUR), **shop #1005 → bayi** (`superadmin_id 1004`). Owner #1 ve Volkan `UTC` → `Europe/Istanbul`. Loglar: `user.role_migrated`. Bakiyeler 0'dı; `wallet:verify ok`, `sport:stats-backfill` çalıştı.
+- Doğrulama: Volkan görüyor: Volkan, dealer, shop. Kök owner hepsini.
+- Volkan'a iletilecek: Wegas'ta Shop yok; Volkan → süperadmin (dealer) → bayi (shop) → oyuncu. Bayi panele `panel.wegas11.com`, oyuncu sadece `wegas11.com`.
+
+### Alt owner kredi ücreti (`6320784`)
+- **Kural (Yusuf):** Volkan'ın **sadece doğrudan süperadminlerine verdiği** kredi (brüt; geri almalar düşülmez) × **%12**, para birimi bazında (kur çevrilmez).
+- Migration `2026_10_03_000001_credit_fees`: `users.credit_fee_rate` (decimal 5,2, NULL = ücret yok; Volkan = 12) + tablo `credit_fee_payments` (`sub_owner_id`, `currency`, `amount`, `note`, `created_by`, `created_at`; FK RESTRICT).
+- `App\Services\Stats\CreditFees::summary()`: alt owner'ın `transfer_out` satırları, `counterparty_user_id` doğrudan süperadminleri; bcmath, yarım yukarı 2 basamak; kalan = ücret − tahsil.
+- Kök owner dashboard'unda kart (`_credit_fees.blade.php`, ops kartının altı) + tahsilat formu `POST /panel/credit-fees/payments` (`panel.credit-fees.payments.store`, `CreditFeeController`, sadece kök owner; tutar `1.000,50`/`1000.50`/`1.000`; log `credit_fee.payment`). Alt owner kartı görmez.
+- Volkan'ın geçmiş `transfer_out`'u 0'dı; hesap temiz başladı.
+- Test: `CreditFeeTest` (4). Yeni Tailwind sınıfları için **`npm run build`** yapıldı (CSS Vite ile derleniyor, `public/build` git'te değil).
+- **Not:** `GoLiveCommand` sıfırlama listesine `credit_fee_payments` de eklenmeli (FK `users`'a RESTRICT), `game_blocks` gibi.
+
+### Yan bulgular
+- 30.09'da üye #1003 için 4 kez `romaspin launch failed: 3` (RomaSpin hata kodu 3 ne, sorulacak).
+- 02.10 sabahı `demo34` (#1003) gerçek oyun oynadı (bet −20/−40, win +40/+80, callback IP 51.118.62.113) → açık iş #3'teki RomaSpin `amount` işareti doğrulaması için `casino.romaspin.callback` logları hazır.
+
+### Dersler (bu oturum)
+- **Testten önce her zaman `config:clear`**: önbellek açıkken koşulan paket 222 testte TestCase korumasına takıldı (canlı DB'ye dokunmadı).
+- `activity_logs`'ta `updated_at` yok; elle insert'te sadece `created_at`.
+- Tarayıcı aynı adlı indirmeleri `ad (12).md` yapar; PowerShell'de parantezli ad **tırnak içinde** (`scp "ncs-platform-durum (12).md" ...`). PowerShell varsayılan dizini `system32`; önce `cd $HOME\Downloads`.
+- Sunucudaki `ncs-platform-durum.md` 25.09'da kalmıştı; güncel sürüm Yusuf'ta. Dosya güncellenince sunucuya da atılıp commit'lenmeli.
+- Komut iki kez yapıştırılırsa: tek-eşleşme kilitli Python düzenlemeleri ikinci çalışmada hiçbir şey yazmadan durur (zarar yok).
 
 ---
 
@@ -45,10 +119,10 @@ Bu dosya yeni sohbete başlarken bağlam olarak verilir. Gizli bilgi (token, şi
 |---|---|---|
 | 1 | Oyun aç/kapat (`game_blocks`) | ✅ `a4243bd` |
 | 2 | "Siteyi göster" kaldırıldı: `layouts/panel.blade.php`'deki tek buton (mobilde ikon olarak görünen de aynısı) + `view_site` çevirisi (4 dil). `Domains::siteUrl()` artık çağrılmıyor ama duruyor. `DomainSeparationTest` panelde site linki **olmamasını** doğrular. | ✅ `4380d5b` |
-| 3 | **Admin/bayi açma formu:** saat dilimi alanı formdan kalkar, kayıtta otomatik `Europe/Istanbul` (**kolon kalır**: `daily_stats.stat_date` süperadminin saat dilimine bağlı); komisyon zorunlu değil (Owner→Süperadmin ve Süperadmin→Bayi; boş = 0, raporlar boşu 0 sayar). Aynı akışta Volkan'ın "kullanıcı açamıyorum" hatası loglardan teşhis + test. İlgili: `_fields.blade.php`, `StoreUserRequest`, `UpdateUserRequest`, `HierarchyService::create/inheritedLocale`. | **SIRADAKİ** |
-| 4 | **Kullanıcılar / Bayiler sekmeleri:** Kullanıcılar = sadece üye (mevcut filtre + bakiye paneli); Bayiler = Owner için süperadmin + bayiler, süperadmin için kendi bayileri (bayi rolünde sekme yok): bakiye, üye sayısı, dönem cirosu, durum; satırdan **Bayi Hareketleri** (mevcut hesap hareketleri o bayiye filtreli; ayrı "Bayi hareketleri" menüsü buraya taşınır). Rol etiketleri netleşir. | Sırada |
-| 5 | **Rapor detay + loglar (Blackeagle: en önemlisi):** oyuncu/bayi hareketlerinde açıklama şu an "—" (`423,75 ₺ −12,00 ₺ …`); her satırda **işlem türü** (spor kuponu / casino bahis / casino kazanç / iade / yükleme / çekim / düzeltme), **referans** (kupon no veya oyun adı + round), **işlemi yapan** (hangi admin/bayi). **İşlem logu ekranı** (`activity_logs` zaten tüm yönetim işlemlerini yazıyor, ekran yok). **Giriş logu** (kim, ne zaman, IP, cihaz; tablo var mı kontrol). | Sırada |
-| 6 | Raporlar: dönem seçmeli, bayi/üye bazında spor/casino ve sağlayıcı kırılımlı ciro/kazanç/GGR | Sonra |
+| 3 | **Admin/bayi açma formu:** saat dilimi alanı formdan kalkar, kayıtta otomatik `Europe/Istanbul` (**kolon kalır**: `daily_stats.stat_date` süperadminin saat dilimine bağlı); komisyon zorunlu değil (Owner→Süperadmin ve Süperadmin→Bayi; boş = 0, raporlar boşu 0 sayar). Aynı akışta Volkan'ın "kullanıcı açamıyorum" hatası loglardan teşhis + test. İlgili: `_fields.blade.php`, `StoreUserRequest`, `UpdateUserRequest`, `HierarchyService::create/inheritedLocale`. **Sonuç:** Volkan'ın sorunu Shop seviyesiydi (0e). | ✅ `7d3b016` |
+| 4 | **Kullanıcılar / Bayiler sekmeleri:** Kullanıcılar = sadece üye (mevcut filtre + bakiye paneli); Bayiler = Owner için süperadmin + bayiler, süperadmin için kendi bayileri (bayi rolünde sekme yok): bakiye, üye sayısı, dönem cirosu, durum; satırdan **Bayi Hareketleri** (mevcut hesap hareketleri o bayiye filtreli; ayrı "Bayi hareketleri" menüsü buraya taşınır). Rol etiketleri netleşir. Alt owner (Volkan) için Bayiler sekmesi kendi süperadmin + bayileri. | ✅ `e7fd8a7` |
+| 5 | **Rapor detay + loglar (Blackeagle: en önemlisi):** oyuncu/bayi hareketlerinde açıklama şu an "—" (`423,75 ₺ −12,00 ₺ …`); her satırda **işlem türü** (spor kuponu / casino bahis / casino kazanç / iade / yükleme / çekim / düzeltme), **referans** (kupon no veya oyun adı + round), **işlemi yapan** (hangi admin/bayi). **İşlem logu ekranı** (`activity_logs` zaten tüm yönetim işlemlerini yazıyor, ekran yok). **Giriş logu** (kim, ne zaman, IP, cihaz; tablo var mı kontrol). | ✅ `234de05` |
+| 6 | Raporlar: dönem seçmeli, bayi/üye bazında spor/casino ve sağlayıcı kırılımlı ciro/kazanç/GGR | **SIRADAKİ** |
 | 7 | Personel (back office) hesapları + izin anahtarları (rol varsayılanları + anahtarlar); süperadmin ağacında izinli sağlayıcılar (Faz 1 altyapısıyla) | Sonra |
 
 - Bayiye yeni yetki/ekran eklemeden önce Yusuf'a sorulur (Bölüm 3 kuralı geçerli).
@@ -449,9 +523,9 @@ Bu dosya yeni sohbete başlarken bağlam olarak verilir. Gizli bilgi (token, şi
 
 ## 10. Son durum
 
-- Testler: **212 geçti** (02.10; `GameBlockTest` dahil) (sunucuda test için önce `config:clear`, rota değiştiyse `route:clear`; sonra önbellekleri geri kur). `lang:check`: **612 anahtar**. Son commit: `4380d5b` (Faz 2: Siteyi göster kaldırıldı).
+- Testler: **233 geçti** (03.10; `PanelUserFormTest`, `SubOwnerTest`, `CreditFeeTest`, `UsersTabsTest`, `LedgerAndLogsTest` dahil) (sunucuda test için önce `config:clear`, rota değiştiyse `route:clear`; sonra önbellekleri geri kur). `lang:check`: **661 anahtar**. Son commit: `234de05` (Faz 5).
 - Zamanlayıcı: `sport:fenix-prematch` 5 dk, `sport:fenix-results` 10 dk, stats 10 dk, `sport:translate` saatlik, `casino:sync romaspin` 01:30 UTC, `wallet:verify` 03:30 UTC.
 - Oyunlar: Slot 3.911 (GoldPalace + RomaSpin), Canlı Casino 223 (RomaSpin), Mini Oyunlar 24 (RomaSpin). 1GameX pasif.
 - Canlı: `wegas11.com`, `panel.wegas11.com`; RomaSpin callback `https://wegas11.com/api/casino/romaspin/api/{balance|transaction|batch-transaction}` (401/2 kontrolleri tamam); GoldPalace callback hâlâ IP/HTTP.
-- Hesaplar: owner (#1), süperadmin **Volkan** (TRY/USD/EUR). Üye yok. Yeni hesaplar #1000+.
-- Son push: Wegas `4380d5b`; NCS VIP `b460f20`.
+- Hesaplar (03.10): **kök owner #1**; **alt owner Volkan #1000** (%12 kredi ücreti) → süperadmin dealer #1004 → bayi shop #1005; süperadmin Hyb #1001 → bayi Black #1002 → üye demo34 #1003. Hepsi Europe/Istanbul. Yeni hesaplar #1000+.
+- Son push: Wegas `234de05` (+ bu dosya); NCS VIP `b460f20`.
