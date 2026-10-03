@@ -28,6 +28,7 @@ class PanelMenu
             $network[] = self::item(__('sport.panel.overdraft'), 'panel.sport.overdrafts', ['panel.sport.overdrafts']);
             $network[] = self::item(__('sport.panel.risky'), 'panel.coupons.risky', ['panel.coupons.risky']);
             $network[] = self::item(__('panel.games_title'), 'panel.games.index', ['panel.games.index', 'panel.casino.games']);
+            $network[] = self::item(__('panel.reports_title'), 'panel.reports.index', ['panel.reports.index']);
             $network[] = self::item(__('panel.logs_actions'), 'panel.logs.index', ['panel.logs.index']);
             $network[] = self::item(__('panel.logs_logins'), 'panel.logs.logins', ['panel.logs.logins']);
             if ($user->role === UserRole::Superadmin) {
