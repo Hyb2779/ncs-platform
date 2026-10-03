@@ -50,8 +50,15 @@
         </div>
         <nav class="mt-6 grid min-h-0 flex-1 content-start gap-4 overflow-y-auto px-3 pb-6">
             @foreach ($panelSections as $section)
-                <div>
-                    <p class="px-3 text-[11px] font-semibold tracking-wide text-slate-400">{{ $section['label'] }}</p>
+                @php
+                    $sectionOpen = $loop->first || collect($section['items'])->contains(fn ($i) => request()->routeIs(...$i['active']));
+                @endphp
+                <div x-data="{ expanded: {{ $sectionOpen ? 'true' : 'false' }} }">
+                    <button class="flex w-full items-center justify-between rounded-lg px-3 py-1 text-[11px] font-semibold tracking-wide text-slate-400" type="button" @click="expanded = !expanded" :aria-expanded="expanded.toString()">
+                        <span>{{ $section['label'] }}</span>
+                        <svg class="h-3.5 w-3.5 transition-transform" :class="expanded && 'rotate-180'" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 0 1 1.06.02L10 11.17l3.71-3.94a.75.75 0 1 1 1.08 1.04l-4.25 4.5a.75.75 0 0 1-1.08 0l-4.25-4.5a.75.75 0 0 1 .02-1.06Z" clip-rule="evenodd"/></svg>
+                    </button>
+                    <div x-show="expanded" @if (! $sectionOpen) style="display: none" @endif>
                     @foreach ($section['items'] as $item)
                         <a
                             class="mt-1 flex h-11 items-center rounded-lg px-3 text-sm {{ request()->routeIs(...$item['active']) ? 'bg-[#161A22] text-white' : 'text-slate-700' }}"
@@ -60,6 +67,7 @@
                             @click="open = false"
                         >{{ $item['label'] }}</a>
                     @endforeach
+                    </div>
                 </div>
             @endforeach
         </nav>

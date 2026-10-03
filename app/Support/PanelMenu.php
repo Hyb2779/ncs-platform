@@ -14,50 +14,65 @@ class PanelMenu
      */
     public static function sections(User $user): array
     {
-        $network = [
-            self::item(__('panel.users'), 'panel.users.index', ['panel.users.*']),
-            self::item(self::ledgerLabel(), 'panel.transactions', ['panel.transactions']),
-            self::item(__('site.panel_rounds'), 'panel.casino.rounds', ['panel.casino.rounds']),
-            self::item(__('site.panel_sessions'), 'panel.casino.sessions', ['panel.casino.sessions']),
+        $staff = in_array($user->role, [UserRole::Owner, UserRole::Superadmin], true);
+        $owner = $user->role === UserRole::Owner;
+
+        $users = [self::item(__('panel.users'), 'panel.users.index', ['panel.users.*'])];
+        if ($staff) {
+            $users[] = self::item(__('panel.online_title'), 'panel.online.index', ['panel.online.index']);
+        }
+
+        $reports = [
             self::item(__('sport.panel.coupons'), 'panel.coupons.index', ['panel.coupons.index', 'panel.coupons.show']),
             self::item(__('sport.panel.lookup'), 'panel.coupons.lookup', ['panel.coupons.lookup']),
         ];
-
-        if (in_array($user->role, [UserRole::Owner, UserRole::Superadmin], true)) {
-            $network[] = self::item(__('panel.online_title'), 'panel.online.index', ['panel.online.index']);
-            $network[] = self::item(__('sport.panel.limits'), 'panel.sport.limits', ['panel.sport.limits']);
-            $network[] = self::item(__('sport.panel.overdraft'), 'panel.sport.overdrafts', ['panel.sport.overdrafts']);
-            $network[] = self::item(__('sport.panel.risky'), 'panel.coupons.risky', ['panel.coupons.risky']);
-            $network[] = self::item(__('panel.games_title'), 'panel.games.index', ['panel.games.index', 'panel.casino.games']);
-            $network[] = self::item(__('panel.reports_title'), 'panel.reports.index', ['panel.reports.index']);
-            $network[] = self::item(__('panel.logs_actions'), 'panel.logs.index', ['panel.logs.index']);
-            $network[] = self::item(__('panel.logs_logins'), 'panel.logs.logins', ['panel.logs.logins']);
-            if ($user->role === UserRole::Superadmin) {
-                $network[] = self::item(__('panel.theme_title'), 'panel.theme', ['panel.theme']);
-            }
+        if ($staff) {
+            $reports[] = self::item(__('panel.reports_title'), 'panel.reports.index', ['panel.reports.index']);
+        }
+        $reports[] = self::item(self::ledgerLabel(), 'panel.transactions', ['panel.transactions']);
+        $reports[] = self::item(__('site.panel_rounds'), 'panel.casino.rounds', ['panel.casino.rounds']);
+        $reports[] = self::item(__('site.panel_sessions'), 'panel.casino.sessions', ['panel.casino.sessions']);
+        if ($staff) {
+            $reports[] = self::item(__('panel.logs_actions'), 'panel.logs.index', ['panel.logs.index']);
+            $reports[] = self::item(__('panel.logs_logins'), 'panel.logs.logins', ['panel.logs.logins']);
         }
 
-        if ($user->role === UserRole::Owner) {
-            $network[] = self::item(__('sport.panel.status'), 'panel.sport.status', ['panel.sport.status']);
-            $network[] = self::item(__('sport.panel.leagues'), 'panel.sport.leagues', ['panel.sport.leagues']);
-            $network[] = self::item(__('sport.panel.translations'), 'panel.sport.translations', ['panel.sport.translations']);
-            $network[] = self::item(__('sport.panel.margins'), 'panel.sport.margins', ['panel.sport.margins']);
-            $network[] = self::item(__('site.panel_providers'), 'panel.casino.providers', ['panel.casino.providers']);
+        $betting = [];
+        if ($staff) {
+            $betting[] = self::item(__('sport.panel.risky'), 'panel.coupons.risky', ['panel.coupons.risky']);
+            $betting[] = self::item(__('sport.panel.overdraft'), 'panel.sport.overdrafts', ['panel.sport.overdrafts']);
+            $betting[] = self::item(__('sport.panel.limits'), 'panel.sport.limits', ['panel.sport.limits']);
+        }
+        if ($owner) {
+            $betting[] = self::item(__('sport.panel.status'), 'panel.sport.status', ['panel.sport.status']);
+            $betting[] = self::item(__('sport.panel.leagues'), 'panel.sport.leagues', ['panel.sport.leagues']);
+            $betting[] = self::item(__('sport.panel.translations'), 'panel.sport.translations', ['panel.sport.translations']);
+            $betting[] = self::item(__('sport.panel.margins'), 'panel.sport.margins', ['panel.sport.margins']);
         }
 
-        return [
-            [
-                'label' => __('panel.menu_general'),
-                'items' => [
-                    self::item(__('panel.overview'), 'panel.dashboard', ['panel.dashboard']),
-                    self::item(__('panel.password_title'), 'panel.password.edit', ['panel.password.edit']),
-                ],
-            ],
-            [
-                'label' => __('panel.menu_network'),
-                'items' => $network,
-            ],
+        $settings = [];
+        if ($staff) {
+            $settings[] = self::item(__('panel.games_title'), 'panel.games.index', ['panel.games.index', 'panel.casino.games']);
+        }
+        if ($user->role === UserRole::Superadmin) {
+            $settings[] = self::item(__('panel.theme_title'), 'panel.theme', ['panel.theme']);
+        }
+        if ($owner) {
+            $settings[] = self::item(__('site.panel_providers'), 'panel.casino.providers', ['panel.casino.providers']);
+        }
+
+        $sections = [
+            self::section(__('panel.menu_general'), [
+                self::item(__('panel.overview'), 'panel.dashboard', ['panel.dashboard']),
+                self::item(__('panel.password_title'), 'panel.password.edit', ['panel.password.edit']),
+            ]),
+            self::section(__('panel.menu_users'), $users),
+            self::section(__('panel.menu_reports'), $reports),
+            self::section(__('panel.menu_betting'), $betting),
+            self::section(__('panel.menu_settings'), $settings),
         ];
+
+        return array_values(array_filter($sections, fn (array $section): bool => $section['items'] !== []));
     }
 
     /**
@@ -77,6 +92,15 @@ class PanelMenu
             self::item(__('sport.panel.coupons'), 'panel.coupons.index', ['panel.coupons.index', 'panel.coupons.show']),
             $fourth,
         ];
+    }
+
+    /**
+     * @param  list<array{label: string, route: string, active: list<string>}>  $items
+     * @return array{label: string, items: list<array{label: string, route: string, active: list<string>}>}
+     */
+    private static function section(string $label, array $items): array
+    {
+        return ['label' => $label, 'items' => $items];
     }
 
     /**
