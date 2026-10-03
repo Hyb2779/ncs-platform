@@ -257,4 +257,12 @@ return [
     'reports_role_uye' => 'Player',
     'display_currency' => 'Displayed currency',
     'theme_toggle' => 'Light / dark theme',
+    'password_title' => 'Change password',
+    'password_current' => 'Current password',
+    'password_new' => 'New password',
+    'password_confirm' => 'New password (repeat)',
+    'password_save' => 'Save',
+    'password_updated' => 'Your password has been updated.',
+    'password_wrong' => 'Current password is incorrect.',
+    'log_action_user_password_changed' => 'Password changed',
 ];

@@ -257,4 +257,12 @@ return [
     'reports_role_uye' => 'Spieler',
     'display_currency' => 'Angezeigte Währung',
     'theme_toggle' => 'Helles / dunkles Design',
+    'password_title' => 'Passwort ändern',
+    'password_current' => 'Aktuelles Passwort',
+    'password_new' => 'Neues Passwort',
+    'password_confirm' => 'Neues Passwort (wiederholen)',
+    'password_save' => 'Speichern',
+    'password_updated' => 'Ihr Passwort wurde aktualisiert.',
+    'password_wrong' => 'Aktuelles Passwort ist falsch.',
+    'log_action_user_password_changed' => 'Passwort geändert',
 ];

@@ -257,4 +257,12 @@ return [
     'reports_role_uye' => 'اللاعب',
     'display_currency' => 'العملة المعروضة',
     'theme_toggle' => 'السمة الفاتحة / الداكنة',
+    'password_title' => 'تغيير كلمة المرور',
+    'password_current' => 'كلمة المرور الحالية',
+    'password_new' => 'كلمة المرور الجديدة',
+    'password_confirm' => 'كلمة المرور الجديدة (تكرار)',
+    'password_save' => 'حفظ',
+    'password_updated' => 'تم تحديث كلمة المرور.',
+    'password_wrong' => 'كلمة المرور الحالية غير صحيحة.',
+    'log_action_user_password_changed' => 'تم تغيير كلمة المرور',
 ];

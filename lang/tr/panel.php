@@ -257,4 +257,12 @@ return [
     'reports_role_uye' => 'Oyuncu',
     'display_currency' => 'Gösterilen para birimi',
     'theme_toggle' => 'Açık / koyu tema',
+    'password_title' => 'Şifremi değiştir',
+    'password_current' => 'Mevcut şifre',
+    'password_new' => 'Yeni şifre',
+    'password_confirm' => 'Yeni şifre (tekrar)',
+    'password_save' => 'Kaydet',
+    'password_updated' => 'Şifreniz güncellendi.',
+    'password_wrong' => 'Mevcut şifre hatalı.',
+    'log_action_user_password_changed' => 'Şifre değiştirildi',
 ];

@@ -93,6 +93,7 @@ class SiteController extends Controller
 
         $user->password = $data['password'];
         $user->save();
+        \App\Http\Middleware\EnsureAccountActive::remember($request, $user);
 
         return back()->with('status', __('site.password_updated'));
     }

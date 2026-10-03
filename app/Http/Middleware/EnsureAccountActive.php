@@ -36,6 +36,13 @@ class EnsureAccountActive
      * A password reset ends every other open session of that user. The hash is stored per user id,
      * so switching accounts inside one session never looks like a password change.
      */
+    /** Kendi sifresini degistiren kisinin MEVCUT oturumu dusmesin (diger oturumlari yine duser). */
+    public static function remember(Request $request, $user): void
+    {
+        $request->session()->regenerate();
+        $request->session()->put('account_pw_'.$user->getAuthIdentifier(), hash('sha256', (string) $user->getAuthPassword()));
+    }
+
     private function passwordChanged(Request $request, $user): bool
     {
         $key = 'account_pw_'.$user->getAuthIdentifier();

@@ -49,6 +49,7 @@ class PanelMenu
                 'label' => __('panel.menu_general'),
                 'items' => [
                     self::item(__('panel.overview'), 'panel.dashboard', ['panel.dashboard']),
+                    self::item(__('panel.password_title'), 'panel.password.edit', ['panel.password.edit']),
                 ],
             ],
             [
