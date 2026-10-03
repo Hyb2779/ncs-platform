@@ -51,7 +51,7 @@ class PanelDashboard
             ['key' => 'members', 'label' => __('panel.member_count'), 'priority' => 'detail'],
         ];
         $data['rows'] = $supers->map(function (User $superadmin) use ($range): array {
-            $ggr = $this->sum($this->rows([$superadmin->id], $range['from'], $range['to'], 'all'), 'ggr');
+            $ggr = $this->sum($this->rows([$superadmin->id], $range['from'], $range['to'], 'all', $superadmin->currency), 'ggr');
 
             return [
                 'username' => new HtmlString('<a class="font-medium" href="'.e(route('panel.network.show', $superadmin)).'">'.e($superadmin->username).'</a>'),
@@ -90,7 +90,7 @@ class PanelDashboard
             return [
                 'username' => new HtmlString('<a class="font-medium" href="'.e(route('panel.network.show', $bayi)).'">'.e($bayi->username).'</a>'),
                 'balance' => $bayi->wallet()->first()?->formattedBalance() ?? Money::format('0', $bayi->currency),
-                'ggr' => Money::format($this->sum($this->rows([$bayi->id], $range['from'], $range['to'], 'all'), 'ggr'), $bayi->currency),
+                'ggr' => Money::format($this->sum($this->rows([$bayi->id], $range['from'], $range['to'], 'all', $bayi->currency), 'ggr'), $bayi->currency),
                 'members' => (string) $members->count(),
                 'risk' => Money::format($open['risk'], $bayi->currency),
             ];
@@ -119,7 +119,7 @@ class PanelDashboard
     private function scoped(User $user, array $range, bool $includeNew): array
     {
         $data = $this->presentation($user, [$user->id], $user->currency, $range, false);
-        $data['players'] = $this->players([$user->id], $range['from'], $range['to'], $includeNew);
+        $data['players'] = $this->players([$user->id], $range['from'], $range['to'], $includeNew, $user->currency);
         $data['cards'][] = $this->card(
             __('panel.subtree_balance'),
             Money::format($this->subtreeBalance($user), $user->currency),
@@ -174,8 +174,8 @@ class PanelDashboard
      */
     private function presentation(User $viewer, array $accountIds, Currency $currency, array $range, bool $rankSuperadmins): array
     {
-        $current = $this->rows($accountIds, $range['from'], $range['to'], 'all');
-        $previous = $this->rows($accountIds, $range['previous_from'], $range['previous_to'], 'all');
+        $current = $this->rows($accountIds, $range['from'], $range['to'], 'all', $currency);
+        $previous = $this->rows($accountIds, $range['previous_from'], $range['previous_to'], 'all', $currency);
         $turnover = $this->sum($current, 'turnover');
         $payout = $this->sum($current, 'payout');
         $ggr = $this->sum($current, 'ggr');
@@ -212,10 +212,10 @@ class PanelDashboard
         return [
             'range' => $range,
             'cards' => $cards,
-            'line' => $this->series($accountIds, $range['from'], $range['to']),
-            'products' => $this->products($accountIds, $range['from'], $range['to']),
+            'line' => $this->series($accountIds, $range['from'], $range['to'], $currency),
+            'products' => $this->products($accountIds, $range['from'], $range['to'], $currency),
             'rank' => $rankSuperadmins ? $this->ranking($accountIds, $range['from'], $range['to']) : null,
-            'players' => $this->players($accountIds, $range['from'], $range['to'], false),
+            'players' => $this->players($accountIds, $range['from'], $range['to'], false, $currency),
         ];
     }
 
@@ -223,9 +223,9 @@ class PanelDashboard
      * @param  list<int>  $accountIds
      * @return array{labels: list<string>, datasets: list<array{label: string, data: list<float>}>}
      */
-    public function series(array $accountIds, string $from, string $to): array
+    public function series(array $accountIds, string $from, string $to, ?Currency $currency = null): array
     {
-        $grouped = $this->rows($accountIds, $from, $to, 'all')->groupBy(fn (DailyStat $row): string => $row->stat_date->toDateString());
+        $grouped = $this->rows($accountIds, $from, $to, 'all', $currency)->groupBy(fn (DailyStat $row): string => $row->stat_date->toDateString());
         $labels = [];
         $turnover = [];
         $ggr = [];
@@ -249,12 +249,12 @@ class PanelDashboard
      * @param  list<int>  $accountIds
      * @return array{type: string, labels: list<string>, datasets: list<array{label: string, data: list<float>}>}
      */
-    public function products(array $accountIds, string $from, string $to): array
+    public function products(array $accountIds, string $from, string $to, ?Currency $currency = null): array
     {
         $labels = [__('site.sport'), __('site.slots'), __('site.live_casino')];
         $data = [];
         foreach (DailyStatWriter::PRODUCTS as $product) {
-            $data[] = (float) $this->sum($this->rows($accountIds, $from, $to, $product), 'turnover');
+            $data[] = (float) $this->sum($this->rows($accountIds, $from, $to, $product, $currency), 'turnover');
         }
 
         return [
@@ -299,9 +299,9 @@ class PanelDashboard
      * @param  list<int>  $accountIds
      * @return array{labels: list<string>, datasets: list<array{label: string, data: list<float>}>}
      */
-    public function players(array $accountIds, string $from, string $to, bool $includeNew): array
+    public function players(array $accountIds, string $from, string $to, bool $includeNew, ?Currency $currency = null): array
     {
-        $grouped = $this->rows($accountIds, $from, $to, 'all')->groupBy(fn (DailyStat $row): string => $row->stat_date->toDateString());
+        $grouped = $this->rows($accountIds, $from, $to, 'all', $currency)->groupBy(fn (DailyStat $row): string => $row->stat_date->toDateString());
         $labels = [];
         $active = [];
         $new = [];
@@ -386,7 +386,7 @@ class PanelDashboard
     /**
      * @param  list<int>  $accountIds
      */
-    private function rows(array $accountIds, string $from, string $to, string $product): Collection
+    private function rows(array $accountIds, string $from, string $to, string $product, ?Currency $currency = null): Collection
     {
         if ($accountIds === []) {
             return collect();
@@ -395,6 +395,7 @@ class PanelDashboard
         return DailyStat::query()
             ->whereIn('user_id', $accountIds)
             ->where('product', $product)
+            ->when($currency !== null, fn ($q) => $q->where('currency', $currency->value))
             ->whereDate('stat_date', '>=', $from)
             ->whereDate('stat_date', '<=', $to)
             ->get();

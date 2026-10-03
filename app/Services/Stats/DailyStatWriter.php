@@ -7,6 +7,7 @@ use App\Enums\WalletProduct;
 use App\Enums\WalletTransactionType;
 use App\Models\DailyStat;
 use App\Models\User;
+use App\Models\Wallet;
 use App\Models\WalletTransaction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
@@ -57,10 +58,15 @@ class DailyStatWriter
         $bayis = User::query()
             ->where('superadmin_id', $superadmin->id)
             ->where('role', UserRole::Bayi)
-            ->get(['id']);
+            ->get(['id', 'currency']);
         $accountIds = array_merge([$superadmin->id], $bayis->pluck('id')->all());
         $memberIds = $members->pluck('id')->all();
         $bayiIds = array_fill_keys($bayis->pluck('id')->all(), true);
+        // Hesabin varsayilan para birimi: islemi olmasa da o para biriminde 0'li satiri yazilir.
+        $defaults = [$superadmin->id => $superadmin->currency->value];
+        foreach ($bayis as $bayi) {
+            $defaults[$bayi->id] = $bayi->currency instanceof \BackedEnum ? $bayi->currency->value : (string) $bayi->currency;
+        }
 
         $transactions = $memberIds === []
             ? collect()
@@ -69,7 +75,11 @@ class DailyStatWriter
                 ->where('created_at', '>=', $start)
                 ->where('created_at', '<', $end)
                 ->whereIn('product', self::PRODUCTS)
-                ->get(['user_id', 'type', 'product', 'amount']);
+                ->get(['user_id', 'wallet_id', 'type', 'product', 'amount']);
+        // Para birimi islemin cuzdanindan (USD/EUR bayi cirosu superadminin varsayilanina yazilmaz).
+        $walletCurrency = $transactions->isEmpty()
+            ? collect()
+            : Wallet::query()->whereIn('id', $transactions->pluck('wallet_id')->unique()->all())->toBase()->pluck('currency', 'id');
 
         $buckets = [];
         foreach ($transactions as $transaction) {
@@ -77,6 +87,7 @@ class DailyStatWriter
                 continue;
             }
 
+            $currency = (string) ($walletCurrency[$transaction->wallet_id] ?? $superadmin->currency->value);
             $targets = [$superadmin->id];
             $parentId = (int) $members->firstWhere('id', $transaction->user_id)?->parent_id;
             if (isset($bayiIds[$parentId])) {
@@ -84,7 +95,7 @@ class DailyStatWriter
             }
 
             foreach ($targets as $accountId) {
-                $this->accumulate($buckets, $accountId, $transaction);
+                $this->accumulate($buckets, $accountId, $transaction, $currency);
             }
         }
 
@@ -107,7 +118,7 @@ class DailyStatWriter
             ->whereNotNull('closed_at')
             ->value('closed_at');
 
-        DB::transaction(function () use ($superadmin, $statDate, $accountIds, $buckets, $newByAccount, $closedAt): void {
+        DB::transaction(function () use ($superadmin, $statDate, $accountIds, $buckets, $newByAccount, $closedAt, $defaults): void {
             $treeAccountIds = User::withTrashed()
                 ->where('superadmin_id', $superadmin->id)
                 ->where('role', UserRole::Bayi)
@@ -122,21 +133,38 @@ class DailyStatWriter
             $now = now();
             $rows = [];
             foreach ($accountIds as $accountId) {
-                $rows = array_merge($rows, $this->rowsFor(
-                    $accountId,
-                    $statDate,
-                    $superadmin->currency->value,
-                    $buckets,
-                    $newByAccount[$accountId] ?? 0,
-                    $closedAt,
-                    $now,
-                ));
+                $default = $defaults[$accountId] ?? $superadmin->currency->value;
+                foreach ($this->currenciesFor($accountId, $default, $buckets) as $currency) {
+                    $rows = array_merge($rows, $this->rowsFor(
+                        $accountId,
+                        $statDate,
+                        $currency,
+                        $buckets,
+                        $currency === $default ? ($newByAccount[$accountId] ?? 0) : 0,
+                        $closedAt,
+                        $now,
+                    ));
+                }
             }
 
             if ($rows !== []) {
                 DailyStat::query()->insert($rows);
             }
         });
+    }
+
+    /** @return list<string> varsayilan + islemi olan para birimleri */
+    private function currenciesFor(int $accountId, string $default, array $buckets): array
+    {
+        $out = [$default => true];
+        foreach (array_keys($buckets) as $key) {
+            [$id, $currency] = explode('|', $key);
+            if ((int) $id === $accountId) {
+                $out[$currency] = true;
+            }
+        }
+
+        return array_keys($out);
     }
 
     public function close(User $superadmin, string $statDate): void
@@ -176,7 +204,7 @@ class DailyStatWriter
         $players = [];
 
         foreach (self::PRODUCTS as $product) {
-            $bucket = $buckets[$accountId.'|'.$product] ?? $this->blank();
+            $bucket = $buckets[$accountId.'|'.$currency.'|'.$product] ?? $this->blank();
             $rows[] = $this->payload($accountId, $statDate, $currency, $product, $bucket, 0, $closedAt, $now);
             $totalTurnover = bcadd($totalTurnover, $bucket['turnover'], 2);
             $totalPayout = bcadd($totalPayout, $bucket['payout'], 2);
@@ -217,11 +245,11 @@ class DailyStatWriter
         ];
     }
 
-    private function accumulate(array &$buckets, int $accountId, WalletTransaction $transaction): void
+    private function accumulate(array &$buckets, int $accountId, WalletTransaction $transaction, string $currency): void
     {
         $product = $transaction->product instanceof WalletProduct ? $transaction->product->value : (string) $transaction->product;
         $type = $transaction->type instanceof WalletTransactionType ? $transaction->type : WalletTransactionType::from((string) $transaction->type);
-        $key = $accountId.'|'.$product;
+        $key = $accountId.'|'.$currency.'|'.$product;
         $row = $buckets[$key] ?? $this->blank();
         $amount = bcadd((string) $transaction->amount, '0', 2);
 
