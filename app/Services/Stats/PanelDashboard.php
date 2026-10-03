@@ -196,8 +196,10 @@ class PanelDashboard
 
         if ($rankSuperadmins) {
             array_unshift($cards, $this->card(
-                __('wallet.distributed_credit'),
-                $viewer->wallets()->where('currency', $currency)->first()?->formattedDistributedBalance() ?? Money::format('0', $currency),
+                $viewer->isRootOwner() ? __('wallet.distributed_credit') : __('wallet.balance'),
+                $viewer->isRootOwner()
+                    ? ($viewer->wallets()->where('currency', $currency)->first()?->formattedDistributedBalance() ?? Money::format('0', $currency))
+                    : ($viewer->wallets()->where('currency', $currency)->first()?->formattedBalance() ?? Money::format('0', $currency)),
                 null,
             ));
         } else {

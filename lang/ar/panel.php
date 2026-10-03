@@ -11,6 +11,8 @@ return [
     'menu_user_create' => 'إضافة مستخدم جديد',
     'menu_users_all' => 'جميع المستخدمين',
     'menu_balance' => 'إضافة/خصم رصيد',
+    'balance_search' => 'ابحث عن مستخدم',
+    'balance_empty' => 'لا توجد حسابات من هذا النوع.',
     'create_type' => 'النوع',
     'create_parent' => 'الحساب الرئيسي',
     'create_parent_invalid' => 'اختر حسابًا رئيسيًا صالحًا.',

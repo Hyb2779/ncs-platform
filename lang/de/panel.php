@@ -11,6 +11,8 @@ return [
     'menu_user_create' => 'Neuen Benutzer anlegen',
     'menu_users_all' => 'Alle Benutzer',
     'menu_balance' => 'Guthaben buchen',
+    'balance_search' => 'Benutzer suchen',
+    'balance_empty' => 'Keine Konten dieses Typs.',
     'create_type' => 'Typ',
     'create_parent' => 'Übergeordnetes Konto',
     'create_parent_invalid' => 'Wählen Sie ein gültiges übergeordnetes Konto.',

@@ -11,6 +11,8 @@ return [
     'menu_user_create' => 'Add New User',
     'menu_users_all' => 'All Users',
     'menu_balance' => 'Add/Remove Balance',
+    'balance_search' => 'Search user',
+    'balance_empty' => 'No accounts of this type.',
     'create_type' => 'Type',
     'create_parent' => 'Parent account',
     'create_parent_invalid' => 'Choose a valid parent account.',

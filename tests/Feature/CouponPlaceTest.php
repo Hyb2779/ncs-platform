@@ -215,7 +215,9 @@ class CouponPlaceTest extends TestCase
         $this->assertSame('65.00', $balance($member));
 
         $send($other->parent->parent, 'add', '5.00')->assertNotFound();
-        $send(User::query()->where('role', 'owner')->firstOrFail(), 'add', '5.00')->assertNotFound();
+        // Owner ağacındaki herkese doğrudan yükleyebilir (03.10 kararı).
+        $send(User::query()->where('role', 'owner')->firstOrFail(), 'add', '5.00')->assertSessionHasNoErrors();
+        $this->assertSame('70.00', $balance($member));
         $this->actingAs($superadmin)->get('/panel/users?parent='.$bayi->id)->assertOk()->assertSee('openAdjust', false);
         $this->artisan('wallet:verify')->assertOk();
     }

@@ -21,13 +21,14 @@ class CreditFeeTest extends TestCase
 
     private const PAY = 'http://panel.test/panel/credit-fees/payments';
 
-    public function test_fee_is_on_gross_credit_given_to_superadmins_only(): void
+    public function test_fee_is_on_gross_credit_received_from_root(): void
     {
         [$root, $sub, $sa] = $this->world();
         $w = app(WalletService::class);
-        $w->transfer($sub, $sa, '1000.00', 'cf-1', $sub, null, null, Currency::Try);
-        $w->transfer($sub, $sa, '500.00', 'cf-2', $sub, null, null, Currency::Usd);
-        $w->transfer($sa, $sub, '200.00', 'cf-3', $sub, null, null, Currency::Try); // geri alma: düşülmez
+        $w->transfer($root, $sub, '1000.00', 'cf-1', $root, null, null, Currency::Try);
+        $w->transfer($root, $sub, '500.00', 'cf-2', $root, null, null, Currency::Usd);
+        $w->transfer($sub, $root, '200.00', 'cf-3', $root, null, null, Currency::Try); // iade: dusulmez
+        $w->transfer($sub, $sa, '300.00', 'cf-3b', $sub, null, null, Currency::Try); // dagitim: sayilmaz
 
         $rows = collect(app(CreditFees::class)->summary()[0]['rows'])->keyBy('currency');
         $this->assertSame('1000.00', $rows['TRY']['issued']);
@@ -40,7 +41,7 @@ class CreditFeeTest extends TestCase
     public function test_root_records_payment_and_due_drops(): void
     {
         [$root, $sub, $sa] = $this->world();
-        app(WalletService::class)->transfer($sub, $sa, '1000.00', 'cf-4', $sub, null, null, Currency::Try);
+        app(WalletService::class)->transfer($root, $sub, '1000.00', 'cf-4', $root, null, null, Currency::Try);
 
         $this->actingAs($root)->post(self::PAY, [
             'sub_owner_id' => $sub->id, 'currency' => 'TRY', 'amount' => '100,50', 'note' => 'nakit',
@@ -101,5 +102,40 @@ class CreditFeeTest extends TestCase
         app(WalletProvisioner::class)->openFor($user->refresh());
 
         return $user->refresh();
+    }
+
+    public function test_sub_owner_distributes_only_received_credit_and_other_branches_are_closed(): void
+    {
+        [$root, $sub, $sa] = $this->world();
+        $h = app(HierarchyService::class);
+        $data = fn (string $name) => [
+            'username' => $name, 'password' => 'password', 'commission_rate' => 0,
+            'user_limit' => null, 'note' => null, 'language' => 'tr', 'currency' => 'TRY',
+        ];
+        $bayi = $h->create($sa, $data('bayi_cf'));
+        $otherSa = $h->create($root, $data('sa_baska'));
+
+        app(WalletService::class)->transfer($root, $sub, '1000.00', 'cf-9', $root, null, null, Currency::Try);
+
+        $this->actingAs($sub)->get('http://panel.test/panel/balance')->assertOk()->assertSee('bayi_cf');
+
+        $this->actingAs($sub)->post('http://panel.test/panel/users/'.$bayi->id.'/balance', [
+            'amount' => '100.00', 'direction' => 'add', 'idempotency_key' => (string) \Illuminate\Support\Str::uuid(),
+        ])->assertSessionHasNoErrors();
+        $this->assertEquals(100, (float) $bayi->wallets()->value('balance'));
+
+        $this->actingAs($sub)->post('http://panel.test/panel/users/'.$otherSa->id.'/balance', [
+            'amount' => '10.00', 'direction' => 'add', 'idempotency_key' => (string) \Illuminate\Support\Str::uuid(),
+        ])->assertNotFound();
+
+        // Alt owner eksiye düşemez: elindekinden fazlası reddedilir.
+        $this->actingAs($sub)->post('http://panel.test/panel/users/'.$bayi->id.'/balance', [
+            'amount' => '5000.00', 'direction' => 'add', 'idempotency_key' => (string) \Illuminate\Support\Str::uuid(),
+        ])->assertSessionHasErrors('amount');
+        $this->assertEquals(100, (float) $bayi->wallets()->value('balance'));
+
+        $try = collect(app(CreditFees::class)->summary()[0]['rows'])->firstWhere('currency', 'TRY');
+        $this->assertSame('1000.00', $try['issued']);
+        $this->assertSame('120.00', $try['fee']);
     }
 }

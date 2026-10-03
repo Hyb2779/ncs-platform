@@ -11,6 +11,8 @@ return [
     'menu_user_create' => 'Yeni Kullanıcı Ekle',
     'menu_users_all' => 'Tüm Kullanıcılar',
     'menu_balance' => 'Bakiye Ekle/Çıkar',
+    'balance_search' => 'Kullanıcı ara',
+    'balance_empty' => 'Bu tipte hesap yok.',
     'create_type' => 'Tip',
     'create_parent' => 'Üst hesap',
     'create_parent_invalid' => 'Geçerli bir üst hesap seçin.',

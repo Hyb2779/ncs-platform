@@ -22,9 +22,13 @@ class WalletController extends Controller
     public function adjust(AdjustBalanceRequest $request, User $user, WalletService $wallets): RedirectResponse
     {
         $actor = $request->user();
+        // Owner (kök + alt) ağacındaki herkese; süperadmin kendi bayilerine + ağacındaki üyelere; bayi kendi üyelerine.
         abort_unless(
-            $user->parent_id === $actor->id
-                || ($actor->role === \App\Enums\UserRole::Superadmin && $user->role === \App\Enums\UserRole::Uye && $user->isInSubtreeOf($actor)),
+            $user->id !== $actor->id && (
+                ($actor->role === \App\Enums\UserRole::Owner && $user->isInSubtreeOf($actor))
+                || $user->parent_id === $actor->id
+                || ($actor->role === \App\Enums\UserRole::Superadmin && $user->role === \App\Enums\UserRole::Uye && $user->isInSubtreeOf($actor))
+            ),
             404,
         );
 
@@ -55,6 +59,56 @@ class WalletController extends Controller
         }
 
         return back()->with('status', __('wallet.adjusted'));
+    }
+
+    /** Bakiye Ekle/Çıkar: önce tip, sonra hesap; işlem mevcut adjust rotasına gider. */
+    public function page(Request $request): View
+    {
+        $actor = $request->user();
+        $types = match ($actor->role) {
+            \App\Enums\UserRole::Owner => ['superadmin', 'bayi', 'uye'],
+            \App\Enums\UserRole::Superadmin => ['bayi', 'uye'],
+            \App\Enums\UserRole::Bayi => ['uye'],
+            default => [],
+        };
+        abort_if($types === [], 404);
+        if ($actor->isRootOwner() && User::query()->where('parent_id', $actor->id)->where('role', 'owner')->exists()) {
+            $types[] = 'owner';
+        }
+
+        $symbols = ['USD' => '$', 'EUR' => "\u{20AC}", 'TRY' => "\u{20BA}"];
+        $users = User::query()->subtreeOf($actor)->whereKeyNot($actor->id)->whereIn('role', $types)
+            ->with('wallets')->orderBy('username')->get();
+        $parents = User::query()->whereIn('id', $users->pluck('parent_id')->filter()->unique())->pluck('username', 'id');
+
+        $accounts = array_fill_keys($types, []);
+        foreach ($users as $user) {
+            $wallet = $user->wallets->firstWhere('currency', $user->currency);
+            $parentName = (string) ($parents[$user->parent_id] ?? '');
+            $sub = $parentName;
+            if ($user->status->value !== 'active') {
+                $sub = trim($sub.' · '.__('panel.statuses.'.$user->status->value), ' ·');
+            }
+            $accounts[$user->role->value][] = [
+                'id' => $user->id,
+                'name' => $user->username,
+                'sub' => $sub,
+                'label' => mb_strtolower($user->username.' '.$parentName),
+                'balance' => (string) ($wallet?->balance ?? '0'),
+                'symbol' => $symbols[$user->currency->value] ?? '',
+                'currency' => $user->currency->value,
+                'balances' => $user->isMultiCurrency() ? $user->wallets->mapWithKeys(fn ($w) => [$w->currency->value => (string) $w->balance])->all() : null,
+            ];
+        }
+
+        $me = [
+            'own' => (string) ($actor->wallets()->where('currency', $actor->currency)->value('balance') ?? '0'),
+            'ownBy' => $actor->wallets()->get()->mapWithKeys(fn ($w) => [$w->currency->value => (string) $w->balance])->all(),
+            'symbols' => $symbols,
+            'unlimited' => $actor->isRootOwner(),
+        ];
+
+        return view('panel.wallets.balance', compact('types', 'accounts', 'me'));
     }
 
     public function transactions(Request $request): View

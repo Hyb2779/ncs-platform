@@ -37,12 +37,12 @@
         <div class="mx-3 rounded-lg bg-[#F3F4F6] px-3 py-3 text-start">
             <p class="font-medium">{{ auth()->user()->username }}</p>
             <p class="text-sm text-slate-500">{{ __('panel.roles.'.auth()->user()->role->value) }} · {{ auth()->user()->language->value }}</p>
-            @if (auth()->user()->role->value !== 'owner')
+            @if (! auth()->user()->isRootOwner())
             <div class="mt-2 grid gap-0.5 border-t border-[#E3E6EB] pt-2">
                 @foreach ($headerWallets as $cardWallet)
                     <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-500">{{ auth()->user()->role->value === 'owner' ? __('wallet.distributed_credit') : __('wallet.balance') }} · {{ $cardWallet->currency instanceof \BackedEnum ? $cardWallet->currency->value : $cardWallet->currency }}</span>
-                        <span class="font-numeric font-medium">{{ auth()->user()->role->value === 'owner' ? $cardWallet->formattedDistributedBalance() : $cardWallet->formattedBalance() }}</span>
+                        <span class="text-slate-500">{{ auth()->user()->isRootOwner() ? __('wallet.distributed_credit') : __('wallet.balance') }} · {{ $cardWallet->currency instanceof \BackedEnum ? $cardWallet->currency->value : $cardWallet->currency }}</span>
+                        <span class="font-numeric font-medium">{{ auth()->user()->isRootOwner() ? $cardWallet->formattedDistributedBalance() : $cardWallet->formattedBalance() }}</span>
                     </div>
                 @endforeach
             </div>
@@ -84,7 +84,7 @@
                     $hwPicked = request()->cookie('panel_currency');
                     $hwCurrency = $hwByCurrency->has($hwPicked) ? $hwPicked : (auth()->user()->currency->value ?? $hwByCurrency->keys()->first());
                     $hwWallet = $hwByCurrency->get($hwCurrency) ?? $hwByCurrency->first();
-                    $hwOwner = auth()->user()->role->value === 'owner';
+                    $hwOwner = auth()->user()->isRootOwner();
                 @endphp
                 @if ($hwWallet)
                     <div class="flex h-11 items-center gap-2 rounded-lg border border-[#E3E6EB] bg-white px-3 text-sm" data-header="balance">

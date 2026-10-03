@@ -26,7 +26,8 @@ class WalletProvisioner
                 ],
             );
 
-            if ($user->role === UserRole::Owner && ! $wallet->allow_negative) {
+            // Kredi üretme (eksiye düşme) sadece kök owner'da; alt owner kök owner'dan kredi alır.
+            if ($user->isRootOwner() && ! $wallet->allow_negative) {
                 $wallet->forceFill(['allow_negative' => true])->save();
             }
         }

@@ -20,6 +20,7 @@ class PanelMenu
         $users = [
             self::item(__('panel.menu_user_create'), 'panel.users.create', ['panel.users.create']),
             self::item(__('panel.menu_users_all'), 'panel.users.index', ['panel.users.index', 'panel.users.edit']),
+            self::item(__('panel.menu_balance'), 'panel.balance', ['panel.balance']),
         ];
         if ($staff) {
             $users[] = self::item(__('panel.online_title'), 'panel.online.index', ['panel.online.index']);
@@ -44,7 +45,6 @@ class PanelMenu
         if ($staff) {
             $betting[] = self::item(__('sport.panel.risky'), 'panel.coupons.risky', ['panel.coupons.risky']);
             $betting[] = self::item(__('sport.panel.overdraft'), 'panel.sport.overdrafts', ['panel.sport.overdrafts']);
-            $betting[] = self::item(__('sport.panel.limits'), 'panel.sport.limits', ['panel.sport.limits']);
             $betting[] = self::item(__('panel.games_title'), 'panel.games.index', ['panel.games.index', 'panel.casino.games']);
         }
         if ($owner) {
@@ -55,6 +55,9 @@ class PanelMenu
         }
 
         $settings = [];
+        if ($staff) {
+            $settings[] = self::item(__('sport.panel.limits'), 'panel.sport.limits', ['panel.sport.limits']);
+        }
         if ($user->role === UserRole::Superadmin) {
             $settings[] = self::item(__('panel.theme_title'), 'panel.theme', ['panel.theme']);
         }

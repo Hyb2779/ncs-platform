@@ -25,12 +25,12 @@ class CreditFees
             ->whereNotNull('credit_fee_rate')->orderBy('username')->get();
 
         foreach ($subs as $sub) {
-            $saIds = User::query()->where('parent_id', $sub->id)->where('role', UserRole::Superadmin)->pluck('id')->all();
             $issued = WalletTransaction::query()
                 ->join('wallets', 'wallets.id', '=', 'wallet_transactions.wallet_id')
                 ->where('wallet_transactions.user_id', $sub->id)
-                ->where('wallet_transactions.type', WalletTransactionType::TransferOut->value)
-                ->whereIn('wallet_transactions.counterparty_user_id', $saIds ?: [0])
+                // Alt owner'ın kök owner'dan aldığı brüt kredi (iadeleri düşülmez).
+                ->where('wallet_transactions.type', WalletTransactionType::TransferIn->value)
+                ->where('wallet_transactions.counterparty_user_id', $sub->parent_id)
                 ->groupBy('wallets.currency')
                 ->selectRaw('wallets.currency as cur, SUM(ABS(wallet_transactions.amount)) as total')
                 ->pluck('total', 'cur');
