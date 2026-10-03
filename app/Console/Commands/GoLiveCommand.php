@@ -24,13 +24,14 @@ class GoLiveCommand extends Command
         'activity_logs', 'casino_favorites', 'casino_provider_users', 'coupon_selections', 'coupon_placements',
         'sport_warnings', 'coupons', 'daily_stats', 'game_rounds', 'game_sessions', 'wallet_transactions',
         'sessions', 'cache', 'cache_locks', 'jobs', 'job_batches', 'failed_jobs', 'password_reset_tokens',
+        'game_blocks', 'credit_fee_payments', // FK users RESTRICT (03.10)
     ];
 
     private const DEMO_API_ID = 9000000000000;
 
     public function handle(): int
     {
-        $owners = User::query()->where('role', UserRole::Owner)->get();
+        $owners = User::query()->where('role', UserRole::Owner)->whereNull('parent_id')->get(); // kök owner; alt owner'lar diğer hesaplar gibi silinir
         if ($owners->count() !== 1) {
             $this->error('Tam olarak 1 owner olmalı, bulunan: '.$owners->count());
 
