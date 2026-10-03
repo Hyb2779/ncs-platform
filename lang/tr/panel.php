@@ -222,7 +222,7 @@ return [
     'log_action_credit_fee_payment' => 'Kredi ücreti tahsilatı',
     'log_action_auth_login' => 'Giriş',
     'log_action_auth_login_failed' => 'Başarısız giriş',
-    'reports_title' => 'Raporlar',
+    'reports_title' => 'Rapor Detay',
     'reports_tab_summary' => 'Özet',
     'reports_tab_providers' => 'Sağlayıcılar',
     'reports_period' => 'Dönem',

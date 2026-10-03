@@ -222,7 +222,7 @@ return [
     'log_action_credit_fee_payment' => 'Credit fee payment',
     'log_action_auth_login' => 'Login',
     'log_action_auth_login_failed' => 'Failed login',
-    'reports_title' => 'Reports',
+    'reports_title' => 'Report Details',
     'reports_tab_summary' => 'Summary',
     'reports_tab_providers' => 'Providers',
     'reports_period' => 'Period',

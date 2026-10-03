@@ -222,7 +222,7 @@ return [
     'log_action_credit_fee_payment' => 'تحصيل رسوم الائتمان',
     'log_action_auth_login' => 'تسجيل دخول',
     'log_action_auth_login_failed' => 'دخول فاشل',
-    'reports_title' => 'التقارير',
+    'reports_title' => 'تفاصيل التقرير',
     'reports_tab_summary' => 'الملخص',
     'reports_tab_providers' => 'المزودون',
     'reports_period' => 'الفترة',

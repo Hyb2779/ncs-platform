@@ -222,7 +222,7 @@ return [
     'log_action_credit_fee_payment' => 'Kreditgebühr-Zahlung',
     'log_action_auth_login' => 'Anmeldung',
     'log_action_auth_login_failed' => 'Fehlgeschlagene Anmeldung',
-    'reports_title' => 'Berichte',
+    'reports_title' => 'Berichtsdetails',
     'reports_tab_summary' => 'Übersicht',
     'reports_tab_providers' => 'Anbieter',
     'reports_period' => 'Zeitraum',
