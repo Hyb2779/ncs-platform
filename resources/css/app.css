@@ -99,3 +99,25 @@ html[data-panel-theme='dark'] .text-red-600 { color: #F87171 !important; }
 html[data-panel-theme='dark'] input,
 html[data-panel-theme='dark'] select,
 html[data-panel-theme='dark'] textarea { background-color: #0F1218; color: #E5E7EB; border-color: #2A303B; }
+
+/* Koyu tema: acik renkli bilgi / basari / hata / uyari kutulari */
+html[data-panel-theme='dark'] .bg-sky-50 { background-color: rgb(14 165 233 / 0.12) !important; }
+html[data-panel-theme='dark'] .bg-emerald-50 { background-color: rgb(16 185 129 / 0.12) !important; }
+html[data-panel-theme='dark'] .bg-red-50,
+html[data-panel-theme='dark'] .bg-rose-50 { background-color: rgb(244 63 94 / 0.12) !important; }
+html[data-panel-theme='dark'] .bg-amber-50 { background-color: rgb(245 158 11 / 0.12) !important; }
+html[data-panel-theme='dark'] .bg-slate-50,
+html[data-panel-theme='dark'] .bg-slate-100 { background-color: #1A1F29 !important; }
+html[data-panel-theme='dark'] .border-sky-200 { border-color: rgb(14 165 233 / 0.35) !important; }
+html[data-panel-theme='dark'] .border-emerald-200 { border-color: rgb(16 185 129 / 0.35) !important; }
+html[data-panel-theme='dark'] .border-red-200,
+html[data-panel-theme='dark'] .border-rose-200 { border-color: rgb(244 63 94 / 0.35) !important; }
+html[data-panel-theme='dark'] .border-amber-200 { border-color: rgb(245 158 11 / 0.35) !important; }
+html[data-panel-theme='dark'] .border-slate-200 { border-color: #2A303C !important; }
+html[data-panel-theme='dark'] .text-emerald-700,
+html[data-panel-theme='dark'] .text-emerald-800 { color: #6EE7B7 !important; }
+html[data-panel-theme='dark'] .text-red-700,
+html[data-panel-theme='dark'] .text-red-800,
+html[data-panel-theme='dark'] .text-rose-700 { color: #FDA4AF !important; }
+html[data-panel-theme='dark'] .text-amber-900 { color: #FCD34D !important; }
+html[data-panel-theme='dark'] .bg-sky-50 * { color: #CBD5E1; }
