@@ -24,6 +24,7 @@ class PanelMenu
         ];
 
         if (in_array($user->role, [UserRole::Owner, UserRole::Superadmin], true)) {
+            $network[] = self::item(__('panel.online_title'), 'panel.online.index', ['panel.online.index']);
             $network[] = self::item(__('sport.panel.limits'), 'panel.sport.limits', ['panel.sport.limits']);
             $network[] = self::item(__('sport.panel.overdraft'), 'panel.sport.overdrafts', ['panel.sport.overdrafts']);
             $network[] = self::item(__('sport.panel.risky'), 'panel.coupons.risky', ['panel.coupons.risky']);
