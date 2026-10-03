@@ -45,8 +45,11 @@ class UsersTabsTest extends TestCase
     {
         [$owner, $sa, $bayiA] = $this->world();
 
-        $this->actingAs($owner)->get(self::URL)->assertOk()->assertDontSee('panel/users/create', false);
-        $this->actingAs($bayiA)->get(self::URL)->assertOk()->assertSee('panel/users/create', false);
+        // Menüde "Yeni Kullanıcı Ekle" her sayfada var; "+ Yeni" butonu sadece eşleşen sekmede ek link üretir.
+        $ownerLinks = substr_count($this->actingAs($owner)->get(self::URL)->assertOk()->getContent(), 'panel/users/create');
+        $bayiLinks = substr_count($this->actingAs($bayiA)->get(self::URL)->assertOk()->getContent(), 'panel/users/create');
+        $this->assertGreaterThanOrEqual(1, $ownerLinks);
+        $this->assertGreaterThan($ownerLinks, $bayiLinks);
     }
 
     public function test_superadmin_dealers_tab_shows_own_dealers(): void

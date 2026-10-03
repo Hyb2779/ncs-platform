@@ -16,17 +16,31 @@ class StoreUserRequest extends FormRequest
 
     public function rules(): array
     {
+        $allowed = match ($this->user()?->role?->value) {
+            'owner' => ['superadmin', 'bayi', 'uye'],
+            'superadmin' => ['bayi', 'uye'],
+            'bayi' => ['uye'],
+            default => [],
+        };
+        $role = in_array($this->input('role'), $allowed, true) ? $this->input('role') : ($allowed[0] ?? null);
+
         $rules = [
+            'role' => ['nullable', Rule::in($allowed)],
+            'parent' => ['nullable', 'integer'],
             'username' => ['required', 'string', 'max:64', 'alpha_dash', Rule::unique('users', 'username')],
             'password' => ['required', 'string', 'min:4', 'max:255'],
-            'commission_rate' => $this->user()?->role?->value === 'bayi' ? ['exclude'] : ['nullable', 'numeric', 'min:0', 'max:100'],
+            'commission_rate' => $role === 'uye' ? ['exclude'] : ['nullable', 'numeric', 'min:0', 'max:100'],
             'user_limit' => ['nullable', 'integer', 'min:0'],
             'note' => ['nullable', 'string', 'max:2000'],
         ];
 
-        if (in_array($this->user()?->role, [\App\Enums\UserRole::Owner, \App\Enums\UserRole::Superadmin], true)) {
+        // Süperadmin ve bayi açılırken dil/para birimi seçilir; üye bayiden miras alır.
+        if (in_array($role, ['superadmin', 'bayi'], true)) {
             $rules['language'] = ['required', Rule::in(['tr', 'en', 'de', 'ar'])];
             $rules['currency'] = ['required', Rule::in(['TRY', 'USD', 'EUR'])];
+        } else {
+            $rules['language'] = ['exclude'];
+            $rules['currency'] = ['exclude'];
         }
 
         return $rules;

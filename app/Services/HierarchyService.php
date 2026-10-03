@@ -14,7 +14,7 @@ class HierarchyService
 {
     public function __construct(private readonly ActivityLogger $activity) {}
 
-    public function create(User $actor, array $data): User
+    public function create(User $actor, array $data, ?User $by = null): User
     {
         $role = $actor->role->childRole();
 
@@ -22,7 +22,7 @@ class HierarchyService
             throw new HierarchyException('hierarchy.cannot_create');
         }
 
-        return DB::transaction(function () use ($actor, $data, $role) {
+        return DB::transaction(function () use ($actor, $data, $role, $by) {
             $actor = User::query()->whereKey($actor->id)->lockForUpdate()->firstOrFail();
             $this->assertCanOpenChild($actor);
 
@@ -50,7 +50,7 @@ class HierarchyService
             $user->superadmin_id = $role === UserRole::Superadmin ? $user->id : $actor->superadmin_id;
             $user->save();
 
-            $this->activity->write($actor, 'user.created', $user, [
+            $this->activity->write($by ?? $actor, 'user.created', $user, [
                 'role' => $user->role->value,
                 'username' => $user->username,
             ]);

@@ -81,4 +81,70 @@ class PanelUserFormTest extends TestCase
 
         return $owner->refresh();
     }
+
+    private function account(User $parent, string $username, string $currency = 'TRY'): User
+    {
+        return app(HierarchyService::class)->create($parent, [
+            'username' => $username, 'password' => 'password', 'commission_rate' => 0,
+            'user_limit' => null, 'note' => null, 'language' => 'tr', 'currency' => $currency,
+        ]);
+    }
+
+    public function test_owner_creates_bayi_and_uye_under_chosen_parent(): void
+    {
+        $owner = $this->owner();
+        $sa = $this->account($owner, 'sa_p1', 'USD');
+
+        $this->actingAs($owner)->get(self::URL.'/create')->assertOk()->assertSee('name="role"', false)->assertSee('sa_p1');
+
+        $this->actingAs($owner)->post(self::URL, [
+            'role' => 'bayi', 'parent' => $sa->id, 'username' => 'bayi_p1', 'password' => '1234',
+            'language' => 'de', 'currency' => 'EUR',
+        ])->assertSessionHasNoErrors();
+        $bayi = User::query()->where('username', 'bayi_p1')->firstOrFail();
+        $this->assertSame(UserRole::Bayi, $bayi->role);
+        $this->assertSame($sa->id, $bayi->parent_id);
+        $this->assertSame($sa->id, $bayi->superadmin_id);
+
+        $this->actingAs($owner)->post(self::URL, [
+            'role' => 'uye', 'parent' => $bayi->id, 'username' => 'uye_p1', 'password' => '1234',
+            'commission_rate' => '50', 'language' => 'tr', 'currency' => 'TRY',
+        ])->assertSessionHasNoErrors();
+        $uye = User::query()->where('username', 'uye_p1')->firstOrFail();
+        $this->assertSame(UserRole::Uye, $uye->role);
+        $this->assertSame($bayi->id, $uye->parent_id);
+        $this->assertSame($sa->id, $uye->superadmin_id);
+        $this->assertSame('EUR', $uye->currency->value);
+        $this->assertEquals(0, (float) $uye->commission_rate);
+    }
+
+    public function test_parent_must_be_in_own_tree_one_level_up_and_role_must_be_allowed(): void
+    {
+        $owner = $this->owner();
+        $sa1 = $this->account($owner, 'sa_q1');
+        $sa2 = $this->account($owner, 'sa_q2');
+        $b1 = $this->account($sa1, 'bayi_q1');
+        $b2 = $this->account($sa2, 'bayi_q2');
+
+        $this->actingAs($sa1)->post(self::URL, [
+            'role' => 'uye', 'parent' => $b2->id, 'username' => 'x_q1', 'password' => '1234',
+        ])->assertSessionHasErrors('parent');
+
+        $this->actingAs($owner)->post(self::URL, [
+            'role' => 'uye', 'parent' => $sa1->id, 'username' => 'x_q2', 'password' => '1234',
+        ])->assertSessionHasErrors('parent');
+
+        $this->actingAs($b1)->post(self::URL, [
+            'role' => 'bayi', 'username' => 'x_q3', 'password' => '1234',
+        ])->assertSessionHasErrors('role');
+
+        foreach (['x_q1', 'x_q2', 'x_q3'] as $name) {
+            $this->assertDatabaseMissing('users', ['username' => $name]);
+        }
+
+        $this->actingAs($sa1)->post(self::URL, [
+            'role' => 'uye', 'parent' => $b1->id, 'username' => 'x_q4', 'password' => '1234',
+        ])->assertSessionHasNoErrors();
+        $this->assertSame($b1->id, User::query()->where('username', 'x_q4')->value('parent_id'));
+    }
 }

@@ -208,38 +208,40 @@ class UserController extends Controller
             ->with('reset_password', ['username' => $target->username, 'password' => $password]);
     }
 
-    public function create(Request $request, HierarchyService $hierarchy): View
+    public function create(Request $request): View
     {
         $actor = $request->user();
-        $parent = $request->filled('parent')
-            ? $hierarchy->findInSubtree($actor, (int) $request->query('parent'))
-            : $actor;
-
-        abort_unless($this->actorCreatesHere($actor, $parent), 404);
+        $roles = $this->creatableRoles($actor);
+        abort_if($roles === [], 404);
 
         return view('panel.users.create', [
-            'parent' => $parent,
-            'breadcrumb' => $this->breadcrumb($actor, $parent),
+            'roles' => $roles,
+            'defaultRole' => $roles[0],
+            'parents' => $this->parentOptions($actor),
+            'breadcrumb' => $this->breadcrumb($actor, $actor),
         ]);
     }
 
     public function store(StoreUserRequest $request, HierarchyService $hierarchy): RedirectResponse
     {
         $actor = $request->user();
-        $parent = $request->filled('parent')
-            ? $hierarchy->findInSubtree($actor, (int) $request->input('parent'))
-            : $actor;
+        $roles = $this->creatableRoles($actor);
+        $role = $request->validated('role') ?? ($roles[0] ?? null);
+        abort_unless($role !== null && in_array($role, $roles, true), 404);
 
-        abort_unless($this->actorCreatesHere($actor, $parent), 404);
+        $parent = $this->resolveParent($actor, $role, $request->integer('parent'));
+        if ($parent === null) {
+            return back()->withInput()->withErrors(['parent' => __('panel.create_parent_invalid')]);
+        }
 
         try {
-            $hierarchy->create($parent, $request->validated());
+            $hierarchy->create($parent, $request->safe()->except(['role', 'parent']), $actor);
         } catch (HierarchyException $exception) {
             return back()->withInput()->withErrors(['username' => __($exception->translationKey, $exception->replace)]);
         }
 
         return redirect()
-            ->route('panel.users.index', ['tab' => $this->tabFor($actor->role->childRole()), 'parent' => $parent->id === $actor->id ? null : $parent->id])
+            ->route('panel.users.index', ['tab' => $this->tabFor($role)])
             ->with('status', __('panel.user_created'));
     }
 
@@ -274,6 +276,59 @@ class UserController extends Controller
         return redirect()
             ->route('panel.users.index', ['tab' => $this->tabFor($target->role), 'parent' => $target->parent_id === $actor->id ? null : $target->parent_id])
             ->with('status', __('panel.user_updated'));
+    }
+
+    /** Bayi → süperadmin altına, üye → bayi altına açılır. */
+    private const PARENT_ROLE = ['bayi' => 'superadmin', 'uye' => 'bayi'];
+
+    /** @return list<string> İlki bir alt seviye (üst hesap = kendisi). */
+    private function creatableRoles(User $actor): array
+    {
+        return match ($actor->role) {
+            \App\Enums\UserRole::Owner => ['superadmin', 'bayi', 'uye'],
+            \App\Enums\UserRole::Superadmin => ['bayi', 'uye'],
+            \App\Enums\UserRole::Bayi => ['uye'],
+            default => [],
+        };
+    }
+
+    private function resolveParent(User $actor, string $role, int $parentId): ?User
+    {
+        if ($actor->role->childRole()?->value === $role) {
+            return $actor;
+        }
+
+        $parentRole = self::PARENT_ROLE[$role] ?? null;
+        if ($parentRole === null || $parentId <= 0) {
+            return null;
+        }
+
+        return User::query()->subtreeOf($actor)->whereKey($parentId)
+            ->where('role', $parentRole)->where('status', 'active')->first();
+    }
+
+    /** @return array<string, list<array{id: int, label: string}>> */
+    private function parentOptions(User $actor): array
+    {
+        $options = [];
+        foreach (self::PARENT_ROLE as $role => $parentRole) {
+            if (! in_array($role, $this->creatableRoles($actor), true) || $actor->role->childRole()?->value === $role) {
+                continue;
+            }
+
+            $rows = User::query()->subtreeOf($actor)->where('role', $parentRole)->where('status', 'active')
+                ->orderBy('path')->get(['id', 'username', 'superadmin_id', 'path']);
+            $heads = $parentRole === 'bayi'
+                ? User::query()->whereIn('id', $rows->pluck('superadmin_id')->filter()->unique())->pluck('username', 'id')
+                : collect();
+
+            $options[$role] = $rows->map(fn (User $row) => [
+                'id' => $row->id,
+                'label' => $row->username.($heads->has($row->superadmin_id) ? ' · '.$heads[$row->superadmin_id] : ''),
+            ])->values()->all();
+        }
+
+        return $options;
     }
 
     /** Oyuncu → Kullanıcılar sekmesi, diğer roller → Bayiler sekmesi. */

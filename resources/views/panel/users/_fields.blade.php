@@ -12,7 +12,7 @@
 </label>
 @php($showCommission = $creating ? auth()->user()->role->value !== 'bayi' : $user->role->value !== 'uye')
 @if ($showCommission)
-<label class="grid gap-1 text-sm">
+<label class="grid gap-1 text-sm" @if ($creating) x-show="role !== 'uye'" @endif>
     <span>{{ __('panel.fields.commission_rate') }}</span>
     <input class="rounded-md border border-slate-300 px-3 py-2" name="commission_rate" value="{{ old('commission_rate', $creating ? '' : $user->commission_rate) }}">
 </label>
@@ -32,7 +32,7 @@
     </label>
 @endif
 @if ($creating && in_array(auth()->user()->role->value, ['owner', 'superadmin'], true))
-    <label class="grid gap-1 text-sm">
+    <label class="grid gap-1 text-sm" x-show="role !== 'uye'">
         <span>{{ __('panel.fields.language') }}</span>
         <select class="rounded-md border border-slate-300 px-3 py-2" name="language">
             @foreach (['tr', 'en', 'de', 'ar'] as $language)
@@ -40,7 +40,7 @@
             @endforeach
         </select>
     </label>
-    <label class="grid gap-1 text-sm">
+    <label class="grid gap-1 text-sm" x-show="role !== 'uye'">
         <span>{{ __('panel.fields.currency') }}</span>
         <select class="rounded-md border border-slate-300 px-3 py-2" name="currency">
             @foreach (['TRY', 'USD', 'EUR'] as $currency)
