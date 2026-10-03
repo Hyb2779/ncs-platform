@@ -256,4 +256,5 @@ return [
     'reports_role_bayi' => 'Dealer',
     'reports_role_uye' => 'Player',
     'display_currency' => 'Displayed currency',
+    'theme_toggle' => 'Light / dark theme',
 ];

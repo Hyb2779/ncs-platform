@@ -256,4 +256,5 @@ return [
     'reports_role_bayi' => 'Händler',
     'reports_role_uye' => 'Spieler',
     'display_currency' => 'Angezeigte Währung',
+    'theme_toggle' => 'Helles / dunkles Design',
 ];

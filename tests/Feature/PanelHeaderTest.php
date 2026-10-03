@@ -35,7 +35,8 @@ class PanelHeaderTest extends TestCase
         $this->actingAs($sa)->get('http://panel.test/panel')->assertOk()
             ->assertSee('data-header="balance"', false)
             ->assertSee('aria-label="'.__('panel.display_currency').'"', false)
-            ->assertSee('<option value="EUR"', false);
+            ->assertSee('<option value="EUR"', false)
+            ->assertSee('data-header="theme"', false)->assertSee('panelTheme', false);
 
         $this->actingAs($sa)->from('http://panel.test/panel')->post('http://panel.test/panel/preferences/currency', ['currency' => 'EUR'])
             ->assertRedirect()->assertCookie('panel_currency', 'EUR');

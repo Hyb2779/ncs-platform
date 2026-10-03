@@ -73,3 +73,29 @@ details.limit-group > summary::marker {
 }
 
 html[data-theme] { color-scheme: dark; }
+
+/* Panel koyu tema: html[data-panel-theme="dark"] (localStorage panel_theme). Sabit renkler tek yerden cevrilir. */
+html[data-panel-theme='dark'] { color-scheme: dark; }
+html[data-panel-theme='dark'] body,
+html[data-panel-theme='dark'] .bg-\[\#F3F4F6\] { background-color: #0F1218 !important; }
+html[data-panel-theme='dark'] body { color: #E5E7EB; }
+html[data-panel-theme='dark'] .bg-white { background-color: #171B23 !important; }
+html[data-panel-theme='dark'] .bg-slate-50,
+html[data-panel-theme='dark'] .bg-slate-100 { background-color: #1F2430 !important; }
+html[data-panel-theme='dark'] .border-\[\#E3E6EB\],
+html[data-panel-theme='dark'] .border-\[\#EEF1F4\],
+html[data-panel-theme='dark'] .border-\[\#EEF0F3\],
+html[data-panel-theme='dark'] .border-slate-200,
+html[data-panel-theme='dark'] .border-slate-300 { border-color: #2A303B !important; }
+html[data-panel-theme='dark'] .bg-\[\#161A22\] { background-color: #F5B83D !important; color: #1A1305 !important; }
+html[data-panel-theme='dark'] .border-\[\#161A22\] { border-color: #F5B83D !important; }
+html[data-panel-theme='dark'] .text-slate-900,
+html[data-panel-theme='dark'] .text-slate-800,
+html[data-panel-theme='dark'] .text-slate-700 { color: #E5E7EB !important; }
+html[data-panel-theme='dark'] .text-slate-600,
+html[data-panel-theme='dark'] .text-slate-500 { color: #9CA3AF !important; }
+html[data-panel-theme='dark'] .text-slate-400 { color: #6B7280 !important; }
+html[data-panel-theme='dark'] .text-red-600 { color: #F87171 !important; }
+html[data-panel-theme='dark'] input,
+html[data-panel-theme='dark'] select,
+html[data-panel-theme='dark'] textarea { background-color: #0F1218; color: #E5E7EB; border-color: #2A303B; }

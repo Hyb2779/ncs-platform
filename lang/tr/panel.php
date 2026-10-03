@@ -256,4 +256,5 @@ return [
     'reports_role_bayi' => 'Bayi',
     'reports_role_uye' => 'Oyuncu',
     'display_currency' => 'Gösterilen para birimi',
+    'theme_toggle' => 'Açık / koyu tema',
 ];

@@ -24,6 +24,7 @@
             --chart-3: #2DD4BF;
         }
     </style>
+    <script>try{if(localStorage.getItem('panel_theme')==='dark'){var d=document.documentElement;d.dataset.theme='dark';d.dataset.panelTheme='dark'}}catch(e){}</script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-[#F3F4F6] font-sans text-slate-900" x-data="{ open: false }">
@@ -92,6 +93,9 @@
                     </div>
                 @endif
                 <span class="hidden h-6 items-center rounded-md bg-[#F3F4F6] px-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:inline-flex" title="{{ __('panel.languages.'.auth()->user()->language->value) }}">{{ auth()->user()->language->value }}</span>
+                <button class="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[#E3E6EB] bg-white" type="button" data-header="theme" aria-label="{{ __('panel.theme_toggle') }}" title="{{ __('panel.theme_toggle') }}" onclick="(function(){var d=document.documentElement,on=d.dataset.theme!=='dark';if(on){d.dataset.theme='dark';d.dataset.panelTheme='dark'}else{delete d.dataset.theme;delete d.dataset.panelTheme}try{localStorage.setItem('panel_theme',on?'dark':'light')}catch(e){}})()">
+                    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+                </button>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf
                     <button class="inline-flex h-11 items-center rounded-lg border border-[#E3E6EB] bg-white px-3 text-sm" type="submit">{{ __('panel.logout') }}</button>

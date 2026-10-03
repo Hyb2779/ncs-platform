@@ -256,4 +256,5 @@ return [
     'reports_role_bayi' => 'الوكيل',
     'reports_role_uye' => 'اللاعب',
     'display_currency' => 'العملة المعروضة',
+    'theme_toggle' => 'السمة الفاتحة / الداكنة',
 ];
