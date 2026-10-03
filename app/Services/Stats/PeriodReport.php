@@ -34,6 +34,7 @@ class PeriodReport
                 'turnover' => $this->money($row->turnover),
                 'payout' => $this->money($row->payout),
                 'bet_count' => (int) $row->bet_count,
+                'win_count' => (int) $row->win_count,
                 'players' => (int) $row->bet_count > 0 ? [(int) $row->user_id => true] : [],
             ];
 
@@ -101,6 +102,26 @@ class PeriodReport
         return $out;
     }
 
+    /**
+     * Oyuncu bazinda net sonuc (oyuncunun kazanci = odeme - ciro), tek para biriminde.
+     *
+     * @return list<array{user_id: int, net: string}> en cok kazanan basta
+     */
+    public function playerNets(User $focus, Carbon $fromUtc, Carbon $toUtc, string $currency): array
+    {
+        $nets = [];
+        foreach ($this->memberRows($focus, $fromUtc, $toUtc) as $row) {
+            if ((string) $row->currency !== $currency) {
+                continue;
+            }
+            $id = (int) $row->user_id;
+            $nets[$id] = bcadd($nets[$id] ?? '0.00', bcsub($this->money($row->payout), $this->money($row->turnover), 2), 2);
+        }
+        uasort($nets, fn ($a, $b) => bccomp($b, $a, 2));
+
+        return array_map(fn ($id, $net) => ['user_id' => $id, 'net' => $net], array_keys($nets), $nets);
+    }
+
     /** @return list<object> */
     private function memberRows(User $focus, Carbon $fromUtc, Carbon $toUtc): array
     {
@@ -114,6 +135,7 @@ class PeriodReport
             ->selectRaw("SUM(CASE WHEN wt.type IN ('bet','refund') THEN -wt.amount ELSE 0 END) AS turnover")
             ->selectRaw("SUM(CASE WHEN wt.type = 'win' OR (wt.type = 'adjustment' AND wt.product IN ($adjust)) THEN wt.amount ELSE 0 END) AS payout")
             ->selectRaw("SUM(CASE WHEN wt.type = 'bet' THEN 1 ELSE 0 END) AS bet_count")
+            ->selectRaw("SUM(CASE WHEN wt.type = 'win' THEN 1 ELSE 0 END) AS win_count")
             ->get()
             ->all();
     }
@@ -175,10 +197,11 @@ class PeriodReport
 
     private function add(?array &$target, array $m): void
     {
-        $target ??= ['turnover' => '0.00', 'payout' => '0.00', 'bet_count' => 0, 'players' => []];
+        $target ??= ['turnover' => '0.00', 'payout' => '0.00', 'bet_count' => 0, 'win_count' => 0, 'players' => []];
         $target['turnover'] = bcadd($target['turnover'], $m['turnover'], 2);
         $target['payout'] = bcadd($target['payout'], $m['payout'], 2);
         $target['bet_count'] += $m['bet_count'];
+        $target['win_count'] += $m['win_count'] ?? 0;
         $target['players'] += $m['players'];
     }
 
@@ -199,6 +222,7 @@ class PeriodReport
             'payout' => $m['payout'],
             'ggr' => bcsub($m['turnover'], $m['payout'], 2),
             'bet_count' => $m['bet_count'],
+            'win_count' => $m['win_count'] ?? 0,
             'players' => count($m['players']),
         ];
     }

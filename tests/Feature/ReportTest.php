@@ -14,6 +14,7 @@ use App\Models\GameRound;
 use App\Models\User;
 use App\Services\HierarchyService;
 use App\Services\Stats\PeriodReport;
+use App\Services\Stats\TodaySummary;
 use App\Services\WalletProvisioner;
 use App\Services\WalletService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -143,6 +144,25 @@ class ReportTest extends TestCase
         $this->actingAs($this->owner)->get('http://panel.test/panel/reports?period=custom&from=2026-01-01&to=2026-10-03')->assertOk()
             ->assertSee('2026-07-04'); // 92 gun siniri
         $this->actingAs($this->owner)->get('http://panel.test/panel/reports?period=custom&from=bozuk&to=x')->assertOk();
+    }
+
+    public function test_today_summary_and_dashboard_block(): void
+    {
+        $this->play($this->m1, T::Bet, WalletProduct::Sport, '50.00');
+        $this->play($this->m1, T::Win, WalletProduct::Sport, '80.00');
+        $this->play($this->m2, T::Bet, WalletProduct::Slot, '20.00');
+
+        $s = app(TodaySummary::class)->for($this->owner, 'TRY');
+        $this->assertSame([1, '50.00', 1, '80.00'], [$s['sport_bets']['count'], $s['sport_bets']['amount'], $s['sport_wins']['count'], $s['sport_wins']['amount']]);
+        $this->assertSame(['-30.00', '20.00', '-10.00', 2], [$s['sport_ggr'], $s['casino_turnover'], $s['today_ggr'], $s['players']]);
+        $this->assertSame(['oyuncu_one', '30.00'], [$s['top_winner']['name'], $s['top_winner']['net']]);
+        $this->assertSame(['oyuncu_two', '20.00'], [$s['top_loser']['name'], $s['top_loser']['net']]);
+
+        $sa2 = app(TodaySummary::class)->for($this->sa2, 'TRY');
+        $this->assertSame(['20.00', null], [$sa2['casino_turnover'], $sa2['top_winner']]); // sadece kendi agaci
+
+        $this->actingAs($this->owner)->get('http://panel.test/panel')->assertOk()->assertSee(__('panel.today_title'))->assertSee(__('panel.today_coupons', ['count' => 1]));
+        $this->actingAs($this->sa1)->get('http://panel.test/panel')->assertOk()->assertSee(__('panel.week_top_winner'))->assertSee('oyuncu_one');
     }
 
     /** @return array{0: Carbon, 1: Carbon} */

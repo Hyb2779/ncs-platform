@@ -3,6 +3,7 @@
 @section('heading', $heading)
 
 @section('content')
+    @include('panel.dashboard._today', ['todayCurrency' => $currency ?? null])
     @include('panel.dashboard._body')
     <x-panel.card class="mt-4" :title="__('panel.ops')">
         <div class="grid gap-3 sm:grid-cols-2">
