@@ -37,6 +37,7 @@
         <div class="mx-3 rounded-lg bg-[#F3F4F6] px-3 py-3 text-start">
             <p class="font-medium">{{ auth()->user()->username }}</p>
             <p class="text-sm text-slate-500">{{ __('panel.roles.'.auth()->user()->role->value) }} · {{ auth()->user()->language->value }}</p>
+            @if (auth()->user()->role->value !== 'owner')
             <div class="mt-2 grid gap-0.5 border-t border-[#E3E6EB] pt-2">
                 @foreach ($headerWallets as $cardWallet)
                     <div class="flex items-center justify-between text-sm">
@@ -45,6 +46,7 @@
                     </div>
                 @endforeach
             </div>
+            @endif
         </div>
         <nav class="mt-6 grid min-h-0 flex-1 content-start gap-4 overflow-y-auto px-3 pb-6">
             @foreach ($panelSections as $section)

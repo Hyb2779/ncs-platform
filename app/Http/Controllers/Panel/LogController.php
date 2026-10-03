@@ -65,7 +65,11 @@ class LogController extends Controller
         }
 
         $logs = $query->paginate(50)->withQueryString();
-        $userIds = $logs->getCollection()->flatMap(fn ($log) => [$log->actor_id, $log->target_type === $morph ? $log->target_id : null])->filter()->unique();
+        $userIds = $logs->getCollection()->flatMap(function ($log) use ($morph) {
+            $p = is_array($log->payload) ? $log->payload : (json_decode((string) $log->payload, true) ?: []);
+
+            return [$log->actor_id, $log->target_type === $morph ? $log->target_id : null, $p['from_user_id'] ?? null, $p['to_user_id'] ?? null];
+        })->filter()->unique();
         $names = User::query()->whereIn('id', $userIds->all() ?: [0])->pluck('username', 'id');
 
         $rows = $logs->getCollection()->map(function (ActivityLog $log) use ($names, $zone, $morph, $kind): array {
@@ -82,7 +86,7 @@ class LogController extends Controller
                 'target' => $log->target_type === $morph ? ($names[$log->target_id] ?? '#'.$log->target_id) : __('panel.empty_value'),
                 'ip' => $log->ip ?: __('panel.empty_value'),
                 'device' => $this->device($payload['ua'] ?? null),
-                'detail' => $this->detail($payload),
+                'detail' => $this->detail($payload, (string) $log->action, $names),
             ];
         })->all();
 
@@ -107,15 +111,28 @@ class LogController extends Controller
         return Lang::has($key) ? __($key) : $action;
     }
 
-    private function detail(array $payload): string
+    private function detail(array $payload, string $action = '', $names = []): string
     {
-        unset($payload['ua']);
+        unset($payload['ua'], $payload['out_id'], $payload['in_id']);
+        $who = fn ($id) => $id === null ? '?' : ($names[$id] ?? '#'.$id);
+        $role = fn ($r) => is_string($r) && Lang::has('panel.roles.'.$r) ? __('panel.roles.'.$r) : (string) $r;
+        $money = fn ($amount, $currency) => number_format((float) $amount, 2, ',', '.').' '.$currency;
+
+        switch ($action) {
+            case 'wallet.transferred':
+                return $who($payload['from_user_id'] ?? null).' → '.$who($payload['to_user_id'] ?? null).' · '.$money($payload['amount'] ?? 0, $payload['currency'] ?? '');
+            case 'user.created':
+                return $role($payload['role'] ?? '').' · '.($payload['username'] ?? '');
+            case 'user.role_migrated':
+                return $role($payload['from'] ?? '').' → '.$role($payload['to'] ?? '').(isset($payload['reason']) ? ' · '.$payload['reason'] : '');
+        }
+
         $parts = [];
         foreach ($payload as $key => $value) {
-            if (is_scalar($value) || $value === null) {
-                $parts[] = $key.': '.($value === null ? '-' : (is_bool($value) ? ($value ? '1' : '0') : $value));
-            } elseif (is_array($value)) {
+            if (is_array($value)) {
                 $parts[] = $key.': '.mb_strimwidth(implode(',', array_map(fn ($v) => is_scalar($v) ? (string) $v : json_encode($v), $value)), 0, 40, '…');
+            } elseif ($value !== null && $value !== '') {
+                $parts[] = $key.': '.(is_bool($value) ? ($value ? '1' : '0') : (string) $value);
             }
         }
 
