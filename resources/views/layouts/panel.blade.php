@@ -35,7 +35,15 @@
         </div>
         <div class="mx-3 rounded-lg bg-[#F3F4F6] px-3 py-3 text-start">
             <p class="font-medium">{{ auth()->user()->username }}</p>
-            <p class="text-sm text-slate-500">{{ __('panel.roles.'.auth()->user()->role->value) }} · {{ auth()->user()->language->value }} / {{ auth()->user()->currency->value }}</p>
+            <p class="text-sm text-slate-500">{{ __('panel.roles.'.auth()->user()->role->value) }} · {{ auth()->user()->language->value }}</p>
+            <div class="mt-2 grid gap-0.5 border-t border-[#E3E6EB] pt-2">
+                @foreach ($headerWallets as $cardWallet)
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-slate-500">{{ auth()->user()->role->value === 'owner' ? __('wallet.distributed_credit') : __('wallet.balance') }} · {{ $cardWallet->currency instanceof \BackedEnum ? $cardWallet->currency->value : $cardWallet->currency }}</span>
+                        <span class="font-numeric font-medium">{{ auth()->user()->role->value === 'owner' ? $cardWallet->formattedDistributedBalance() : $cardWallet->formattedBalance() }}</span>
+                    </div>
+                @endforeach
+            </div>
         </div>
         <nav class="mt-6 grid min-h-0 flex-1 content-start gap-4 overflow-y-auto px-3 pb-6">
             @foreach ($panelSections as $section)
@@ -60,18 +68,29 @@
                 <h1 class="truncate text-base font-semibold text-start md:text-lg">@yield('heading')</h1>
             </div>
             <div class="flex shrink-0 items-center gap-2">
-                <div class="flex items-center gap-2 text-sm">
-                    @if (auth()->user()->role->value === 'owner')
-                        <span class="hidden sm:inline">{{ __('wallet.distributed_credit') }}</span>
-                        @foreach ($headerWallets as $headerWallet)
-                            <span class="font-numeric">{{ $headerWallet->formattedDistributedBalance() }}</span>
-                        @endforeach
-                    @else
-                        @foreach ($headerWallets as $headerWallet)
-                            <span class="font-numeric">{{ $headerWallet->formattedBalance() }}</span>
-                        @endforeach
-                    @endif
-                </div>
+                @php
+                    $hwByCurrency = $headerWallets->keyBy(fn ($w) => $w->currency instanceof \BackedEnum ? $w->currency->value : (string) $w->currency);
+                    $hwPicked = request()->cookie('panel_currency');
+                    $hwCurrency = $hwByCurrency->has($hwPicked) ? $hwPicked : (auth()->user()->currency->value ?? $hwByCurrency->keys()->first());
+                    $hwWallet = $hwByCurrency->get($hwCurrency) ?? $hwByCurrency->first();
+                    $hwOwner = auth()->user()->role->value === 'owner';
+                @endphp
+                @if ($hwWallet)
+                    <div class="flex h-11 items-center gap-2 rounded-lg border border-[#E3E6EB] bg-white px-3 text-sm" data-header="balance">
+                        <span class="hidden text-slate-500 sm:inline">{{ $hwOwner ? __('wallet.distributed_credit') : __('wallet.balance') }}</span>
+                        <span class="font-numeric font-semibold">{{ $hwOwner ? $hwWallet->formattedDistributedBalance() : $hwWallet->formattedBalance() }}</span>
+                        @if ($hwByCurrency->count() > 1)
+                            <form method="POST" action="{{ route('panel.preferences.currency') }}">
+                                @csrf
+                                <select class="rounded border-0 bg-[#F3F4F6] py-1 ps-1.5 pe-6 text-xs font-semibold" name="currency" aria-label="{{ __('panel.display_currency') }}" onchange="this.form.submit()">
+                                    @foreach ($hwByCurrency->keys() as $code)
+                                        <option value="{{ $code }}" @selected($code === $hwCurrency)>{{ $code }}</option>
+                                    @endforeach
+                                </select>
+                            </form>
+                        @endif
+                    </div>
+                @endif
                 <span class="hidden h-6 items-center rounded-md bg-[#F3F4F6] px-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:inline-flex" title="{{ __('panel.languages.'.auth()->user()->language->value) }}">{{ auth()->user()->language->value }}</span>
                 <form method="POST" action="{{ route('logout') }}">
                     @csrf

@@ -255,4 +255,5 @@ return [
     'reports_role_superadmin' => 'Superadmin',
     'reports_role_bayi' => 'Dealer',
     'reports_role_uye' => 'Player',
+    'display_currency' => 'Displayed currency',
 ];

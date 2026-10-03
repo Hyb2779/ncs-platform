@@ -23,11 +23,6 @@
         ];
     $input = 'rounded-md border border-slate-300 px-3 py-2';
 @endphp
-<nav class="mb-3 flex gap-2 overflow-x-auto">
-    @foreach (['actions' => ['panel.logs.index', __('panel.logs_actions')], 'logins' => ['panel.logs.logins', __('panel.logs_logins')]] as $key => [$route, $label])
-        <a class="inline-flex h-10 shrink-0 items-center rounded-lg border px-4 text-sm font-medium {{ $kind === $key ? 'border-[#161A22] bg-[#161A22] text-white' : 'border-[#E3E6EB] bg-white' }}" href="{{ route($route) }}">{{ $label }}</a>
-    @endforeach
-</nav>
 <form class="mb-3 grid gap-2 sm:grid-cols-2" method="GET">
     <label class="grid gap-1 text-sm">
         <span>{{ __('panel.logs_search') }}</span>

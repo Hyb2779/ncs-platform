@@ -255,4 +255,5 @@ return [
     'reports_role_superadmin' => 'سوبر أدمن',
     'reports_role_bayi' => 'الوكيل',
     'reports_role_uye' => 'اللاعب',
+    'display_currency' => 'العملة المعروضة',
 ];
