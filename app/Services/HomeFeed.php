@@ -38,7 +38,9 @@ class HomeFeed
             'quick' => [
                 'live' => SportFixture::query()->inPlay()->count(),
                 'today' => Bulletin::query()->whereBetween('starts_at', [$now->copy()->startOfDay(), $now->copy()->endOfDay()])->count(),
-                'slots' => app(\App\Services\Casino\GameAvailability::class)->apply(CasinoGame::query()->where('is_active', true)->where('is_live', false), $viewer)->count(),
+                'slots' => app(\App\Services\Casino\GameAvailability::class)->apply(CasinoGame::query()->where('is_active', true)->where('is_live', false)
+                    ->where(fn ($q) => $q->whereNull('category')->orWhereNotIn('category', ['mini', 'virtual'])), $viewer)->count(), // lobideki slot kurali: mini haric
+                'mini' => app(\App\Services\Casino\GameAvailability::class)->apply(CasinoGame::query()->where('is_active', true)->where('category', 'mini'), $viewer)->count(),
                 'casino' => app(\App\Services\Casino\GameAvailability::class)->apply(CasinoGame::query()->where('is_active', true)->where('is_live', true), $viewer)->count(),
             ],
             'upcoming' => $candidates->take(5)->map(fn ($f) => $this->match($f, $zone))->values(),
