@@ -29,6 +29,7 @@ class PanelMenu
         $reports = [
             self::item(__('sport.panel.coupons'), 'panel.coupons.index', ['panel.coupons.index', 'panel.coupons.show', 'panel.coupons.tipo']),
             self::item(__('sport.panel.lookup'), 'panel.coupons.lookup', ['panel.coupons.lookup']),
+            self::item(__('panel.density_title'), 'panel.coupons.density', ['panel.coupons.density']),
         ];
         if ($staff) {
             $reports[] = self::item(__('panel.reports_title'), 'panel.reports.index', ['panel.reports.index']);

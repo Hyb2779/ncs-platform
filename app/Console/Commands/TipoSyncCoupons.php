@@ -24,7 +24,8 @@ class TipoSyncCoupons extends Command
             return self::FAILURE;
         }
 
-        $this->info($count.' kupon senkronlandi.');
+        $details = $sync->refreshDetails();
+        $this->info($count.' kupon senkronlandi, '.$details.' detay tazelendi.');
 
         return self::SUCCESS;
     }

@@ -36,6 +36,50 @@ class TipoCouponController extends Controller
         return view('panel.tipo_coupons.show', ['coupon' => $tipoCoupon]);
     }
 
+    /** Bahis Yogunlugu: mac bazinda kupon sayisi/tutar ve tahmin kirilimi (agac kapsamli). */
+    public function density(Request $request): View
+    {
+        $viewer = $request->user();
+        $mode = in_array($request->query('mode'), ['open', 'today', '7'], true) ? (string) $request->query('mode') : 'open';
+        $sort = $request->query('sort') === 'stake' ? 'stake' : 'coupons';
+        $now = \Illuminate\Support\Carbon::now($viewer->timezone ?: 'Europe/Istanbul');
+
+        $base = \App\Models\TipoSelection::query()
+            ->join('tipo_coupons as c', 'c.id', '=', 'tipo_selections.tipo_coupon_id')
+            ->whereIn('c.user_id', User::query()->subtreeOf($viewer)->select('id'))
+            ->where('c.currency', $viewer->currency->value);
+        if ($mode === 'open') {
+            $base->where(fn ($q) => $q->whereNull('c.status_label')->orWhereNotIn('c.status_label', TipoCoupon::SETTLED));
+        } else {
+            $from = $mode === 'today' ? $now->copy()->startOfDay() : $now->copy()->subDays(6)->startOfDay();
+            $base->where('c.placed_at', '>=', $from->utc());
+        }
+
+        $events = (clone $base)
+            ->groupBy('tipo_selections.event_id')
+            ->selectRaw('tipo_selections.event_id, MAX(tipo_selections.home_name) as home, MAX(tipo_selections.away_name) as away, '
+                .'MAX(tipo_selections.competition_name) as competition, MAX(tipo_selections.country_name) as country, '
+                .'MAX(tipo_selections.match_time) as match_time, MAX(tipo_selections.is_live) as live, '
+                .'COUNT(DISTINCT c.id) as coupons, SUM(c.stake) as stake')
+            ->orderByDesc($sort === 'stake' ? 'stake' : 'coupons')->orderByDesc('stake')
+            ->limit(100)->get();
+
+        $picks = $events->isEmpty() ? collect() : (clone $base)
+            ->whereIn('tipo_selections.event_id', $events->pluck('event_id'))
+            ->groupBy('tipo_selections.event_id', 'tipo_selections.market_name', 'tipo_selections.selection_name', 'tipo_selections.handicap')
+            ->selectRaw('tipo_selections.event_id, tipo_selections.market_name as market, tipo_selections.selection_name as pick, '
+                .'tipo_selections.handicap as handicap, COUNT(DISTINCT c.id) as coupons, SUM(c.stake) as stake, SUM(c.potential_win) as exposure')
+            ->orderByDesc('coupons')->get()->groupBy('event_id');
+
+        return view('panel.tipo_coupons.density', [
+            'mode' => $mode,
+            'sort' => $sort,
+            'events' => $events,
+            'picks' => $picks,
+            'currency' => $viewer->currency,
+        ]);
+    }
+
     /** Riskli Kuponlar: agactaki acik kuponlar; olasi kazanc veya son maca kalan once. */
     public function risky(Request $request): View
     {

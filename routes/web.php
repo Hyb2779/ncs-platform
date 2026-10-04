@@ -100,6 +100,7 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::get('/coupons', [PanelCouponController::class, 'index'])->name('coupons.index');
     Route::get('/coupons/lookup', [PanelCouponController::class, 'lookup'])->name('coupons.lookup');
     Route::get('/coupons/risky', [PanelCouponController::class, 'risky'])->name('coupons.risky');
+    Route::get('/coupons/density', [\App\Http\Controllers\Panel\TipoCouponController::class, 'density'])->name('coupons.density');
     Route::get('/coupons/{coupon}', [PanelCouponController::class, 'show'])->name('coupons.show');
     Route::get('/coupons/tipo/{tipoCoupon}', [\App\Http\Controllers\Panel\TipoCouponController::class, 'show'])->name('coupons.tipo');
     Route::post('/coupons/{coupon}/cancel', [PanelCouponController::class, 'cancel'])->name('coupons.cancel');

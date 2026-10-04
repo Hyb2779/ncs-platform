@@ -37,6 +37,33 @@ class TipoCouponSync
         return $count;
     }
 
+    /**
+     * Detay tazeleme (Bahis Yogunlugu icin): acik kuponlar 5 dk'dan eskiyse, yeni sonuclanan (detayi sifirlanmis) kuponlar bir kez.
+     * Tur basina en fazla $limit kupon. Doner: tazelenen adet.
+     */
+    public function refreshDetails(int $limit = 100): int
+    {
+        $due = TipoCoupon::query()
+            ->where(function ($q) {
+                $q->where(fn ($open) => $open
+                    ->where(fn ($s) => $s->whereNull('status_label')->orWhereNotIn('status_label', TipoCoupon::SETTLED))
+                    ->where(fn ($t) => $t->whereNull('detail_fetched_at')->orWhere('detail_fetched_at', '<', now()->subMinutes(5))))
+                  ->orWhere(fn ($settled) => $settled->whereNull('detail')->where('placed_at', '>=', now()->subDays(3)));
+            })
+            ->orderByDesc('placed_at')->limit($limit)->get();
+
+        $done = 0;
+        foreach ($due as $coupon) {
+            $detail = $this->bridge->coupon((int) $coupon->user_id, (int) $coupon->bet_id);
+            if ($detail !== null) {
+                $coupon->storeDetail($detail);
+                $done++;
+            }
+        }
+
+        return $done;
+    }
+
     /** @param  list<int>  $allowed  bu istekte sorulan uyeler */
     public function store(array $row, array $allowed): bool
     {

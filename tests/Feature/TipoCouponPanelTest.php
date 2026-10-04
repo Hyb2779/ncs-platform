@@ -162,6 +162,48 @@ class TipoCouponPanelTest extends TestCase
         $this->actingAs($bayi)->get(self::BASE.'/risky')->assertNotFound();
     }
 
+    public function test_detail_refresh_writes_selection_rows_for_open_and_newly_settled(): void
+    {
+        [$owner, $bayi, $uye] = $this->world();
+        $open = $this->coupon($uye, 900050, 'open');
+        $fresh = $this->coupon($uye, 900051, 'open', ['selections' => []]);
+        $settled = $this->coupon($uye, 900052, 'lost');
+        $this->mock(NcsBridge::class, function ($mock) use ($uye) {
+            $mock->shouldReceive('coupon')->twice()->andReturnUsing(fn ($userId, $betId) => [
+                'player_id' => 'wegas:'.$uye->id,
+                'selections' => [
+                    ['id' => $betId * 10, 'event_id' => 777, 'home_name' => 'A', 'away_name' => 'B', 'market_name' => 'Mac Sonucu', 'selection_name' => '1', 'odds' => 1.5, 'match_time' => now()->addHour()->timestamp],
+                    ['id' => $betId * 10 + 1, 'event_id' => 778, 'home_name' => 'C', 'away_name' => 'D', 'market_name' => 'Alt/Ust', 'selection_name' => 'Ust', 'handicap' => '2.5', 'odds' => 1.9],
+                ],
+            ]);
+        });
+
+        $this->assertSame(2, app(\App\Services\Sport\TipoCouponSync::class)->refreshDetails());
+        $this->assertSame(2, $open->selections()->count());
+        $this->assertSame(2, $settled->selections()->count());
+        $this->assertSame(0, $fresh->selections()->count());
+        $this->assertSame(2, \App\Models\TipoSelection::query()->where('event_id', 777)->count());
+    }
+
+    public function test_density_groups_open_selections_by_match_inside_tree(): void
+    {
+        [$owner, $bayi, $uye, $otherUye] = $this->world();
+        $sel = fn (int $id, int $event, string $home, string $away, string $pick) => ['selections' => [[
+            'id' => $id, 'event_id' => $event, 'home_name' => $home, 'away_name' => $away,
+            'market_name' => 'Mac Sonucu', 'selection_name' => $pick, 'odds' => 1.5,
+        ]]];
+        $this->coupon($uye, 900060, 'open')->storeDetail($sel(1, 555, 'Yogun A', 'Yogun B', '1'));
+        $this->coupon($uye, 900061, 'open')->storeDetail($sel(2, 555, 'Yogun A', 'Yogun B', '2'));
+        $this->coupon($uye, 900062, 'lost')->storeDetail($sel(3, 556, 'Kapali C', 'Kapali D', '1'));
+        $this->coupon($otherUye, 900063, 'open')->storeDetail($sel(4, 557, 'Baska E', 'Baska F', 'X'));
+
+        $page = $this->actingAs($bayi)->get(self::BASE.'/density')->assertOk()
+            ->assertSee('Yogun A - Yogun B')->assertDontSee('Kapali C')->assertDontSee('Baska E');
+        $this->assertSame(2, (int) $page->viewData('events')->first()->coupons);
+        $this->actingAs($bayi)->get(self::BASE.'/density?mode=today')->assertOk()->assertSee('Kapali C');
+        $this->actingAs($owner)->get(self::BASE.'/density')->assertOk()->assertSee('Baska E');
+    }
+
     /** @return array{0: User, 1: User, 2: User, 3: User} */
     private function world(): array
     {
