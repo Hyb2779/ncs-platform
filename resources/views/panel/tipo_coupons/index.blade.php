@@ -35,37 +35,45 @@
     </x-panel.filter-bar>
     @php
         $tz = auth()->user()->timezone;
-        $rows = [];
-        foreach ($coupons as $coupon) {
-            $rows[] = [
-                'no' => $coupon->bet_id,
-                'user' => $coupon->user?->username,
-                'stake' => $coupon->stake,
-                'status' => new \Illuminate\Support\HtmlString('<p>'.e(__('sport.coupon.statuses.'.$coupon->panelStatus())).'</p><p class="text-xs text-slate-500">'.$coupon->won_count.' / '.$coupon->selection_count.'</p>'),
-                'detail' => new \Illuminate\Support\HtmlString('<a class="underline" href="'.e(route('panel.coupons.tipo', $coupon)).'">'.e(__('sport.panel.detail')).'</a>'),
-                'time' => $coupon->placed_at?->timezone($tz)->format('d.m.Y H:i'),
-                'type' => in_array($coupon->type, ['combo', 'single'], true) ? __('sport.coupon.'.$coupon->type) : $coupon->type,
-                'count' => $coupon->selection_count,
-                'total' => $coupon->total_odds,
-                'win' => $coupon->potential_win,
-                'payout' => $coupon->payout,
-            ];
-        }
+        $badge = fn (string $st) => match ($st) {
+            'won' => 'bg-emerald-50 text-emerald-700',
+            'lost' => 'bg-rose-50 text-rose-700',
+            'pending' => 'bg-amber-50 text-amber-800',
+            default => 'bg-slate-100 text-slate-600',
+        };
     @endphp
-    <x-panel.table
-        :columns="[
-            ['key' => 'no', 'label' => __('sport.panel.cols.no')],
-            ['key' => 'user', 'label' => __('sport.panel.cols.user')],
-            ['key' => 'stake', 'label' => __('sport.panel.cols.stake')],
-            ['key' => 'status', 'label' => __('sport.panel.cols.status')],
-            ['key' => 'detail', 'label' => __('sport.panel.detail')],
-            ['key' => 'time', 'label' => __('sport.panel.cols.time'), 'priority' => 'detail'],
-            ['key' => 'type', 'label' => __('sport.panel.cols.type'), 'priority' => 'detail'],
-            ['key' => 'count', 'label' => __('sport.panel.cols.count'), 'priority' => 'detail'],
-            ['key' => 'total', 'label' => __('sport.panel.cols.total'), 'priority' => 'detail'],
-            ['key' => 'win', 'label' => __('sport.panel.cols.win'), 'priority' => 'detail'],
-            ['key' => 'payout', 'label' => __('panel.tipo_payout'), 'priority' => 'detail'],
-        ]"
-        :rows="$rows"
-    />
+    <div class="overflow-hidden rounded-lg border border-[#E3E6EB] bg-white">
+        @forelse ($coupons as $i => $coupon)
+            @php
+                $st = $coupon->panelStatus();
+                $cur = \App\Enums\Currency::tryFrom((string) $coupon->currency) ?? auth()->user()->currency;
+                $m = fn ($v) => \App\Support\Money::format((string) $v, $cur);
+            @endphp
+            <a href="{{ route('panel.coupons.tipo', $coupon) }}" class="grid gap-1 px-3 py-2.5 hover:bg-[#F3F4F6] md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-4 {{ $i > 0 ? 'border-t border-[#E3E6EB]' : '' }}">
+                <div class="min-w-0">
+                    <p class="flex min-w-0 items-center gap-2 text-sm">
+                        <span class="font-numeric font-semibold">#{{ $coupon->bet_id }}</span>
+                        <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-bold {{ $badge($st) }}">{{ __('sport.coupon.statuses.'.$st) }}</span>
+                        <span class="truncate text-slate-500">{{ $coupon->user?->username }}</span>
+                    </p>
+                    <p class="text-xs text-slate-500">
+                        {{ $coupon->placed_at?->timezone($tz)->format('d.m.Y H:i') }}
+                        · {{ in_array($coupon->type, ['combo', 'single'], true) ? __('sport.coupon.'.$coupon->type) : $coupon->type }}
+                        · {{ $coupon->won_count }}/{{ $coupon->selection_count }}
+                    </p>
+                </div>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-0.5 text-sm md:justify-end">
+                    <span><span class="text-slate-500">{{ __('sport.panel.cols.stake') }}</span> <b class="font-numeric font-semibold">{{ $m($coupon->stake) }}</b></span>
+                    <span><span class="text-slate-500">{{ __('sport.panel.cols.total') }}</span> <b class="font-numeric font-semibold">{{ number_format((float) $coupon->total_odds, 2, ',', '.') }}</b></span>
+                    @if ($st === 'won')
+                        <span><span class="text-slate-500">{{ __('panel.tipo_payout') }}</span> <b class="font-numeric font-semibold text-emerald-700">{{ $m($coupon->payout) }}</b></span>
+                    @else
+                        <span><span class="text-slate-500">{{ __('sport.panel.cols.win') }}</span> <b class="font-numeric font-semibold">{{ $m($coupon->potential_win) }}</b></span>
+                    @endif
+                </div>
+            </a>
+        @empty
+            <div class="px-3 py-6 text-center text-sm text-slate-500">{{ __('panel.member_no_coupons') }}</div>
+        @endforelse
+    </div>
 @endsection
