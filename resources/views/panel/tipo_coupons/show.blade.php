@@ -47,8 +47,8 @@
     @if ($selections === [])
         <div class="mb-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">{{ __('panel.tipo_detail_unavailable') }}</div>
     @else
-        <div class="grid gap-3 lg:grid-cols-2">
-            @foreach ($selections as $s)
+        <div class="overflow-hidden rounded-lg border border-[#E3E6EB] bg-white">
+            @foreach ($selections as $i => $s)
                 @php
                     $sst = \App\Models\TipoCoupon::statusFor($s['status_label'] ?? null);
                     $snap = is_array($s['live_snapshot'] ?? null) ? $s['live_snapshot'] : null;
@@ -58,24 +58,20 @@
                     $league = trim(($s['country_name'] ?? '').' · '.($s['competition_name'] ?? ''), ' ·');
                     $time = isset($s['match_time']) && is_numeric($s['match_time']) ? \Carbon\Carbon::createFromTimestamp((int) $s['match_time'])->timezone($tz)->format('d.m H:i') : null;
                 @endphp
-                <div class="rounded-lg border border-[#E3E6EB] bg-white p-3">
-                    <div class="flex items-start justify-between gap-2">
-                        <div class="min-w-0">
-                            <p class="font-semibold leading-snug">{{ ($s['home_name'] ?? '').' - '.($s['away_name'] ?? '') }}</p>
-                            <p class="truncate text-xs text-slate-500">{{ $league }}@if ($time) · {{ $time }}@endif</p>
-                        </div>
+                <div class="grid gap-1 px-3 py-2.5 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-4 {{ $i > 0 ? 'border-t border-[#E3E6EB]' : '' }}">
+                    <div class="min-w-0">
+                        <p class="truncate text-sm font-semibold">{{ ($s['home_name'] ?? '').' - '.($s['away_name'] ?? '') }}</p>
+                        <p class="text-xs text-slate-500">
+                            {{ $league }}@if ($time) · {{ $time }}@endif
+                            @if ($atBet) · {{ __('panel.tipo_at_bet') }}: {{ $atBet }}@endif
+                            @if ($score) · {{ __('panel.tipo_score') }}: <b class="font-semibold">{{ $score }}</b>@endif
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-3 text-sm md:justify-end">
+                        <span class="min-w-0 truncate text-slate-500">{{ $s['market_name'] ?? '' }}: <b class="font-semibold">{{ ($s['selection_name'] ?? '').($handicap !== '' && $handicap !== '0' ? ' ('.$handicap.')' : '') }}</b></span>
+                        <span class="font-numeric font-semibold">{{ isset($s['odds']) ? number_format((float) $s['odds'], 2, ',', '.') : '' }}</span>
                         <span class="shrink-0 rounded-full px-2 py-0.5 text-xs font-bold {{ $badge($sst) }}">{{ __('sport.coupon.statuses.'.$sst) }}</span>
                     </div>
-                    <div class="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm">
-                        <span class="text-slate-500">{{ $s['market_name'] ?? '' }}: <b class="font-semibold">{{ ($s['selection_name'] ?? '').($handicap !== '' && $handicap !== '0' ? ' ('.$handicap.')' : '') }}</b></span>
-                        <span class="text-slate-500">{{ __('panel.tipo_odds') }}: <b class="font-numeric font-semibold">{{ isset($s['odds']) ? number_format((float) $s['odds'], 2, ',', '.') : '' }}</b></span>
-                    </div>
-                    @if ($atBet || $score)
-                        <div class="mt-1 flex flex-wrap gap-x-4 text-xs text-slate-500">
-                            @if ($atBet)<span>{{ __('panel.tipo_at_bet') }}: <b class="font-semibold">{{ $atBet }}</b></span>@endif
-                            @if ($score)<span>{{ __('panel.tipo_score') }}: <b class="font-semibold">{{ $score }}</b></span>@endif
-                        </div>
-                    @endif
                 </div>
             @endforeach
         </div>
