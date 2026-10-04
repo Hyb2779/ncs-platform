@@ -36,6 +36,47 @@ class TipoCouponController extends Controller
         return view('panel.tipo_coupons.show', ['coupon' => $tipoCoupon]);
     }
 
+    /** Riskli Kuponlar: agactaki acik kuponlar; olasi kazanc veya son maca kalan once. */
+    public function risky(Request $request): View
+    {
+        $query = TipoCoupon::query()
+            ->whereIn('user_id', User::query()->subtreeOf($request->user())->select('id'))
+            ->where(fn (Builder $q) => $q->whereNull('status_label')->orWhereNotIn('status_label', TipoCoupon::SETTLED));
+        if ($request->filled('user')) {
+            $name = '%'.$request->string('user').'%';
+            $query->whereHas('user', fn (Builder $users) => $users->where('username', 'like', $name));
+        }
+        $minWin = (float) str_replace(',', '.', (string) $request->query('min_win', '0'));
+        if ($minWin > 0) {
+            $query->where('potential_win', '>=', $minWin);
+        }
+
+        $all = (clone $query)->get(['stake', 'potential_win', 'selection_count', 'won_count']);
+        $stake = '0.00';
+        $exposure = '0.00';
+        foreach ($all as $row) {
+            $stake = bcadd($stake, (string) $row->stake, 2);
+            $exposure = bcadd($exposure, (string) $row->potential_win, 2);
+        }
+        $currency = $request->user()->currency;
+        $sort = $request->query('sort') === 'last_leg' ? 'last_leg' : 'win';
+
+        return view('panel.tipo_coupons.risky', [
+            'sort' => $sort,
+            'cards' => [
+                'open' => $all->count(),
+                'stake' => Money::format($stake, $currency),
+                'exposure' => Money::format($exposure, $currency),
+                'last_leg' => $all->filter(fn ($c) => (int) $c->selection_count - (int) $c->won_count === 1)->count(),
+            ],
+            'coupons' => (clone $query)->with('user.parent')
+                ->orderByRaw($sort === 'last_leg'
+                    ? '(CAST(selection_count AS SIGNED) - CAST(won_count AS SIGNED)) asc, potential_win desc'
+                    : 'potential_win desc')
+                ->limit(200)->get(),
+        ]);
+    }
+
     /** Kupon Sorgulama: rakamsa kupon ID, degilse uye adi; agac disi "bulunamadi". */
     public function lookup(Request $request): View|RedirectResponse
     {

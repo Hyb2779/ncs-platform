@@ -35,6 +35,10 @@ class CouponController extends Controller
     {
         abort_unless(in_array($request->user()->role, [\App\Enums\UserRole::Owner, \App\Enums\UserRole::Superadmin], true), 404);
 
+        if (! config('sport.own_book_enabled')) {
+            return app(TipoCouponController::class)->risky($request);
+        }
+
         return view('panel.coupons.risky', [
             'coupons' => $this->visible($request)->with('user')->withCount('selections')->where('status', 'pending')->orderByDesc('potential_win')->limit(200)->get(),
         ]);

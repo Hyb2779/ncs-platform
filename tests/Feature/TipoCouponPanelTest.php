@@ -141,6 +141,27 @@ class TipoCouponPanelTest extends TestCase
         $this->actingAs($bayi)->get('/wegas-spor/kuponlarim')->assertNotFound();
     }
 
+    public function test_risky_lists_open_coupons_with_last_leg_and_filters(): void
+    {
+        [$owner, $bayi, $uye, $otherUye] = $this->world();
+        $big = $this->coupon($uye, 900040, 'open');
+        $big->forceFill(['potential_win' => 5000, 'selection_count' => 3, 'won_count' => 2])->save();
+        $small = $this->coupon($uye, 900041, 'open');
+        $small->forceFill(['potential_win' => 80, 'selection_count' => 4, 'won_count' => 0])->save();
+        $this->coupon($uye, 900042, 'lost');
+        $this->coupon($otherUye, 900043, 'open');
+
+        $sa = User::query()->where('username', 'tc_sa')->firstOrFail();
+        $page = $this->actingAs($sa)->get(self::BASE.'/risky')->assertOk()
+            ->assertSee('900040')->assertSee('900041')->assertDontSee('900042')->assertDontSee('900043');
+        $this->assertSame(1, $page->viewData('cards')['last_leg']);
+        $this->assertSame(2, $page->viewData('cards')['open']);
+
+        $this->actingAs($sa)->get(self::BASE.'/risky?min_win=1000')->assertOk()->assertSee('900040')->assertDontSee('900041');
+        $this->actingAs($owner)->get(self::BASE.'/risky')->assertOk()->assertSee('900043');
+        $this->actingAs($bayi)->get(self::BASE.'/risky')->assertNotFound();
+    }
+
     /** @return array{0: User, 1: User, 2: User, 3: User} */
     private function world(): array
     {
