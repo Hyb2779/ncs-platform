@@ -17,7 +17,7 @@
 <body class="overflow-x-clip min-h-screen bg-[var(--site-bg)] pb-20 font-sans text-[var(--site-text)] md:pb-0" @auth data-balance-url="{{ route('site.balance') }}" @endauth>
     <header class="sticky top-0 z-20 border-b border-[var(--site-line)] bg-[var(--site-bg-deep)]">
         <div class="mx-auto flex h-14 max-w-[90rem] items-center gap-4 px-4 md:h-16 md:gap-8 md:px-6">
-            <a class="flex shrink-0 items-center" href="{{ route('site.home') }}" aria-label="{{ brand()->name() }}"><img src="/images/brand/wegas-header.png" alt="{{ brand()->name() }}" width="458" height="128" class="h-8 w-auto md:h-10"></a>
+            <a class="flex shrink-0 items-center" href="{{ route('site.home') }}" aria-label="{{ brand()->name() }}"><img src="/images/brand/wegas-header.png" alt="{{ brand()->name() }}" width="618" height="200" class="h-8 w-auto md:h-10"></a>
             <nav class="hidden flex-1 items-center gap-1 text-sm md:flex" aria-label="{{ __('site.sport') }}">
                 @foreach ([
                     ['route' => 'site.mini', 'match' => 'site.mini', 'label' => __('site.mini')],

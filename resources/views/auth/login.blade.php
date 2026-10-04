@@ -17,7 +17,7 @@
                     <a class="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold {{ app()->getLocale() === $locale ? 'bg-[var(--accent)] text-[var(--site-on-accent)]' : 'text-[var(--site-muted)]' }}" href="{{ route('login', ['lang' => $locale]) }}" lang="{{ $locale }}" title="{{ __('panel.languages.'.$locale) }}"><img src="/images/flags/{{ ['tr' => 'tr', 'en' => 'gb', 'de' => 'de', 'ar' => 'sa'][$locale] ?? 'tr' }}.svg" alt="" width="20" height="15" style="width:20px;height:15px" class="shrink-0 rounded-sm object-cover">{{ strtoupper($locale) }}</a>
                 @endforeach
             </nav>
-            <img src="/images/brand/wegas-header.png" alt="{{ brand()->name() }}" width="458" height="128" style="height:40px;width:auto" class="self-start md:hidden">
+            <img src="/images/brand/wegas-header.png" alt="{{ brand()->name() }}" width="618" height="200" style="height:40px;width:auto" class="self-start md:hidden">
             <h1 class="text-3xl font-extrabold text-[var(--site-text)]">{{ __('auth.login_title') }}</h1>
             @include('auth._form', ['prefix' => 'page'])
         </div>

@@ -17,7 +17,7 @@
     <main class="flex min-h-dvh items-center justify-center px-4 py-8">
         <div class="w-full max-w-[400px] rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-6 md:p-8">
             <div class="flex items-center justify-between gap-3">
-                <img src="/images/brand/wegas-header.png" alt="{{ brand()->name() }}" width="458" height="128" style="height:36px;width:auto">
+                <img src="/images/brand/wegas-header.png" alt="{{ brand()->name() }}" width="618" height="200" style="height:36px;width:auto">
                 <nav class="flex items-center gap-1" aria-label="{{ __('site.language') }}">
                     @foreach (['tr' => 'tr', 'en' => 'gb', 'de' => 'de', 'ar' => 'sa'] as $locale => $flag)
                         <a class="inline-flex h-8 w-9 items-center justify-center rounded-lg border {{ app()->getLocale() === $locale ? 'border-[var(--accent)]' : 'border-transparent opacity-60 hover:opacity-100' }}" href="{{ route('login', ['lang' => $locale]) }}" lang="{{ $locale }}" title="{{ __('panel.languages.'.$locale) }}">
