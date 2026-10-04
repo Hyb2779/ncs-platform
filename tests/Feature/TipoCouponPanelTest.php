@@ -82,6 +82,27 @@ class TipoCouponPanelTest extends TestCase
         $this->actingAs($bayi)->get(self::BASE.'/lookup?q='.$otherUye->username)->assertOk()->assertSee(__('panel.tipo_lookup_not_found'));
     }
 
+    public function test_dashboard_counts_lost_today_and_open_coupons_in_tree(): void
+    {
+        [$owner, $bayi, $uye, $otherUye] = $this->world();
+        $this->coupon($uye, 900010, 'lost');
+        $this->coupon($uye, 900011, 'open');
+        $this->coupon($uye, 900012, 'won');
+        $this->coupon($otherUye, 900013, 'open');
+        $old = $this->coupon($uye, 900014, 'lost');
+        $old->forceFill(['placed_at' => now()->subDays(3)])->save();
+
+        $sa = User::query()->where('username', 'tc_sa')->firstOrFail();
+        $mine = app(\App\Services\Stats\TodaySummary::class)->for($sa);
+        $this->assertSame(1, $mine['sport_lost']['count']);
+        $this->assertSame('50.00', $mine['sport_lost']['amount']);
+        $this->assertSame(1, $mine['sport_pending']['count']);
+
+        $all = app(\App\Services\Stats\TodaySummary::class)->for($owner);
+        $this->assertSame(2, $all['sport_pending']['count']);
+        $this->assertSame('100.00', $all['sport_pending']['amount']);
+    }
+
     /** @return array{0: User, 1: User, 2: User, 3: User} */
     private function world(): array
     {

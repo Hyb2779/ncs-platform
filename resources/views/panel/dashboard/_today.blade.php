@@ -7,6 +7,8 @@
         [__('panel.week_general'), $tm($t['week_ggr']), null],
         [__('panel.today_sport_bets'), $tm($t['sport_bets']['amount']), __('panel.today_coupons', ['count' => $t['sport_bets']['count']])],
         [__('panel.today_sport_wins'), $tm($t['sport_wins']['amount']), __('panel.today_coupons', ['count' => $t['sport_wins']['count']])],
+        [__('panel.today_sport_lost'), $tm($t['sport_lost']['amount']), __('panel.today_coupons', ['count' => $t['sport_lost']['count']])],
+        [__('panel.today_sport_pending'), $tm($t['sport_pending']['amount']), __('panel.today_coupons', ['count' => $t['sport_pending']['count']])],
         [__('panel.today_sport_ggr'), $tm($t['sport_ggr']), null],
         [__('panel.week_sport_ggr'), $tm($t['week_sport_ggr']), null],
         [__('panel.today_casino_turnover'), $tm($t['casino_turnover']), null],
