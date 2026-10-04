@@ -23,7 +23,8 @@ class ReportController extends Controller
     public function index(Request $request, PeriodReport $reports): View
     {
         $actor = $request->user();
-        abort_unless(in_array($actor->role, [UserRole::Owner, UserRole::Superadmin], true), 404);
+        // Bayi de gorur (04.10, Blackeagle): sadece kendi agaci, kirilim oyuncu bazinda.
+        abort_unless(in_array($actor->role, [UserRole::Owner, UserRole::Superadmin, UserRole::Bayi], true), 404);
         $zone = $actor->timezone ?: 'Europe/Istanbul';
 
         [$period, $fromLocal, $toLocal] = $this->period($request, $zone);

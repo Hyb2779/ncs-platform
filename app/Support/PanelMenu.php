@@ -31,9 +31,7 @@ class PanelMenu
             self::item(__('sport.panel.lookup'), 'panel.coupons.lookup', ['panel.coupons.lookup']),
             self::item(__('panel.density_title'), 'panel.coupons.density', ['panel.coupons.density']),
         ];
-        if ($staff) {
-            $reports[] = self::item(__('panel.reports_title'), 'panel.reports.index', ['panel.reports.index']);
-        }
+        $reports[] = self::item(__('panel.reports_title'), 'panel.reports.index', ['panel.reports.index']);
         $reports[] = self::item(self::ledgerLabel(), 'panel.transactions', ['panel.transactions']);
         $reports[] = self::item(__('site.panel_rounds'), 'panel.casino.rounds', ['panel.casino.rounds']);
         $reports[] = self::item(__('site.panel_sessions'), 'panel.casino.sessions', ['panel.casino.sessions']);

@@ -98,7 +98,9 @@ class ReportTest extends TestCase
             ->assertSee('oyuncu_one');
         $this->actingAs($this->sa2)->get('http://panel.test/panel/reports?user='.$this->bayi1->id)->assertNotFound();
         $this->actingAs($this->owner)->get('http://panel.test/panel/reports?user='.$this->m1->id)->assertNotFound();
-        $this->actingAs($this->bayi1)->get('http://panel.test/panel/reports')->assertNotFound();
+        // 04.10: bayi kendi raporunu gorur (oyuncu kirilimi), baska bayiyi goremez.
+        $this->actingAs($this->bayi1)->get('http://panel.test/panel/reports?period=this_month')->assertOk()->assertSee('oyuncu_one')->assertDontSee('oyuncu_two');
+        $this->actingAs($this->bayi1)->get('http://panel.test/panel/reports?user='.$this->bayi2->id)->assertNotFound();
     }
 
     public function test_provider_breakdown_separates_mini_and_maps_refunds(): void
