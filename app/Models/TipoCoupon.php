@@ -53,6 +53,20 @@ class TipoCoupon extends Model
         return self::statusFor($this->status_label);
     }
 
+    /** Detay yoksa ya da acik kuponda 1 dakikadan eskiyse koprudan yeniler. */
+    public function ensureDetail(\App\Services\Sport\NcsBridge $bridge): void
+    {
+        $stale = $this->detail === null
+            || (! $this->isSettled() && ($this->detail_fetched_at === null || $this->detail_fetched_at->lt(now()->subMinute())));
+        if (! $stale) {
+            return;
+        }
+        $detail = $bridge->coupon((int) $this->user_id, (int) $this->bet_id);
+        if ($detail !== null) {
+            $this->forceFill(['detail' => $detail, 'detail_fetched_at' => now()])->save();
+        }
+    }
+
     public function isSettled(): bool
     {
         return in_array((string) $this->status_label, self::SETTLED, true);

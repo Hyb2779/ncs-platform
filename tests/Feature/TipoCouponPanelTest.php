@@ -117,6 +117,30 @@ class TipoCouponPanelTest extends TestCase
         $this->actingAs($bayi)->get('http://panel.test/panel/users')->assertOk()->assertSee('panel/users/'.$uye->id.'"', false);
     }
 
+    public function test_site_my_coupons_shows_only_own_with_instant_sync_and_detail(): void
+    {
+        config(['services.ncs_bridge.secret' => 'test-secret']);
+        [$owner, $bayi, $uye, $otherUye] = $this->world();
+        $this->coupon($uye, 900030, 'open');
+        $this->coupon($uye, 900031, 'won');
+        $mine = $this->coupon($uye, 900032, 'lost', [
+            'selections' => [[
+                'home_name' => 'Site Ev', 'away_name' => 'Site Dep', 'market_name' => 'Mac Sonucu', 'selection_name' => '1',
+                'odds' => 1.8, 'status_label' => 'lost', 'live_snapshot' => ['minutes' => '12', 'home_score' => 0, 'away_score' => 0],
+            ]],
+        ]);
+        $theirs = $this->coupon($otherUye, 900033, 'open');
+        $this->mock(\App\Services\Sport\TipoCouponSync::class, function ($mock) use ($uye) {
+            $mock->shouldReceive('syncUsers')->once()->with([$uye->id])->andReturn(0);
+        });
+
+        $this->actingAs($uye)->get('/wegas-spor/kuponlarim')->assertOk()->assertSee('900030')->assertDontSee('900031')->assertDontSee('900033');
+        $this->actingAs($uye)->get('/wegas-spor/kuponlarim?status=won')->assertOk()->assertSee('900031')->assertDontSee('900030');
+        $this->actingAs($uye)->get('/wegas-spor/kuponlarim/'.$mine->id)->assertOk()->assertSee('Site Ev - Site Dep')->assertSee("12' 0 - 0");
+        $this->actingAs($uye)->get('/wegas-spor/kuponlarim/'.$theirs->id)->assertNotFound();
+        $this->actingAs($bayi)->get('/wegas-spor/kuponlarim')->assertNotFound();
+    }
+
     /** @return array{0: User, 1: User, 2: User, 3: User} */
     private function world(): array
     {

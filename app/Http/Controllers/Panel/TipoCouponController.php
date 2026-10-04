@@ -31,14 +31,7 @@ class TipoCouponController extends Controller
         $tipoCoupon->loadMissing('user');
         abort_unless($tipoCoupon->user !== null && $tipoCoupon->user->isInSubtreeOf($request->user()), 404);
 
-        $stale = $tipoCoupon->detail === null
-            || (! $tipoCoupon->isSettled() && ($tipoCoupon->detail_fetched_at === null || $tipoCoupon->detail_fetched_at->lt(now()->subMinute())));
-        if ($stale) {
-            $detail = $bridge->coupon((int) $tipoCoupon->user_id, (int) $tipoCoupon->bet_id);
-            if ($detail !== null) {
-                $tipoCoupon->forceFill(['detail' => $detail, 'detail_fetched_at' => now()])->save();
-            }
-        }
+        $tipoCoupon->ensureDetail($bridge);
 
         return view('panel.tipo_coupons.show', ['coupon' => $tipoCoupon]);
     }

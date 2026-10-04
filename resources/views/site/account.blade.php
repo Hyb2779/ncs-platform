@@ -5,6 +5,9 @@
 @section('content')
     <p class="font-numeric text-2xl" data-balance>{{ $headerBalance }}</p>
     <p class="mt-2 text-sm text-[var(--site-muted)]">{{ __('site.language') }}: {{ auth()->user()->language->value }} · {{ __('site.currency') }}: {{ auth()->user()->currency->value }}</p>
+    @if (wegas_sport_available(auth()->user()))
+        <a class="mt-3 inline-flex h-11 items-center rounded-xl border border-[var(--site-line)] px-4 text-sm font-semibold" href="{{ route('site.wegas_coupons') }}">{{ __('sport.my_coupons') }}</a>
+    @endif
     <form class="mt-4 flex flex-wrap gap-2" method="GET">
         <input class="h-11 rounded-md border border-[var(--site-line)] bg-[var(--site-panel)] px-3" type="date" name="from" value="{{ request('from') }}">
         <input class="h-11 rounded-md border border-[var(--site-line)] bg-[var(--site-panel)] px-3" type="date" name="to" value="{{ request('to') }}">
