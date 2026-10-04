@@ -37,6 +37,7 @@
         </div>
     </section>
 
+    @unless ($limited)
     <section>
         <h2 class="mb-2 text-sm font-bold text-slate-700">{{ __('panel.games_providers') }}</h2>
         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
@@ -45,6 +46,7 @@
             @endforeach
         </div>
     </section>
+    @endunless
 
     <section>
         <h2 class="mb-2 text-sm font-bold text-slate-700">{{ __('panel.games_categories') }}</h2>
@@ -55,6 +57,7 @@
         </div>
     </section>
 
+    @unless ($limited)
     <details class="rounded-lg border border-slate-200 bg-white" @if (($state['vendor'] ?? []) !== []) open @endif>
         <summary class="cursor-pointer px-3 py-3 text-sm font-bold text-slate-700">
             {{ __('panel.games_vendors') }} ({{ $vendors->count() }})
@@ -146,5 +149,6 @@
 
         <div class="mt-3">{{ $games->links() }}</div>
     </section>
+    @endunless
 </div>
 @endsection

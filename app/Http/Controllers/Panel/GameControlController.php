@@ -135,6 +135,8 @@ class GameControlController extends Controller
 
         return view('panel.games.index', [
             'isOwner' => $target->isRootOwner(), // hedef genel kapsam: her engeli acip kapatabilir
+            // 04.10 (Volkan/Blackeagle): kok owner disinda sadece kategori + urun (toptan ac/kapat); saglayici/marka/oyun yok.
+            'limited' => ! $user->isRootOwner(),
             'targets' => $this->targets($user),
             'target' => $target,
             'targetParam' => $target->id === $user->id ? '' : (string) $target->id,
@@ -160,6 +162,7 @@ class GameControlController extends Controller
             'value.*' => ['required', 'string', 'max:64', 'distinct'],
             'blocked' => ['required', 'boolean'],
         ]);
+        abort_if(! $user->isRootOwner() && ! in_array($data['scope'], ['category', 'product'], true), 403);
         $values = array_values($data['value']);
 
         $valid = match ($data['scope']) {

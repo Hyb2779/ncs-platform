@@ -70,18 +70,21 @@ class GameBlockTest extends TestCase
         $this->game('Pragmatic Game', ['vendor' => 'pp']);
         $this->game('Egt Game', ['vendor' => 'egt']);
 
-        $this->block($this->superadmin, 'vendor', ['pp']);
+        // 04.10: superadmin sadece toptan (kategori/urun) kapatir; marka/saglayici/oyun 403.
+        $this->block($this->superadmin, 'category', ['slot']);
 
-        $this->assertSame(['Egt Game'], $this->visible($this->member));
+        $this->assertSame([], $this->visible($this->member));
         $this->assertSame(['Egt Game', 'Pragmatic Game'], $this->visible($this->otherMember));
         $this->assertSame(['Egt Game', 'Pragmatic Game'], $this->visible(null));
+        $blockPath = parse_url(route('panel.games.block'), PHP_URL_PATH);
+        $this->actingAs($this->superadmin)->post($blockPath, ['scope' => 'vendor', 'value' => ['pp'], 'blocked' => 1])->assertForbidden();
     }
 
     public function test_superadmin_cannot_reopen_owner_block(): void
     {
         $game = $this->game('Book of Ra');
-        $this->block($this->owner, 'game', [(string) $game->id]);
-        $this->block($this->superadmin, 'game', [(string) $game->id], false);
+        $this->block($this->owner, 'category', ['slot']);
+        $this->block($this->superadmin, 'category', ['slot'], false);
 
         $this->assertSame(1, GameBlock::query()->count());
         $this->assertSame([], $this->visible($this->member));
@@ -134,7 +137,8 @@ class GameBlockTest extends TestCase
         $this->game('Sugar Rush');
 
         $this->actingAs($this->owner)->get('/panel/games')->assertOk()->assertSee('Sugar Rush');
-        $this->actingAs($this->superadmin)->get('/panel/games')->assertOk()->assertSee('Sugar Rush');
+        // Superadmin sayfayi gorur ama oyun listesi/saglayici/marka yok (sadece toptan ac/kapat).
+        $this->actingAs($this->superadmin)->get('/panel/games')->assertOk()->assertDontSee('Sugar Rush')->assertSee(__('panel.games_categories'));
     }
 
     public function test_unknown_value_is_rejected(): void
