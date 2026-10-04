@@ -34,6 +34,26 @@ class GameControlController extends Controller
         return $user;
     }
 
+    /** Ayar yapilabilecek hedefler: aktorun agacindaki alt owner / superadmin / bayi (kendisi haric). */
+    private function targets(User $actor)
+    {
+        return User::query()->subtreeOf($actor)->whereKeyNot($actor->id)
+            ->whereIn('role', [UserRole::Owner, UserRole::Superadmin, UserRole::Bayi])
+            ->orderBy('path')->get(['id', 'username', 'role', 'path', 'parent_id']);
+    }
+
+    /** Istekteki hedef (bos/kendisi = aktor). Agac disi 404. */
+    private function target(Request $request, User $actor): User
+    {
+        $id = (int) $request->input('target', 0);
+        if ($id <= 0 || $id === (int) $actor->id) {
+            return $actor;
+        }
+        abort_if($this->targets($actor)->firstWhere('id', $id) === null, 404);
+
+        return User::query()->findOrFail($id);
+    }
+
     private function base(): Builder
     {
         return CasinoGame::query()
@@ -53,9 +73,10 @@ class GameControlController extends Controller
     public function index(Request $request): View
     {
         $user = $this->actor($request);
-        // Kok owner: kendi engelleri NULL (genel). Alt owner / superadmin: kendi id'si; ustlerin engelleri 'global' (kilitli) gorunur.
-        $sid = $user->isRootOwner() ? null : (int) $user->id;
-        $scopeIds = GameAvailability::scopeIdsFor($user);
+        $target = $this->target($request, $user);
+        // Hedef kok owner ise engeller NULL (genel). Diger hedefler kendi id'si; ustlerin engelleri 'global' (kilitli) gorunur.
+        $sid = $target->isRootOwner() ? null : (int) $target->id;
+        $scopeIds = GameAvailability::scopeIdsFor($target);
 
         // durum[scope][value] = 'global' (Owner kapatti) | 'own' (bu superadmin kapatti)
         $state = array_fill_keys(GameAvailability::SCOPES, []);
@@ -113,7 +134,12 @@ class GameControlController extends Controller
         }
 
         return view('panel.games.index', [
-            'isOwner' => $user->isRootOwner(), // genel engeli acip kapatabilir
+            'isOwner' => $target->isRootOwner(), // hedef genel kapsam: her engeli acip kapatabilir
+            'targets' => $this->targets($user),
+            'target' => $target,
+            'targetParam' => $target->id === $user->id ? '' : (string) $target->id,
+            'actorIsRoot' => $user->isRootOwner(),
+            'actorId' => (int) $user->id,
             'canCurate' => $user->role === UserRole::Owner, // populer/sira (sistem ayari; alt owner da)
             'state' => $state,
             'providers' => $providers,
@@ -127,6 +153,7 @@ class GameControlController extends Controller
     public function toggle(Request $request): RedirectResponse
     {
         $user = $this->actor($request);
+        $target = $this->target($request, $user);
         $data = $request->validate([
             'scope' => ['required', Rule::in(GameAvailability::SCOPES)],
             'value' => ['required', 'array', 'min:1', 'max:200'],
@@ -139,11 +166,12 @@ class GameControlController extends Controller
             'provider' => CasinoProvider::query()->whereIn('code', $values)->count(),
             'vendor' => CasinoGame::query()->whereIn('vendor', $values)->distinct()->count('vendor'),
             'category' => count(array_intersect($values, GameAvailability::CATEGORIES)),
+            'product' => count(array_intersect($values, GameAvailability::PRODUCTS)),
             'game' => CasinoGame::query()->whereIn('id', array_map('intval', $values))->count(),
         };
         abort_unless($valid === count($values), 422);
 
-        $sid = $user->isRootOwner() ? null : (int) $user->id;
+        $sid = $target->isRootOwner() ? null : (int) $target->id;
         $blocked = (bool) $data['blocked'];
 
         DB::transaction(function () use ($user, $sid, $data, $values, $blocked) {
@@ -176,6 +204,7 @@ class GameControlController extends Controller
             'values' => array_slice($values, 0, 50),
             'count' => count($values),
             'superadmin_id' => $sid,
+            'target' => (int) $target->id,
         ]);
 
         return back()->with('status', __('panel.games_saved'));

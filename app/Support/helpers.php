@@ -165,10 +165,12 @@ function wegas_sport_available(?\App\Models\User $user): bool
         return false;
     }
     if ($user === null) {
-        return app()->getLocale() !== 'ar';
+        return app()->getLocale() !== 'ar' && ! \App\Services\Casino\GameAvailability::productBlocked(null, 'wegas_sport');
     }
 
+    // Oyun Yonetimi'nde genel / ust hesap / bayi seviyesinde kapatilabilir (product: wegas_sport).
     return $user->role === \App\Enums\UserRole::Uye
         && $user->currency->value === 'TRY'
-        && $user->language->value !== 'ar';
+        && $user->language->value !== 'ar'
+        && ! \App\Services\Casino\GameAvailability::productBlocked($user, 'wegas_sport');
 }

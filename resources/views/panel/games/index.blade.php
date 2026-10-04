@@ -11,7 +11,31 @@
         <div class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{{ $errors->first() }}</div>
     @endif
 
-    <p class="text-sm text-slate-500">{{ $isOwner ? __('panel.games_hint_owner') : __('panel.games_hint_superadmin') }}</p>
+    @if ($targets->isNotEmpty())
+        <form method="GET" action="{{ route('panel.games.index') }}" class="flex flex-wrap items-end gap-2 rounded-lg border border-slate-200 bg-white p-3">
+            <label class="grid gap-1 text-sm">
+                <span class="text-slate-500">{{ __('panel.games_target_label') }}</span>
+                <select name="target" class="h-11 min-w-64 rounded-lg border border-slate-300 px-3 text-sm" onchange="this.form.submit()">
+                    <option value="">{{ $actorIsRoot ? __('panel.games_target_global') : __('panel.games_target_self') }}</option>
+                    @foreach ($targets as $t)
+                        <option value="{{ $t->id }}" @selected((int) $target->id === (int) $t->id)>{{ str_repeat('· ', max(0, substr_count((string) $t->path, '/') - 3)) }}{{ $t->username }} ({{ __('panel.roles.'.$t->role->value) }})</option>
+                    @endforeach
+                </select>
+            </label>
+        </form>
+    @endif
+    @if ((int) $target->id !== $actorId)
+        <p class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">{{ __('panel.games_target_hint', ['name' => $target->username]) }}</p>
+    @else
+        <p class="text-sm text-slate-500">{{ $isOwner ? __('panel.games_hint_owner') : __('panel.games_hint_superadmin') }}</p>
+    @endif
+
+    <section>
+        <h2 class="mb-2 text-sm font-bold text-slate-700">{{ __('panel.games_products') }}</h2>
+        <div class="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+            @include('panel.games._toggle', ['scope' => 'product', 'value' => 'wegas_sport', 'label' => brand()->name().' '.__('site.sport'), 'state' => $state['product']['wegas_sport'] ?? null])
+        </div>
+    </section>
 
     <section>
         <h2 class="mb-2 text-sm font-bold text-slate-700">{{ __('panel.games_providers') }}</h2>
@@ -46,6 +70,7 @@
         <h2 class="mb-2 text-sm font-bold text-slate-700">{{ __('panel.games_list') }} ({{ $games->total() }})</h2>
 
         <form method="GET" action="{{ route('panel.games.index') }}" class="mb-3 grid grid-cols-1 gap-2 sm:grid-cols-6">
+            <input type="hidden" name="target" value="{{ $targetParam }}">
             <input name="q" value="{{ $filters['q'] ?? '' }}" placeholder="{{ __('panel.games_search') }}" class="h-11 rounded-lg border border-slate-300 px-3 text-sm sm:col-span-2">
             <select name="category" class="h-11 rounded-lg border border-slate-300 px-2 text-sm">
                 <option value="">{{ __('panel.games_categories') }}: {{ __('panel.games_all') }}</option>
@@ -70,6 +95,7 @@
         <form id="bulk-form" method="POST" action="{{ route('panel.games.block') }}" class="mb-2 flex flex-wrap gap-2">
             @csrf
             <input type="hidden" name="scope" value="game">
+            <input type="hidden" name="target" value="{{ $targetParam }}">
             <button type="submit" name="blocked" value="1" class="h-10 rounded-lg bg-red-600 px-3 text-sm font-semibold text-white">{{ __('panel.games_close_selected') }}</button>
             <button type="submit" name="blocked" value="0" class="h-10 rounded-lg bg-emerald-600 px-3 text-sm font-semibold text-white">{{ __('panel.games_open_selected') }}</button>
         </form>
@@ -104,6 +130,7 @@
                     <form method="POST" action="{{ route('panel.games.block') }}">
                         @csrf
                         <input type="hidden" name="scope" value="game">
+            <input type="hidden" name="target" value="{{ $targetParam }}">
                         <input type="hidden" name="value[]" value="{{ $game->id }}">
                         <input type="hidden" name="blocked" value="{{ $gameState ? 0 : 1 }}">
                         <button type="submit" @disabled($gameLocked)

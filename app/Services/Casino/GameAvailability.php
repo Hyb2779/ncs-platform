@@ -14,9 +14,12 @@ use Illuminate\Support\Facades\Cache;
  */
 class GameAvailability
 {
-    public const SCOPES = ['provider', 'vendor', 'category', 'game'];
+    public const SCOPES = ['provider', 'vendor', 'category', 'game', 'product'];
 
     public const CATEGORIES = ['slot', 'live', 'mini'];
+
+    /** Casino disi urunler (casino filtrelerini etkilemez). */
+    public const PRODUCTS = ['wegas_sport'];
 
     private const VERSION_KEY = 'casino:game_blocks:version';
 
@@ -129,6 +132,12 @@ class GameAvailability
         }
 
         return ! in_array(self::categoryOf($game), $b['category'], true);
+    }
+
+    /** Urun (or. Wegas Spor) bu kullanicinin yolunda bir yerde kapatilmis mi? */
+    public static function productBlocked(?User $user, string $product): bool
+    {
+        return in_array($product, app(self::class)->blocked(self::scopeIdsFor($user))['product'] ?? [], true);
     }
 
     public static function categoryOf(CasinoGame $game): string

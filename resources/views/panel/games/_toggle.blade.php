@@ -6,6 +6,7 @@
       class="flex items-center justify-between gap-3 rounded-lg border px-3 py-2 {{ $closed ? 'border-red-200 bg-red-50' : 'border-slate-200 bg-white' }}">
     @csrf
     <input type="hidden" name="scope" value="{{ $scope }}">
+    <input type="hidden" name="target" value="{{ $targetParam ?? '' }}">
     <input type="hidden" name="value[]" value="{{ $value }}">
     <input type="hidden" name="blocked" value="{{ $closed ? 0 : 1 }}">
     <div class="min-w-0">
