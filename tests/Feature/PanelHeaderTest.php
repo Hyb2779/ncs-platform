@@ -32,16 +32,19 @@ class PanelHeaderTest extends TestCase
         $sa = $h->create($owner, ['username' => 'sa_one'] + $base)->refresh();
         $bayi = $h->create($sa, ['username' => 'bayi_one'] + $base)->refresh();
 
+        // 04.10: para birimi secici kaldirildi; bakiye satirlari ve dil secici profil kartinda.
         $this->actingAs($sa)->get('http://panel.test/panel')->assertOk()
             ->assertSee('data-header="balance"', false)
-            ->assertSee('aria-label="'.__('panel.display_currency').'"', false)
-            ->assertSee('<option value="EUR"', false)
+            ->assertDontSee('aria-label="'.__('panel.display_currency').'"', false)
+            ->assertSee('· EUR', false)
+            ->assertSee('name="language" value="en"', false)
             ->assertSee('data-header="theme"', false)->assertSee('panelTheme', false);
 
-        $this->actingAs($sa)->from('http://panel.test/panel')->post('http://panel.test/panel/preferences/currency', ['currency' => 'EUR'])
-            ->assertRedirect()->assertCookie('panel_currency', 'EUR');
-        $this->actingAs($sa)->withCookie('panel_currency', 'EUR')->get('http://panel.test/panel')->assertOk()
-            ->assertSee('<option value="EUR" selected', false);
+        $this->actingAs($sa)->from('http://panel.test/panel')->post('http://panel.test/panel/preferences/language', ['language' => 'en'])
+            ->assertRedirect()->assertCookie('panel_locale', 'en');
+        $this->actingAs($sa)->withCookie('panel_locale', 'en')->get('http://panel.test/panel')->assertOk()
+            ->assertSee('<html lang="en"', false);
+        $this->actingAs($sa)->post('http://panel.test/panel/preferences/language', ['language' => 'fr'])->assertStatus(422);
         $this->actingAs($sa)->post('http://panel.test/panel/preferences/currency', ['currency' => 'GBP'])->assertStatus(422);
 
         // Tek para birimli bayi: secici yok, kart var.

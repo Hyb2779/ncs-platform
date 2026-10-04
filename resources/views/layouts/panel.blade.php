@@ -38,8 +38,7 @@
             $pcUser = auth()->user();
             $pcRoot = $pcUser->isRootOwner();
             $pcWallets = $headerWallets->keyBy(fn ($w) => $w->currency instanceof \BackedEnum ? $w->currency->value : (string) $w->currency);
-            $pcPicked = request()->cookie('panel_currency');
-            $pcCurrency = $pcWallets->has($pcPicked) ? $pcPicked : ($pcUser->currency->value ?? $pcWallets->keys()->first());
+            $pcCurrency = $pcUser->currency->value ?? $pcWallets->keys()->first();
         @endphp
         <div class="mx-3 rounded-lg bg-[#F3F4F6] px-3 py-3 text-start" data-panel="profile">
             <p class="font-medium">{{ $pcUser->username }}</p>
@@ -61,16 +60,6 @@
                         <button class="h-8 rounded-md px-2 text-xs font-semibold uppercase {{ app()->getLocale() === $lc ? 'bg-[#161A22] text-white' : 'bg-white text-slate-600' }}" type="submit" name="language" value="{{ $lc }}" title="{{ __('panel.languages.'.$lc) }}">{{ $lc }}</button>
                     @endforeach
                 </form>
-                @if ($pcWallets->count() > 1)
-                    <form method="POST" action="{{ route('panel.preferences.currency') }}">
-                        @csrf
-                        <select class="h-8 rounded-md border-0 bg-white py-0 ps-2 pe-7 text-xs font-semibold" name="currency" aria-label="{{ __('panel.display_currency') }}" onchange="this.form.submit()">
-                            @foreach ($pcWallets->keys() as $code)
-                                <option value="{{ $code }}" @selected($code === $pcCurrency)>{{ $code }}</option>
-                            @endforeach
-                        </select>
-                    </form>
-                @endif
             </div>
         </div>
         <nav class="mt-6 grid min-h-0 flex-1 content-start gap-4 overflow-y-auto px-3 pb-6">
