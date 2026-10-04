@@ -79,6 +79,7 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::get('/logs', [\App\Http\Controllers\Panel\LogController::class, 'index'])->name('logs.index');
     Route::get('/logs/logins', [\App\Http\Controllers\Panel\LogController::class, 'logins'])->name('logs.logins');
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');
+    Route::get('/users/{user}', [\App\Http\Controllers\Panel\MemberProfileController::class, 'show'])->whereNumber('user')->name('users.show');
     Route::put('/users/{user}', [UserController::class, 'update'])->name('users.update');
     Route::post('/users/{user}/balance', [WalletController::class, 'adjust'])->name('wallets.adjust');
     Route::post('/users/{user}/status', [UserController::class, 'toggleStatus'])->name('users.status');

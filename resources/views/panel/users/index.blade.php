@@ -56,7 +56,8 @@
         ];
         $payloads[$user->id] = $payload;
         $json = e(json_encode($payload));
-        $actions = '<a href="'.e($payload['editUrl']).'">'.e(__('panel.edit')).'</a>';
+        $actions = '<a href="'.e(route('panel.users.show', $user)).'">'.e(__('panel.member_summary')).'</a>';
+        $actions .= '<a class="ms-3" href="'.e($payload['editUrl']).'">'.e(__('panel.edit')).'</a>';
         $actions .= '<a class="ms-3" href="'.e($payload['movementsUrl']).'">'.e(__('panel.users_movements')).'</a>';
         if ($payload['canAdjust']) {
             $actions .= '<button class="ms-3 font-semibold text-emerald-700" type="button" @click="openAdjust('.$json.', \'add\')">'.e(__('wallet.add')).'</button>';

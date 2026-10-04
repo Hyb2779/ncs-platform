@@ -103,6 +103,20 @@ class TipoCouponPanelTest extends TestCase
         $this->assertSame('100.00', $all['sport_pending']['amount']);
     }
 
+    public function test_member_profile_shows_open_and_recent_coupons_inside_tree_only(): void
+    {
+        [$owner, $bayi, $uye, $otherUye] = $this->world();
+        $this->coupon($uye, 900020, 'open');
+        $this->coupon($uye, 900021, 'lost');
+
+        $this->actingAs($bayi)->get('http://panel.test/panel/users/'.$uye->id)->assertOk()
+            ->assertSee('tc_uye')->assertSee('900020')->assertSee('900021')->assertSee(__('panel.member_open_coupons'));
+        $this->actingAs($owner)->get('http://panel.test/panel/users/'.$uye->id.'?range=today')->assertOk()->assertSee('900020');
+        $this->actingAs($bayi)->get('http://panel.test/panel/users/'.$otherUye->id)->assertNotFound();
+        $this->actingAs($bayi)->get('http://panel.test/panel/users/'.$bayi->id)->assertNotFound();
+        $this->actingAs($bayi)->get('http://panel.test/panel/users')->assertOk()->assertSee('panel/users/'.$uye->id.'"', false);
+    }
+
     /** @return array{0: User, 1: User, 2: User, 3: User} */
     private function world(): array
     {

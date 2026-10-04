@@ -19,7 +19,7 @@ class PanelMenu
 
         $users = [
             self::item(__('panel.menu_user_create'), 'panel.users.create', ['panel.users.create']),
-            self::item(__('panel.menu_users_all'), 'panel.users.index', ['panel.users.index', 'panel.users.edit']),
+            self::item(__('panel.menu_users_all'), 'panel.users.index', ['panel.users.index', 'panel.users.edit', 'panel.users.show']),
             self::item(__('panel.menu_balance'), 'panel.balance', ['panel.balance']),
         ];
         if ($staff) {
