@@ -517,7 +517,6 @@ class CouponPlaceTest extends TestCase
             ->assertDontSee(__('sport.panel.limit_fields.cancel_minutes').' (dk)', false)
             ->assertSee('value="10.000"', false)
             ->assertDontSee('value="10.000,00"', false)
-            ->assertSee('uppercase tracking-wide', false)
             ->assertDontSee('hidden text-sm text-slate-500 sm:inline', false)
             ->assertSee('inputmode="decimal"', false)
             ->assertSee('w-[120px]', false)

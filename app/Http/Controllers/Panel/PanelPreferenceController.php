@@ -17,4 +17,13 @@ class PanelPreferenceController extends Controller
 
         return back()->withCookie(cookie()->forever('panel_currency', $value));
     }
+
+    /** Panel arayuz dili (cerez). Hesabin kayitli dili degismez. */
+    public function language(Request $request): RedirectResponse
+    {
+        $value = (string) $request->input('language');
+        abort_unless(in_array($value, \App\Http\Middleware\SetLocale::LOCALES, true), 422);
+
+        return back()->withCookie(cookie()->forever('panel_locale', $value));
+    }
 }

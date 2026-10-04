@@ -34,19 +34,44 @@
             <p class="text-base font-semibold">{{ brand()->name() }}</p>
             <span class="rounded-lg bg-[#F3F4F6] px-2 py-1 text-[11px] font-semibold tracking-wide text-slate-500">{{ __('panel.badge') }}</span>
         </div>
-        <div class="mx-3 rounded-lg bg-[#F3F4F6] px-3 py-3 text-start">
-            <p class="font-medium">{{ auth()->user()->username }}</p>
-            <p class="text-sm text-slate-500">{{ __('panel.roles.'.auth()->user()->role->value) }} · {{ auth()->user()->language->value }}</p>
-            @if (! auth()->user()->isRootOwner())
-            <div class="mt-2 grid gap-0.5 border-t border-[#E3E6EB] pt-2">
-                @foreach ($headerWallets as $cardWallet)
-                    <div class="flex items-center justify-between text-sm">
-                        <span class="text-slate-500">{{ auth()->user()->isRootOwner() ? __('wallet.distributed_credit') : __('wallet.balance') }} · {{ $cardWallet->currency instanceof \BackedEnum ? $cardWallet->currency->value : $cardWallet->currency }}</span>
-                        <span class="font-numeric font-medium">{{ auth()->user()->isRootOwner() ? $cardWallet->formattedDistributedBalance() : $cardWallet->formattedBalance() }}</span>
-                    </div>
-                @endforeach
-            </div>
+        @php
+            $pcUser = auth()->user();
+            $pcRoot = $pcUser->isRootOwner();
+            $pcWallets = $headerWallets->keyBy(fn ($w) => $w->currency instanceof \BackedEnum ? $w->currency->value : (string) $w->currency);
+            $pcPicked = request()->cookie('panel_currency');
+            $pcCurrency = $pcWallets->has($pcPicked) ? $pcPicked : ($pcUser->currency->value ?? $pcWallets->keys()->first());
+        @endphp
+        <div class="mx-3 rounded-lg bg-[#F3F4F6] px-3 py-3 text-start" data-panel="profile">
+            <p class="font-medium">{{ $pcUser->username }}</p>
+            <p class="text-sm text-slate-500">{{ __('panel.roles.'.$pcUser->role->value) }}</p>
+            @if ($pcWallets->isNotEmpty())
+                <div class="mt-2 grid gap-0.5 border-t border-[#E3E6EB] pt-2" data-header="balance">
+                    @foreach ($pcWallets as $code => $cardWallet)
+                        <div class="flex items-center justify-between text-sm {{ $code === $pcCurrency ? 'font-semibold' : '' }}">
+                            <span class="text-slate-500">{{ $pcRoot ? __('wallet.distributed_credit') : __('wallet.balance') }} · {{ $code }}</span>
+                            <span class="font-numeric">{{ $pcRoot ? $cardWallet->formattedDistributedBalance() : $cardWallet->formattedBalance() }}</span>
+                        </div>
+                    @endforeach
+                </div>
             @endif
+            <div class="mt-2 flex flex-wrap items-center gap-1.5 border-t border-[#E3E6EB] pt-2">
+                <form method="POST" action="{{ route('panel.preferences.language') }}" class="flex gap-1">
+                    @csrf
+                    @foreach (\App\Http\Middleware\SetLocale::LOCALES as $lc)
+                        <button class="h-8 rounded-md px-2 text-xs font-semibold uppercase {{ app()->getLocale() === $lc ? 'bg-[#161A22] text-white' : 'bg-white text-slate-600' }}" type="submit" name="language" value="{{ $lc }}" title="{{ __('panel.languages.'.$lc) }}">{{ $lc }}</button>
+                    @endforeach
+                </form>
+                @if ($pcWallets->count() > 1)
+                    <form method="POST" action="{{ route('panel.preferences.currency') }}">
+                        @csrf
+                        <select class="h-8 rounded-md border-0 bg-white py-0 ps-2 pe-7 text-xs font-semibold" name="currency" aria-label="{{ __('panel.display_currency') }}" onchange="this.form.submit()">
+                            @foreach ($pcWallets->keys() as $code)
+                                <option value="{{ $code }}" @selected($code === $pcCurrency)>{{ $code }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                @endif
+            </div>
         </div>
         <nav class="mt-6 grid min-h-0 flex-1 content-start gap-4 overflow-y-auto px-3 pb-6">
             @foreach ($panelSections as $section)
@@ -79,30 +104,6 @@
                 <h1 class="truncate text-base font-semibold text-start md:text-lg">@yield('heading')</h1>
             </div>
             <div class="flex shrink-0 items-center gap-2">
-                @php
-                    $hwByCurrency = $headerWallets->keyBy(fn ($w) => $w->currency instanceof \BackedEnum ? $w->currency->value : (string) $w->currency);
-                    $hwPicked = request()->cookie('panel_currency');
-                    $hwCurrency = $hwByCurrency->has($hwPicked) ? $hwPicked : (auth()->user()->currency->value ?? $hwByCurrency->keys()->first());
-                    $hwWallet = $hwByCurrency->get($hwCurrency) ?? $hwByCurrency->first();
-                    $hwOwner = auth()->user()->isRootOwner();
-                @endphp
-                @if ($hwWallet)
-                    <div class="flex h-11 items-center gap-2 rounded-lg border border-[#E3E6EB] bg-white px-3 text-sm" data-header="balance">
-                        <span class="hidden text-slate-500 sm:inline">{{ $hwOwner ? __('wallet.distributed_credit') : __('wallet.balance') }}</span>
-                        <span class="font-numeric font-semibold">{{ $hwOwner ? $hwWallet->formattedDistributedBalance() : $hwWallet->formattedBalance() }}</span>
-                        @if ($hwByCurrency->count() > 1)
-                            <form method="POST" action="{{ route('panel.preferences.currency') }}">
-                                @csrf
-                                <select class="rounded border-0 bg-[#F3F4F6] py-1 ps-1.5 pe-6 text-xs font-semibold" name="currency" aria-label="{{ __('panel.display_currency') }}" onchange="this.form.submit()">
-                                    @foreach ($hwByCurrency->keys() as $code)
-                                        <option value="{{ $code }}" @selected($code === $hwCurrency)>{{ $code }}</option>
-                                    @endforeach
-                                </select>
-                            </form>
-                        @endif
-                    </div>
-                @endif
-                <span class="hidden h-6 items-center rounded-md bg-[#F3F4F6] px-1.5 text-[11px] font-semibold uppercase tracking-wide text-slate-500 sm:inline-flex" title="{{ __('panel.languages.'.auth()->user()->language->value) }}">{{ auth()->user()->language->value }}</span>
                 <button class="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-[#E3E6EB] bg-white" type="button" data-header="theme" aria-label="{{ __('panel.theme_toggle') }}" title="{{ __('panel.theme_toggle') }}" onclick="(function(){var d=document.documentElement,on=d.dataset.theme!=='dark';if(on){d.dataset.theme='dark';d.dataset.panelTheme='dark'}else{delete d.dataset.theme;delete d.dataset.panelTheme}try{localStorage.setItem('panel_theme',on?'dark':'light')}catch(e){}})()">
                     <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
                 </button>
