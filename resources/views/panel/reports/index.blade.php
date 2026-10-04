@@ -4,24 +4,22 @@
 
 @section('content')
 @php
-    use Illuminate\Support\HtmlString;
-    $input = 'rounded-md border border-slate-300 px-3 py-2';
-    $money = fn ($v) => number_format((float) $v, 2, ',', '.');
-    $ggr = fn ($v) => new HtmlString('<span class="font-numeric '.((float) $v < 0 ? 'text-red-600' : '').'">'.e($money($v)).'</span>');
-    $num = fn ($v) => new HtmlString('<span class="font-numeric">'.e($money($v)).'</span>');
+    $input = 'h-11 rounded-md border border-slate-300 px-3';
+    $mm = fn ($v) => \App\Support\Money::format((string) $v, $currency);
     $base = ['period' => $period, 'from' => $from, 'to' => $to, 'user' => $focus->id === auth()->id() ? null : $focus->id];
     $link = fn (array $extra) => route('panel.reports.index', array_filter(array_merge($base, $extra), fn ($v) => $v !== null));
+    $tone = fn ($v) => (float) $v < 0 ? 'text-rose-600' : ((float) $v > 0 ? 'text-emerald-700' : '');
     $role = fn ($u) => __('panel.reports_role_'.($u->role instanceof \BackedEnum ? $u->role->value : $u->role));
+    $cols = [
+        ['given', __('panel.rep_given'), null],
+        ['withdrawn', __('panel.rep_withdrawn'), null],
+        ['staked', __('panel.rep_staked'), 'staked_n'],
+        ['won', __('panel.rep_won'), 'won_n'],
+        ['pending', __('panel.rep_pending'), 'pending_n'],
+    ];
 @endphp
 
-<nav class="mb-3 flex gap-2 overflow-x-auto">
-    @foreach (['summary' => __('panel.reports_tab_summary'), 'providers' => __('panel.reports_tab_providers')] as $key => $label)
-        <a class="inline-flex h-10 shrink-0 items-center rounded-lg border px-4 text-sm font-medium {{ $tab === $key ? 'border-[#161A22] bg-[#161A22] text-white' : 'border-[#E3E6EB] bg-white' }}" href="{{ $link(['tab' => $key === 'summary' ? null : $key]) }}">{{ $label }}</a>
-    @endforeach
-</nav>
-
 <form class="mb-3 grid gap-2 sm:grid-cols-4" method="GET">
-    @if ($tab === 'providers')<input type="hidden" name="tab" value="providers">@endif
     @if ($base['user'])<input type="hidden" name="user" value="{{ $base['user'] }}">@endif
     <label class="grid gap-1 text-sm">
         <span>{{ __('panel.reports_period') }}</span>
@@ -43,7 +41,6 @@
         <button class="inline-flex h-11 items-center justify-center rounded-lg bg-[#161A22] px-3 text-sm text-white" type="submit">{{ __('panel.reports_apply') }}</button>
     </div>
 </form>
-<p class="mb-3 text-xs text-slate-500">{{ __('panel.reports_custom_hint') }}</p>
 
 <div class="mb-3 flex flex-wrap items-center gap-1 text-sm">
     @foreach ($trail as $i => $u)
@@ -54,97 +51,97 @@
             <a class="font-medium underline" href="{{ $link(['user' => $i === 0 ? null : $u->id]) }}">{{ $u->username }}</a>
         @endif
     @endforeach
-    <span class="ms-2 text-slate-500 font-numeric">{{ __('panel.reports_range', ['from' => $from, 'to' => $to]) }}</span>
+    <span class="ms-2 font-numeric text-slate-500">{{ __('panel.reports_range', ['from' => $from, 'to' => $to]) }}</span>
 </div>
 
-@if ($tab === 'summary')
-    @php
-        $productRows = [];
-        foreach ($totals as $currency => $byProduct) {
-            foreach (['sport', 'slot', 'live_casino', 'all'] as $product) {
-                $m = $byProduct[$product] ?? null;
-                if ($m === null && $product !== 'all') { continue; }
-                $productRows[] = [
-                    'product' => new HtmlString($product === 'all' ? '<strong>'.e(__('panel.reports_product_all')).'</strong>' : e(__('panel.reports_product_'.$product))),
-                    'currency' => $currency,
-                    'turnover' => $num($m['turnover'] ?? 0),
-                    'payout' => $num($m['payout'] ?? 0),
-                    'ggr' => $ggr($m['ggr'] ?? 0),
-                    'bets' => $m['bet_count'] ?? 0,
-                    'players' => $m['players'] ?? 0,
-                ];
-            }
-        }
-        $childRows = [];
-        foreach ($children as $child) {
-            $u = $child['user'];
-            $name = $u->role->value === 'uye'
-                ? e($u->username)
-                : '<a class="font-medium underline" href="'.e($link(['user' => $u->id])).'">'.e($u->username).'</a>';
-            $currencies = $child['stats'] ?: ['' => []];
-            foreach ($currencies as $currency => $s) {
-                $childRows[] = [
-                    'account' => new HtmlString($name),
-                    'role' => $role($u),
-                    'currency' => $currency !== '' ? $currency : '—',
-                    'turnover' => $num($s['all']['turnover'] ?? 0),
-                    'payout' => $num($s['all']['payout'] ?? 0),
-                    'ggr' => $ggr($s['all']['ggr'] ?? 0),
-                    'sport' => $ggr($s['sport']['ggr'] ?? 0),
-                    'casino' => $ggr($s['casino']['ggr'] ?? 0),
-                    'players' => $s['all']['players'] ?? 0,
-                ];
-            }
-        }
-    @endphp
-    <h2 class="mb-2 text-sm font-semibold">{{ __('panel.reports_summary_heading') }}</h2>
-    <x-panel.table :empty="__('panel.reports_empty')" :rows="$productRows" :columns="[
-        ['key' => 'product', 'label' => __('panel.reports_product')],
-        ['key' => 'currency', 'label' => __('panel.reports_currency')],
-        ['key' => 'turnover', 'label' => __('panel.reports_turnover')],
-        ['key' => 'payout', 'label' => __('panel.reports_payout')],
-        ['key' => 'ggr', 'label' => __('panel.reports_ggr')],
-        ['key' => 'bets', 'label' => __('panel.reports_bets'), 'priority' => 'detail'],
-        ['key' => 'players', 'label' => __('panel.reports_players'), 'priority' => 'detail'],
-    ]" />
-    <p class="mt-1 mb-4 text-xs text-slate-500">{{ __('panel.reports_mini_note') }}</p>
-
-    <h2 class="mb-2 text-sm font-semibold">{{ __('panel.reports_breakdown', ['name' => $focus->username]) }}</h2>
-    <x-panel.table :empty="__('panel.reports_empty')" :rows="$childRows" :columns="[
-        ['key' => 'account', 'label' => __('panel.reports_account')],
-        ['key' => 'role', 'label' => __('panel.reports_role')],
-        ['key' => 'currency', 'label' => __('panel.reports_currency')],
-        ['key' => 'turnover', 'label' => __('panel.reports_turnover')],
-        ['key' => 'payout', 'label' => __('panel.reports_payout')],
-        ['key' => 'ggr', 'label' => __('panel.reports_ggr')],
-        ['key' => 'sport', 'label' => __('panel.reports_sport_ggr'), 'priority' => 'detail'],
-        ['key' => 'casino', 'label' => __('panel.reports_casino_ggr'), 'priority' => 'detail'],
-        ['key' => 'players', 'label' => __('panel.reports_players'), 'priority' => 'detail'],
-    ]" />
+@if ($rows === [])
+    <div class="rounded-lg border border-[#E3E6EB] bg-white p-6 text-center text-sm text-slate-500">{{ __('panel.reports_empty') }}</div>
 @else
-    @php
-        $providerRows = array_map(fn ($r) => [
-            'provider' => $r['provider_name'],
-            'vendor' => $r['vendor'] ? (\App\Support\Vendors::name($r['vendor']) ?? $r['vendor']) : '—',
-            'category' => __('panel.reports_category_'.$r['category']),
-            'currency' => $r['currency'],
-            'turnover' => $num($r['turnover']),
-            'payout' => $num($r['payout']),
-            'ggr' => $ggr($r['ggr']),
-            'bets' => $r['bet_count'],
-            'players' => $r['players'],
-        ], $providers);
-    @endphp
-    <x-panel.table :empty="__('panel.reports_empty')" :rows="$providerRows" :columns="[
-        ['key' => 'provider', 'label' => __('panel.reports_provider')],
-        ['key' => 'vendor', 'label' => __('panel.reports_vendor')],
-        ['key' => 'category', 'label' => __('panel.reports_category')],
-        ['key' => 'currency', 'label' => __('panel.reports_currency')],
-        ['key' => 'turnover', 'label' => __('panel.reports_turnover')],
-        ['key' => 'payout', 'label' => __('panel.reports_payout')],
-        ['key' => 'ggr', 'label' => __('panel.reports_ggr')],
-        ['key' => 'bets', 'label' => __('panel.reports_bets'), 'priority' => 'detail'],
-        ['key' => 'players', 'label' => __('panel.reports_players'), 'priority' => 'detail'],
-    ]" />
+    <div class="hidden overflow-x-auto rounded-lg border border-[#E3E6EB] bg-white md:block">
+        <table class="w-full text-sm">
+            <thead class="bg-[#F3F4F6] text-xs uppercase tracking-wide text-slate-500">
+                <tr>
+                    <th class="px-3 py-2 text-start">{{ __('panel.rep_account') }}</th>
+                    @foreach ($cols as [$k, $label, $n])
+                        <th class="whitespace-nowrap px-3 py-2 text-end">{{ $label }}</th>
+                    @endforeach
+                    <th class="px-3 py-2 text-end">{{ __('panel.rep_general') }}</th>
+                    <th class="px-3 py-2 text-end">{{ __('panel.rep_commission') }}</th>
+                    <th class="px-3 py-2 text-end">{{ __('panel.rep_net') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach ($rows as $r)
+                    <tr class="border-t border-[#E3E6EB]">
+                        <td class="whitespace-nowrap px-3 py-2">
+                            <span class="font-semibold">{{ $r['user']->username }}</span>
+                            @if ($r['user']->role->value !== 'uye')
+                                <a class="ms-1 font-semibold text-sky-700 underline" href="{{ $link(['user' => $r['user']->id]) }}">[+]</a>
+                            @endif
+                            <p class="text-xs text-slate-500">{{ $role($r['user']) }}</p>
+                        </td>
+                        @foreach ($cols as [$k, $label, $n])
+                            <td class="whitespace-nowrap px-3 py-2 text-end font-numeric">
+                                {{ $mm($r[$k]) }}@if ($n)<span class="text-xs text-slate-500"> ({{ $r[$n] }})</span>@endif
+                            </td>
+                        @endforeach
+                        <td class="whitespace-nowrap px-3 py-2 text-end font-numeric font-semibold {{ $tone($r['general']) }}">{{ $mm($r['general']) }}</td>
+                        <td class="whitespace-nowrap px-3 py-2 text-end font-numeric">
+                            @if ($r['rate'])<span class="me-1 rounded bg-[#161A22] px-1.5 py-0.5 text-xs text-white">%{{ $r['rate'] }}</span>{{ $mm($r['commission']) }}@else - @endif
+                        </td>
+                        <td class="whitespace-nowrap px-3 py-2 text-end font-numeric font-bold {{ $tone($r['net']) }}">{{ $mm($r['net']) }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+            <tfoot class="bg-[#F3F4F6] font-semibold">
+                <tr class="border-t border-[#E3E6EB]">
+                    <td class="px-3 py-2">{{ __('panel.rep_totals') }}</td>
+                    @foreach ($cols as [$k, $label, $n])
+                        <td class="whitespace-nowrap px-3 py-2 text-end font-numeric">{{ $mm($totals[$k]) }}@if ($n)<span class="text-xs text-slate-500"> ({{ $totals[$n] }})</span>@endif</td>
+                    @endforeach
+                    <td class="whitespace-nowrap px-3 py-2 text-end font-numeric {{ $tone($totals['general']) }}">{{ $mm($totals['general']) }}</td>
+                    <td class="whitespace-nowrap px-3 py-2 text-end font-numeric">{{ $mm($totals['commission']) }}</td>
+                    <td class="whitespace-nowrap px-3 py-2 text-end font-numeric {{ $tone($totals['net']) }}">{{ $mm($totals['net']) }}</td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <div class="grid gap-3 md:hidden">
+        @foreach (array_merge($rows, [['user' => null] + $totals + ['rate' => null]]) as $r)
+            @php $isTotal = $r['user'] === null; @endphp
+            <div class="rounded-lg border bg-white p-3 {{ $isTotal ? 'border-[#161A22]' : 'border-[#E3E6EB]' }}">
+                <div class="mb-2 flex items-center justify-between gap-2">
+                    <p class="font-semibold">
+                        @if ($isTotal) {{ __('panel.rep_totals') }} @else {{ $r['user']->username }} <span class="text-xs font-normal text-slate-500">{{ $role($r['user']) }}</span> @endif
+                    </p>
+                    @if (! $isTotal && $r['user']->role->value !== 'uye')
+                        <a class="text-sm font-semibold text-sky-700 underline" href="{{ $link(['user' => $r['user']->id]) }}">[+]</a>
+                    @endif
+                </div>
+                <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
+                    @foreach ($cols as [$k, $label, $n])
+                        <div>
+                            <p class="text-xs text-slate-500">{{ $label }}</p>
+                            <p class="font-numeric">{{ $mm($r[$k]) }}@if ($n)<span class="text-xs text-slate-500"> ({{ $r[$n] }})</span>@endif</p>
+                        </div>
+                    @endforeach
+                    <div>
+                        <p class="text-xs text-slate-500">{{ __('panel.rep_general') }}</p>
+                        <p class="font-numeric font-semibold {{ $tone($r['general']) }}">{{ $mm($r['general']) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500">{{ __('panel.rep_commission') }}@if ($r['rate']) %{{ $r['rate'] }}@endif</p>
+                        <p class="font-numeric">{{ $mm($r['commission']) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-slate-500">{{ __('panel.rep_net') }}</p>
+                        <p class="font-numeric font-bold {{ $tone($r['net']) }}">{{ $mm($r['net']) }}</p>
+                    </div>
+                </div>
+            </div>
+        @endforeach
+    </div>
 @endif
+<p class="mt-3 text-xs text-slate-500">{{ __('panel.rep_hint') }}</p>
 @endsection

@@ -38,19 +38,19 @@ class ReportController extends Controller
             $focus = $candidate;
         }
 
-        $tab = $request->query('tab') === 'providers' ? 'providers' : 'summary';
-        $report = $reports->build($focus, $fromUtc, $toUtc);
+        // 04.10: Rapor Detay = haftalik tahsilat (verilen/cekilen kredi, yatirilan/kazanan/bekleyen, genel, komisyon, net).
+        $currency = $focus->currency instanceof \BackedEnum ? $focus->currency->value : (string) $focus->currency;
+        $report = app(\App\Services\Stats\SettlementReport::class)->build($focus, $fromUtc, $toUtc, $currency);
 
         return view('panel.reports.index', [
-            'tab' => $tab,
             'period' => $period,
             'from' => $fromLocal->toDateString(),
             'to' => $toLocal->toDateString(),
             'focus' => $focus,
             'trail' => $this->trail($actor, $focus),
+            'rows' => $report['rows'],
             'totals' => $report['totals'],
-            'children' => $this->children($focus, $report['children']),
-            'providers' => $tab === 'providers' ? $reports->providers($focus, $fromUtc, $toUtc) : [],
+            'currency' => $focus->currency,
             'periods' => self::PERIODS,
         ]);
     }
@@ -59,7 +59,7 @@ class ReportController extends Controller
     private function period(Request $request, string $zone): array
     {
         $now = Carbon::now($zone);
-        $period = in_array($request->query('period'), self::PERIODS, true) ? (string) $request->query('period') : 'today';
+        $period = in_array($request->query('period'), self::PERIODS, true) ? (string) $request->query('period') : 'this_week';
 
         if ($period === 'custom') {
             try {

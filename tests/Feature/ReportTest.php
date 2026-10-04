@@ -124,8 +124,6 @@ class ReportTest extends TestCase
         $this->assertSame(['8.00', 'mini-spribe'], [$rows['romaspin|mini']['turnover'], $rows['romaspin|mini']['vendor']]);
         $this->assertSame('0.00', $rows['romaspin|live']['turnover']); // iade ayni oyuna eslendi
 
-        $this->actingAs($this->owner)->get('http://panel.test/panel/reports?tab=providers')->assertOk()
-            ->assertSee('RomaSpin')->assertSee(__('panel.reports_category_mini'));
     }
 
     public function test_istanbul_day_boundary(): void
@@ -201,5 +199,24 @@ class ReportTest extends TestCase
                 'status' => $type->value, 'payload' => [], 'created_at' => now(),
             ]);
         }
+    }
+
+    public function test_settlement_rows_show_credit_from_above_only(): void
+    {
+        $from = \Illuminate\Support\Carbon::parse('2020-01-01')->utc();
+        $to = now()->addDay()->utc();
+        $svc = app(\App\Services\Stats\SettlementReport::class);
+
+        $saRows = collect($svc->build($this->sa1, $from, $to, 'TRY')['rows']);
+        $bayi = $saRows->first(fn ($x) => $x['user']->id === $this->bayi1->id);
+        $this->assertNotNull($bayi);
+        $this->assertSame('1000.00', $bayi['given']);
+        $this->assertSame('0.00', $bayi['withdrawn']);
+        $this->assertFalse($saRows->contains(fn ($x) => $x['user']->id === $this->bayi2->id));
+
+        $member = collect($svc->build($this->bayi1, $from, $to, 'TRY')['rows'])->first(fn ($x) => $x['user']->id === $this->m1->id);
+        $this->assertNotNull($member);
+        $this->assertSame('1000.00', $member['given']);
+        $this->assertSame(bcsub(bcsub($member['staked'], $member['won'], 2), $member['pending'], 2), $member['general']);
     }
 }
