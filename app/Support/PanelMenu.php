@@ -27,7 +27,7 @@ class PanelMenu
         }
 
         $reports = [
-            self::item(__('sport.panel.coupons'), 'panel.coupons.index', ['panel.coupons.index', 'panel.coupons.show']),
+            self::item(__('sport.panel.coupons'), 'panel.coupons.index', ['panel.coupons.index', 'panel.coupons.show', 'panel.coupons.tipo']),
             self::item(__('sport.panel.lookup'), 'panel.coupons.lookup', ['panel.coupons.lookup']),
         ];
         if ($staff) {
@@ -93,7 +93,7 @@ class PanelMenu
         return [
             self::item(__('panel.overview'), 'panel.dashboard', ['panel.dashboard']),
             self::item(__('panel.users'), 'panel.users.index', ['panel.users.*']),
-            self::item(__('sport.panel.coupons'), 'panel.coupons.index', ['panel.coupons.index', 'panel.coupons.show']),
+            self::item(__('sport.panel.coupons'), 'panel.coupons.index', ['panel.coupons.index', 'panel.coupons.show', 'panel.coupons.tipo']),
             $fourth,
         ];
     }

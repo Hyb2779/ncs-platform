@@ -21,3 +21,5 @@ Schedule::command('sport:fenix-results')->everyTenMinutes()->withoutOverlapping(
 
 // RomaSpin oyun listesi: yeni oyunlar + GoldPalace önceliği (04:30 TR).
 Schedule::command('casino:sync romaspin')->dailyAt('01:30')->withoutOverlapping(60);
+
+\Illuminate\Support\Facades\Schedule::command('tipo:sync-coupons')->everyFiveMinutes()->withoutOverlapping(10);

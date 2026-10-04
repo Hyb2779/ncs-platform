@@ -17,6 +17,11 @@ class CouponController extends Controller
 {
     public function index(Request $request): View
     {
+        // Kendi spor sistemi kapaliyken Tum Kuponlar = Wegas Spor (Tipo) kuponlari.
+        if (! config('sport.own_book_enabled')) {
+            return app(TipoCouponController::class)->index($request);
+        }
+
         $query = $this->visible($request);
         $this->filter($request, $query);
 
@@ -37,6 +42,10 @@ class CouponController extends Controller
 
     public function lookup(Request $request): View|RedirectResponse
     {
+        if (! config('sport.own_book_enabled')) {
+            return app(TipoCouponController::class)->lookup($request);
+        }
+
         $raw = trim((string) $request->query('id', ''));
         $coupon = null;
         if ($raw !== '') {
