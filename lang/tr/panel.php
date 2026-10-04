@@ -8,6 +8,7 @@ return [
     'menu_reports' => 'RAPORLAR',
     'menu_betting' => 'BAHİS YÖNETİMİ',
     'menu_settings' => 'AYARLAR',
+    'menu_language' => 'Dil seçeneği',
     'menu_user_create' => 'Yeni Kullanıcı Ekle',
     'menu_users_all' => 'Tüm Kullanıcılar',
     'menu_balance' => 'Bakiye Ekle/Çıkar',

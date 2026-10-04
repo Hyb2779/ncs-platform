@@ -8,6 +8,7 @@ return [
     'menu_reports' => 'BERICHTE',
     'menu_betting' => 'WETTVERWALTUNG',
     'menu_settings' => 'EINSTELLUNGEN',
+    'menu_language' => 'Sprache',
     'menu_user_create' => 'Neuen Benutzer anlegen',
     'menu_users_all' => 'Alle Benutzer',
     'menu_balance' => 'Guthaben buchen',

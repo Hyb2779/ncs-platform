@@ -18,6 +18,12 @@ class PanelPreferenceController extends Controller
         return back()->withCookie(cookie()->forever('panel_currency', $value));
     }
 
+    /** Ayarlar > Dil secenegi sayfasi. */
+    public function languageForm(): \Illuminate\View\View
+    {
+        return view('panel.preferences.language', ['locales' => \App\Http\Middleware\SetLocale::LOCALES]);
+    }
+
     /** Panel arayuz dili (cerez). Hesabin kayitli dili degismez. */
     public function language(Request $request): RedirectResponse
     {

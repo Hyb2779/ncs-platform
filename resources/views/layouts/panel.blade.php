@@ -53,14 +53,6 @@
                     @endforeach
                 </div>
             @endif
-            <div class="mt-2 flex flex-wrap items-center gap-1.5 border-t border-[#E3E6EB] pt-2">
-                <form method="POST" action="{{ route('panel.preferences.language') }}" class="flex gap-1">
-                    @csrf
-                    @foreach (\App\Http\Middleware\SetLocale::LOCALES as $lc)
-                        <button class="h-8 rounded-md px-2 text-xs font-semibold uppercase {{ app()->getLocale() === $lc ? 'bg-[#161A22] text-white' : 'bg-white text-slate-600' }}" type="submit" name="language" value="{{ $lc }}" title="{{ __('panel.languages.'.$lc) }}">{{ $lc }}</button>
-                    @endforeach
-                </form>
-            </div>
         </div>
         <nav class="mt-6 grid min-h-0 flex-1 content-start gap-4 overflow-y-auto px-3 pb-6">
             @foreach ($panelSections as $section)

@@ -79,6 +79,7 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::post('/password', [\App\Http\Controllers\Panel\PasswordController::class, 'update'])->name('password.update');
     Route::post('/preferences/currency', [\App\Http\Controllers\Panel\PanelPreferenceController::class, 'currency'])->name('preferences.currency');
     Route::post('/preferences/language', [\App\Http\Controllers\Panel\PanelPreferenceController::class, 'language'])->name('preferences.language');
+    Route::get('/preferences/language', [\App\Http\Controllers\Panel\PanelPreferenceController::class, 'languageForm'])->name('preferences.language.edit');
     Route::get('/logs', [\App\Http\Controllers\Panel\LogController::class, 'index'])->name('logs.index');
     Route::get('/logs/logins', [\App\Http\Controllers\Panel\LogController::class, 'logins'])->name('logs.logins');
     Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('users.edit');

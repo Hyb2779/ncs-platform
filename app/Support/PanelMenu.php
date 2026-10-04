@@ -64,6 +64,9 @@ class PanelMenu
             $settings[] = self::item(__('site.panel_providers'), 'panel.casino.providers', ['panel.casino.providers']);
         }
 
+        // Ayarlar > Dil secenegi: tum panel rolleri (04.10, Blackeagle).
+        $settings[] = self::item(__('panel.menu_language'), 'panel.preferences.language.edit', ['panel.preferences.language.edit']);
+
         $sections = [
             self::section(__('panel.menu_general'), [
                 self::item(__('panel.overview'), 'panel.dashboard', ['panel.dashboard']),

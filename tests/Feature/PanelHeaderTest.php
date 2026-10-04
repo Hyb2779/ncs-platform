@@ -37,9 +37,11 @@ class PanelHeaderTest extends TestCase
             ->assertSee('data-header="balance"', false)
             ->assertDontSee('aria-label="'.__('panel.display_currency').'"', false)
             ->assertSee('· EUR', false)
-            ->assertSee('name="language" value="en"', false)
             ->assertSee('data-header="theme"', false)->assertSee('panelTheme', false);
 
+        // Dil secimi Ayarlar > Dil secenegi sayfasinda; menude ogesi var.
+        $this->actingAs($sa)->get('http://panel.test/panel/preferences/language')->assertOk()->assertSee('name="language" value="en"', false);
+        $this->actingAs($bayi)->get('http://panel.test/panel')->assertOk()->assertSee(__('panel.menu_language'));
         $this->actingAs($sa)->from('http://panel.test/panel')->post('http://panel.test/panel/preferences/language', ['language' => 'en'])
             ->assertRedirect()->assertCookie('panel_locale', 'en');
         $this->actingAs($sa)->withCookie('panel_locale', 'en')->get('http://panel.test/panel')->assertOk()

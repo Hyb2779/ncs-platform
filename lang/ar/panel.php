@@ -8,6 +8,7 @@ return [
     'menu_reports' => 'التقارير',
     'menu_betting' => 'إدارة الرهانات',
     'menu_settings' => 'الإعدادات',
+    'menu_language' => 'اللغة',
     'menu_user_create' => 'إضافة مستخدم جديد',
     'menu_users_all' => 'جميع المستخدمين',
     'menu_balance' => 'إضافة/خصم رصيد',

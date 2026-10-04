@@ -8,6 +8,7 @@ return [
     'menu_reports' => 'REPORTS',
     'menu_betting' => 'BETTING',
     'menu_settings' => 'SETTINGS',
+    'menu_language' => 'Language',
     'menu_user_create' => 'Add New User',
     'menu_users_all' => 'All Users',
     'menu_balance' => 'Add/Remove Balance',
