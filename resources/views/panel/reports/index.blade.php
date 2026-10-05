@@ -31,11 +31,11 @@
     </label>
     <label class="grid gap-1 text-sm">
         <span>{{ __('panel.reports_from') }}</span>
-        <input class="{{ $input }}" type="date" name="from" value="{{ $from }}">
+        <input class="{{ $input }}" type="date" name="from" value="{{ $from }}" onchange="this.form.period.value='custom'">
     </label>
     <label class="grid gap-1 text-sm">
         <span>{{ __('panel.reports_to') }}</span>
-        <input class="{{ $input }}" type="date" name="to" value="{{ $to }}">
+        <input class="{{ $input }}" type="date" name="to" value="{{ $to }}" onchange="this.form.period.value='custom'">
     </label>
     <div class="grid items-end">
         <button class="inline-flex h-11 items-center justify-center rounded-lg bg-[#161A22] px-3 text-sm text-white" type="submit">{{ __('panel.reports_apply') }}</button>
