@@ -2,7 +2,7 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}" dir="{{ app()->getLocale() === 'ar' ? 'rtl' : 'ltr' }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>@yield('heading', __('panel.title')) — {{ brand()->name() }}</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -94,7 +94,7 @@
                 </form>
             </div>
         </header>
-        <main class="px-4 pt-4 pb-24 md:p-6">
+        <main class="px-4 pt-4 {{ config('panel.bottom_nav') ? 'pb-24' : 'pb-[env(safe-area-inset-bottom)]' }} md:p-6">
             @if (session('status'))
                 <p class="mb-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ session('status') }}</p>
             @endif
@@ -112,17 +112,19 @@
             @yield('content')
         </main>
     </div>
-    <nav class="fixed inset-x-0 bottom-0 z-20 flex border-t border-[#E3E6EB] bg-white pb-[env(safe-area-inset-bottom)] md:hidden" data-nav="bottom">
-        @foreach ($panelBottom as $item)
-            <a
-                class="flex h-16 min-w-0 flex-1 flex-col items-center justify-center px-1 text-center text-[11px] leading-tight {{ request()->routeIs(...$item['active']) ? 'text-[#1A1305]' : 'text-slate-500' }}"
-                href="{{ route($item['route']) }}"
-                @if (request()->routeIs(...$item['active'])) aria-current="page" @endif
-            >
-                <span class="mb-1 h-1 w-1 rounded-full {{ request()->routeIs(...$item['active']) ? 'bg-[var(--accent)]' : 'bg-transparent' }}"></span>
-                {{ $item['label'] }}
-            </a>
-        @endforeach
-    </nav>
+    @if (config('panel.bottom_nav'))
+        <nav class="fixed inset-x-0 bottom-0 z-20 flex border-t border-[#E3E6EB] bg-white pb-[env(safe-area-inset-bottom)] md:hidden" data-nav="bottom">
+            @foreach ($panelBottom as $item)
+                <a
+                    class="flex h-16 min-w-0 flex-1 flex-col items-center justify-center px-1 text-center text-[11px] leading-tight {{ request()->routeIs(...$item['active']) ? 'text-[#1A1305]' : 'text-slate-500' }}"
+                    href="{{ route($item['route']) }}"
+                    @if (request()->routeIs(...$item['active'])) aria-current="page" @endif
+                >
+                    <span class="mb-1 h-1 w-1 rounded-full {{ request()->routeIs(...$item['active']) ? 'bg-[var(--accent)]' : 'bg-transparent' }}"></span>
+                    {{ $item['label'] }}
+                </a>
+            @endforeach
+        </nav>
+    @endif
 </body>
 </html>

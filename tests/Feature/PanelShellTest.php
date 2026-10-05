@@ -17,7 +17,7 @@ class PanelShellTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_owner_drawer_includes_margins_and_the_bottom_bar_has_four_links(): void
+    public function test_owner_drawer_includes_margins_and_the_bottom_bar_is_off(): void
     {
         $owner = $this->owner();
 
@@ -25,9 +25,30 @@ class PanelShellTest extends TestCase
             ->get(route('panel.dashboard'))
             ->assertOk()
             ->assertSee(route('panel.sport.margins'), false)
-            ->assertSee('data-nav="bottom"', false)
+            ->assertDontSee('data-nav="bottom"', false)
+            ->assertSee('pb-[env(safe-area-inset-bottom)]', false)
+            ->assertSee('data-nav="drawer"', false)
+            ->assertSee(route('panel.dashboard'), false)
+            ->assertSee(route('panel.users.index'), false)
+            ->assertSee(route('panel.coupons.index'), false)
+            ->assertSee(route('panel.transactions'), false)
             ->assertSee(__('panel.overview'))
+            ->assertSee(__('panel.menu_users_all'))
+            ->assertSee(__('sport.panel.coupons'))
             ->assertSee(__('sport.panel.status'));
+
+        $this->assertStringContainsString('fixed inset-x-0 bottom-0', file_get_contents(resource_path('views/layouts/site.blade.php')));
+    }
+
+    public function test_bottom_nav_flag_can_turn_the_bar_back_on(): void
+    {
+        config(['panel.bottom_nav' => true]);
+
+        $this->actingAs($this->owner())
+            ->get(route('panel.dashboard'))
+            ->assertOk()
+            ->assertSee('data-nav="bottom"', false)
+            ->assertSee('pb-24', false);
     }
 
     public function test_a_bayi_does_not_see_margins(): void
