@@ -49,14 +49,14 @@ class ReportController extends Controller
             'rows' => $report['rows'],
             'totals' => $report['totals'],
             'currency' => $focus->currency,
-            'periods' => self::PERIODS,
+            'showCommission' => $report['show_commission'],
         ]);
     }
 
     /** @return array{0: string, 1: Carbon, 2: Carbon} yerel gun baslangici, yerel son gun (dahil) */
     private function period(Request $request, string $zone): array
     {
-        return ReportPeriod::resolve($request, $zone);
+        return ReportPeriod::resolveDetail($request, $zone);
     }
 
     /**

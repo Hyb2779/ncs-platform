@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
  * Rapor Detay = haftalik tahsilat (04.10.2026). Odaktaki hesabin dogrudan altlari icin:
  * verilen/cekilen kredi (karsi taraf o hesabin agaci disinda), yatirilan/kazanan (PeriodReport, spor + casino),
  * bekleyen spor kuponlari; Genel = yatirilan - kazanan - bekleyen (pozitif: hesap zararda, uste odeyecek);
- * komisyon sadece oran varsa ve Genel > 0 (zarara ortak olunmaz); Net = Genel - komisyon.
+ * komisyon yalnizca bayi ve ustunde, oran varsa ve Genel > 0 (oyuncuda hesaplanmaz, Net = Genel).
  */
 class SettlementReport
 {
@@ -37,14 +37,17 @@ class SettlementReport
             $won = $this->m($s['payout'] ?? 0);
             $pend = $pending[$id] ?? ['amount' => '0.00', 'count' => 0];
             $general = bcsub(bcsub($staked, $won, 2), $pend['amount'], 2);
+            $role = $child->role instanceof \BackedEnum ? $child->role->value : (string) $child->role;
+            $showCommission = $role !== UserRole::Uye->value;
             $rate = $this->m($child->commission_rate ?? 0);
-            $hasRate = bccomp($rate, '0', 2) === 1;
+            $hasRate = $showCommission && bccomp($rate, '0', 2) === 1;
             $commission = $hasRate && bccomp($general, '0', 2) === 1
                 ? bcadd(bcdiv(bcmul($general, $rate, 6), '100', 6), '0.005', 2)
                 : '0.00';
 
             $row = [
                 'user' => $child,
+                'show_commission' => $showCommission,
                 'rate' => $hasRate ? rtrim(rtrim($rate, '0'), '.') : null,
                 'given' => $credit[$id]['in'] ?? '0.00',
                 'withdrawn' => $credit[$id]['out'] ?? '0.00',
@@ -73,7 +76,11 @@ class SettlementReport
 
         usort($rows, fn ($a, $b) => bccomp($b['staked'], $a['staked'], 2) ?: strcmp($a['user']->username, $b['user']->username));
 
-        return ['rows' => $rows, 'totals' => $totals];
+        return [
+            'rows' => $rows,
+            'totals' => $totals,
+            'show_commission' => collect($rows)->contains(fn ($row) => $row['show_commission']),
+        ];
     }
 
     /** @return array<int, array{in?: string, out?: string}> */

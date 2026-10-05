@@ -19,16 +19,10 @@
     ];
 @endphp
 
-<form class="mb-3 grid gap-2 sm:grid-cols-4" method="GET">
+<form class="mb-3 flex flex-wrap items-end gap-2" method="GET">
     @if ($base['user'])<input type="hidden" name="user" value="{{ $base['user'] }}">@endif
-    <label class="grid gap-1 text-sm">
-        <span>{{ __('panel.reports_period') }}</span>
-        <select class="{{ $input }}" name="period">
-            @foreach ($periods as $p)
-                <option value="{{ $p }}" @selected($period === $p)>{{ __('panel.reports_period_'.$p) }}</option>
-            @endforeach
-        </select>
-    </label>
+    <input type="hidden" name="period" value="{{ $period }}">
+    <a class="inline-flex h-11 items-center rounded-full px-4 text-sm font-semibold {{ $period === 'this_week' ? 'bg-[#161A22] text-white' : 'border border-slate-300 bg-white text-slate-700' }}" href="{{ route('panel.reports.index', array_filter(['period' => 'this_week', 'user' => $base['user']])) }}">{{ __('panel.reports_this_week') }}</a>
     <label class="grid gap-1 text-sm">
         <span>{{ __('panel.reports_from') }}</span>
         <input class="{{ $input }}" type="date" name="from" value="{{ $from }}" onchange="this.form.period.value='custom'">
@@ -37,9 +31,7 @@
         <span>{{ __('panel.reports_to') }}</span>
         <input class="{{ $input }}" type="date" name="to" value="{{ $to }}" onchange="this.form.period.value='custom'">
     </label>
-    <div class="grid items-end">
-        <button class="inline-flex h-11 items-center justify-center rounded-lg bg-[#161A22] px-3 text-sm text-white" type="submit">{{ __('panel.reports_apply') }}</button>
-    </div>
+    <button class="inline-flex h-11 items-center justify-center rounded-lg bg-[#161A22] px-3 text-sm text-white" type="submit">{{ __('panel.reports_apply') }}</button>
 </form>
 
 <div class="mb-3 flex flex-wrap items-center gap-1 text-sm">
@@ -66,7 +58,7 @@
                         <th class="whitespace-nowrap px-3 py-2 text-end">{{ $label }}</th>
                     @endforeach
                     <th class="px-3 py-2 text-end">{{ __('panel.rep_general') }}</th>
-                    <th class="px-3 py-2 text-end">{{ __('panel.rep_commission') }}</th>
+                    @if ($showCommission)<th class="px-3 py-2 text-end">{{ __('panel.rep_commission') }}</th>@endif
                     <th class="px-3 py-2 text-end">{{ __('panel.rep_net') }}</th>
                 </tr>
             </thead>
@@ -86,9 +78,13 @@
                             </td>
                         @endforeach
                         <td class="whitespace-nowrap px-3 py-2 text-end font-numeric font-semibold {{ $tone($r['general']) }}">{{ $mm($r['general']) }}</td>
-                        <td class="whitespace-nowrap px-3 py-2 text-end font-numeric">
-                            @if ($r['rate'])<span class="me-1 rounded bg-[#161A22] px-1.5 py-0.5 text-xs text-white">%{{ $r['rate'] }}</span>{{ $mm($r['commission']) }}@else - @endif
-                        </td>
+                        @if ($showCommission)
+                            <td class="rep-commission whitespace-nowrap px-3 py-2 text-end font-numeric">
+                                @if ($r['show_commission'])
+                                    @if ($r['rate'])<span class="me-1 rounded bg-[#161A22] px-1.5 py-0.5 text-xs text-white">%{{ $r['rate'] }}</span>{{ $mm($r['commission']) }}@else - @endif
+                                @endif
+                            </td>
+                        @endif
                         <td class="whitespace-nowrap px-3 py-2 text-end font-numeric font-bold {{ $tone($r['net']) }}">{{ $mm($r['net']) }}</td>
                     </tr>
                 @endforeach
@@ -100,7 +96,7 @@
                         <td class="whitespace-nowrap px-3 py-2 text-end font-numeric">{{ $mm($totals[$k]) }}@if ($n)<span class="text-xs text-slate-500"> ({{ $totals[$n] }})</span>@endif</td>
                     @endforeach
                     <td class="whitespace-nowrap px-3 py-2 text-end font-numeric {{ $tone($totals['general']) }}">{{ $mm($totals['general']) }}</td>
-                    <td class="whitespace-nowrap px-3 py-2 text-end font-numeric">{{ $mm($totals['commission']) }}</td>
+                    @if ($showCommission)<td class="rep-commission whitespace-nowrap px-3 py-2 text-end font-numeric">{{ $mm($totals['commission']) }}</td>@endif
                     <td class="whitespace-nowrap px-3 py-2 text-end font-numeric {{ $tone($totals['net']) }}">{{ $mm($totals['net']) }}</td>
                 </tr>
             </tfoot>
@@ -130,10 +126,12 @@
                         <p class="text-xs text-slate-500">{{ __('panel.rep_general') }}</p>
                         <p class="font-numeric font-semibold {{ $tone($r['general']) }}">{{ $mm($r['general']) }}</p>
                     </div>
-                    <div>
-                        <p class="text-xs text-slate-500">{{ __('panel.rep_commission') }}@if ($r['rate']) %{{ $r['rate'] }}@endif</p>
-                        <p class="font-numeric">{{ $mm($r['commission']) }}</p>
-                    </div>
+                    @if ($isTotal ? $showCommission : $r['show_commission'])
+                        <div class="rep-commission">
+                            <p class="text-xs text-slate-500">{{ __('panel.rep_commission') }}@if ($r['rate']) %{{ $r['rate'] }}@endif</p>
+                            <p class="font-numeric">{{ $mm($r['commission']) }}</p>
+                        </div>
+                    @endif
                     <div>
                         <p class="text-xs text-slate-500">{{ __('panel.rep_net') }}</p>
                         <p class="font-numeric font-bold {{ $tone($r['net']) }}">{{ $mm($r['net']) }}</p>

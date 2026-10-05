@@ -143,7 +143,17 @@ class ReportTest extends TestCase
         }
         $this->actingAs($this->owner)->get('http://panel.test/panel/reports?period=custom&from=2026-01-01&to=2026-10-03')->assertOk()
             ->assertSee('2026-07-04'); // 92 gun siniri
-        $this->actingAs($this->owner)->get('http://panel.test/panel/reports?period=custom&from=bozuk&to=x')->assertOk();
+        $this->actingAs($this->owner)->get('http://panel.test/panel/reports?period=custom&from=bozuk&to=x')->assertOk()
+            ->assertSee('2026-09-29', false);
+        $page = $this->actingAs($this->owner)->get('http://panel.test/panel/reports');
+        $page->assertOk()
+            ->assertSee(__('panel.reports_this_week'), false)
+            ->assertSee('2026-09-29', false)
+            ->assertSee('2026-10-05', false)
+            ->assertDontSee('<select', false)
+            ->assertDontSee(__('panel.reports_period_yesterday'), false);
+        $this->actingAs($this->owner)->get('http://panel.test/panel/member-movements')->assertOk()
+            ->assertSee(__('panel.reports_period_yesterday'), false);
     }
 
     public function test_today_summary_and_dashboard_block(): void
@@ -218,5 +228,62 @@ class ReportTest extends TestCase
         $this->assertNotNull($member);
         $this->assertSame('1000.00', $member['given']);
         $this->assertSame(bcsub(bcsub($member['staked'], $member['won'], 2), $member['pending'], 2), $member['general']);
+    }
+
+    public function test_detail_week_is_tuesday_to_monday_and_other_reports_stay_on_monday(): void
+    {
+        $this->travelTo(Carbon::parse('2026-10-05 12:00', 'Europe/Istanbul'));
+        $detail = \App\Support\ReportPeriod::resolveDetail(\Illuminate\Http\Request::create('/panel/reports'), 'Europe/Istanbul');
+        $this->assertSame(['this_week', '2026-09-29', '2026-10-05'], [$detail[0], $detail[1]->toDateString(), $detail[2]->toDateString()]);
+
+        $this->travelTo(Carbon::parse('2026-10-06 12:00', 'Europe/Istanbul'));
+        $tuesday = \App\Support\ReportPeriod::resolveDetail(\Illuminate\Http\Request::create('/panel/reports'), 'Europe/Istanbul');
+        $this->assertSame(['2026-10-06', '2026-10-12'], [$tuesday[1]->toDateString(), $tuesday[2]->toDateString()]);
+
+        $kept = \App\Support\ReportPeriod::resolveDetail(\Illuminate\Http\Request::create('/panel/reports', 'GET', [
+            'period' => 'today', 'from' => '2026-09-01', 'to' => '2026-10-05',
+        ]), 'Europe/Istanbul');
+        $this->assertSame(['custom', '2026-09-01', '2026-10-05'], [$kept[0], $kept[1]->toDateString(), $kept[2]->toDateString()]);
+
+        $monday = \App\Support\ReportPeriod::resolve(\Illuminate\Http\Request::create('/panel/member-movements', 'GET', ['period' => 'this_week']), 'Europe/Istanbul');
+        $this->assertSame(['2026-10-05', '2026-10-06'], [$monday[1]->toDateString(), $monday[2]->toDateString()]);
+    }
+
+    public function test_player_rows_skip_commission_and_dealer_rows_keep_it(): void
+    {
+        $this->m1->forceFill(['commission_rate' => '1.00'])->save();
+        $this->bayi1->forceFill(['commission_rate' => '30.00'])->save();
+        app(WalletService::class)->transfer($this->owner, $this->m1, '200.00', 'extra-stake', $this->owner);
+        $this->play($this->m1, T::Bet, WalletProduct::Slot, '1140.05');
+
+        $from = Carbon::parse('2020-01-01')->utc();
+        $to = now()->addDay()->utc();
+        $svc = app(\App\Services\Stats\SettlementReport::class);
+
+        $dealer = collect($svc->build($this->sa1, $from, $to, 'TRY')['rows'])->first(fn ($x) => $x['user']->id === $this->bayi1->id);
+        $this->assertSame('1140.05', $dealer['general']);
+        $this->assertSame('342.02', $dealer['commission']);
+        $this->assertSame('798.03', $dealer['net']);
+        $this->assertTrue($dealer['show_commission']);
+
+        $players = $svc->build($this->bayi1, $from, $to, 'TRY');
+        $player = collect($players['rows'])->first(fn ($x) => $x['user']->id === $this->m1->id);
+        $this->assertFalse($player['show_commission']);
+        $this->assertSame('0.00', $player['commission']);
+        $this->assertSame($player['general'], $player['net']);
+        $this->assertSame('1140.05', $player['net']);
+        $this->assertFalse($players['show_commission']);
+
+        $this->actingAs($this->sa1)->get('http://panel.test/panel/reports?user='.$this->bayi1->id.'&period=custom&from=2020-01-01&to=2026-10-03')
+            ->assertOk()
+            ->assertDontSee('rep-commission', false)
+            ->assertDontSee('%1', false)
+            ->assertSee(\App\Support\Money::format('1140.05', Currency::Try), false);
+        $this->actingAs($this->sa1)->get('http://panel.test/panel/reports?period=custom&from=2020-01-01&to=2026-10-03')
+            ->assertOk()
+            ->assertSee('rep-commission', false)
+            ->assertSee('%30', false)
+            ->assertSee(\App\Support\Money::format('342.02', Currency::Try), false)
+            ->assertSee(\App\Support\Money::format('798.03', Currency::Try), false);
     }
 }
