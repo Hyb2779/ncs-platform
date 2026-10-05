@@ -4,7 +4,6 @@
 
 @section('content')
     @php
-        $tz = auth()->user()->timezone;
         $m = fn ($v) => \App\Support\Money::format((string) $v, $currency);
         $btn = 'inline-flex h-10 items-center rounded-lg border border-[#E3E6EB] px-3 text-sm';
         $top = $events->first();
@@ -26,7 +25,7 @@
         @php
             $list = $picks->get($event->event_id, collect());
             $max = max(1, (int) $list->max('coupons'));
-            $time = $event->match_time ? \Illuminate\Support\Carbon::parse($event->match_time, 'UTC')->timezone($tz)->format('d.m H:i') : null;
+            $time = $event->match_time ? display_clock($event->match_time, 'd.m H:i') : null;
         @endphp
         <div class="mb-3 rounded-lg border border-[#E3E6EB] bg-white p-3">
             <div class="flex flex-wrap items-start justify-between gap-2">

@@ -1,6 +1,5 @@
 @php
-    $zone = auth()->user()->timezone ?? 'UTC';
-    $kickoff = $fixture->starts_at->timezone($zone);
+    $kickoff = display_instant($fixture->starts_at);
     $day = $kickoff->isToday() ? __('sport.today') : ($kickoff->isTomorrow() ? __('sport.tomorrow') : sport_date($kickoff, 'j F'));
     $count = count($columns);
 @endphp
@@ -9,7 +8,7 @@
         @if (in_array($when ?? request('when', 'today'), ['all', 'tomorrow'], true))
             <span class="text-[11px] font-semibold text-[var(--site-muted)]">{{ $day }}</span>
         @endif
-        <span class="text-sm font-bold">{{ $kickoff->format('H:i') }}</span>
+        <span class="text-sm font-bold">{{ sport_digits($kickoff->format('H:i')) }}</span>
     </div>
     <span class="font-numeric text-xs font-bold text-[var(--accent)]">{{ $fixture->bulletin_code }}</span>
     <a class="flex flex-col gap-0.5 text-sm font-semibold" href="{{ route('site.sport.show', $fixture) }}">

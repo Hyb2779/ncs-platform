@@ -61,6 +61,60 @@ function sport_digits(string $value): string
     return str_replace($eastern, ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'], $value);
 }
 
+function display_timezone(): string
+{
+    return (string) config('app.display_timezone', 'Europe/Istanbul');
+}
+
+/**
+ * Mutlak anı Europe/Istanbul duvar saatine çevirir. Offset'siz metin UTC kabul edilir.
+ * Kaynak Carbon nesnesini değiştirmez.
+ */
+function display_instant(mixed $value): ?Carbon
+{
+    if ($value === null || $value === '') {
+        return null;
+    }
+
+    $zone = display_timezone();
+
+    if ($value instanceof \DateTimeInterface) {
+        return Carbon::instance($value)->timezone($zone);
+    }
+
+    if (is_int($value) || (is_string($value) && preg_match('/^\d{10,}$/', $value) === 1)) {
+        return Carbon::createFromTimestampUTC((int) $value)->timezone($zone);
+    }
+
+    $raw = trim((string) $value);
+    $hasOffset = preg_match('/(?:Z|[+-]\d{2}:?\d{2})$/i', $raw) === 1;
+    $parsed = $hasOffset ? Carbon::parse($raw) : Carbon::parse($raw, 'UTC');
+
+    return $parsed->timezone($zone);
+}
+
+function display_clock(mixed $value, string $format = 'H:i'): string
+{
+    $instant = display_instant($value);
+
+    return $instant === null ? '' : sport_digits($instant->format($format));
+}
+
+/**
+ * Gösterim dilimindeki gün aralığını UTC sınırlarına çevirir (gece yarısı maçları doğru güne düşsün).
+ *
+ * @return array{0: Carbon, 1: Carbon}
+ */
+function display_span_utc(int $fromDay = 0, int $toDay = 0): array
+{
+    $start = now()->timezone(display_timezone())->startOfDay();
+
+    return [
+        $start->copy()->addDays($fromDay)->utc(),
+        $start->copy()->addDays($toDay)->endOfDay()->utc(),
+    ];
+}
+
 function sport_placed_line(Coupon $coupon, CouponSelection $selection): string
 {
     $zone = auth()->user()->timezone ?? 'UTC';
@@ -106,9 +160,7 @@ function sport_live_state(?SportFixture $fixture, ?string $selectionStatus = nul
         return ['text' => $text, 'live' => true];
     }
 
-    $zone = auth()->user()->timezone ?? 'UTC';
-
-    return ['text' => sport_digits($fixture->starts_at->timezone($zone)->format('H:i')), 'live' => false];
+    return ['text' => display_clock($fixture->starts_at), 'live' => false];
 }
 
 function sport_price_open(SportFixture $fixture, string $price): bool

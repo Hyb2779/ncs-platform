@@ -67,6 +67,9 @@ return [
 
     'timezone' => env('APP_TIMEZONE', 'UTC'),
 
+    // Maç ve etkinlik saatleri her cihazda bu dilimde gösterilir. Kayıtlar UTC kalır.
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Europe/Istanbul'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

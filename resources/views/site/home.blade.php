@@ -22,7 +22,7 @@
         </div>
         @if ($featured)
             <div class="flex flex-col justify-center gap-2.5 bg-[var(--site-panel-2)] p-5 md:gap-3 md:p-8">
-                <div class="flex justify-between text-[13px] font-bold text-[var(--site-muted)]"><span>{{ $featured['league'] }}</span><span>{{ __('home.today') }} {{ $featured['time'] }}</span></div>
+                <div class="flex justify-between text-[13px] font-bold text-[var(--site-muted)]"><span>{{ $featured['league'] }}</span><span>{{ $featured['day'] }} {{ $featured['time'] }}</span></div>
                 <div class="flex flex-wrap gap-x-1.5 gap-y-1 text-lg font-extrabold text-[var(--site-text)] md:flex-col md:text-2xl"><span>{{ $featured['home'] }}</span><span class="md:hidden" aria-hidden="true">-</span><span>{{ $featured['away'] }}</span></div>
                 @include('site._home_odds', ['m' => $featured, 'size' => 'lg'])
             </div>
@@ -62,7 +62,7 @@
             <div class="flex items-center justify-between"><h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.upcoming') }}</h2><a class="text-[13px] font-bold text-[var(--accent)]" href="{{ route('site.wegas_sport') }}">{{ __('home.all') }}</a></div>
             @forelse ($upcoming as $m)
                 <a class="flex gap-3 rounded-xl bg-[var(--site-panel-2)] p-3" href="{{ route('site.wegas_sport') }}">
-                    <span class="flex w-14 flex-col"><span class="text-xs text-[var(--site-muted)]">{{ __('home.today') }}</span><span class="font-numeric text-xl font-bold text-[var(--site-text)]">{{ $m['time'] }}</span></span>
+                    <span class="flex w-14 flex-col"><span class="text-xs text-[var(--site-muted)]">{{ $m['day'] }}</span><span class="font-numeric text-xl font-bold text-[var(--site-text)]">{{ $m['time'] }}</span></span>
                     <span class="flex min-w-0 flex-col"><span class="truncate text-[15px] font-bold text-[var(--site-text)]">{{ $m['home'] }} - {{ $m['away'] }}</span><span class="truncate text-xs text-[var(--site-muted)]">{{ $m['league'] }}</span></span>
                 </a>
             @empty

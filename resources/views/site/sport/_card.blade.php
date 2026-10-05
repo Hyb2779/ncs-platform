@@ -1,6 +1,5 @@
 @php
-    $zone = auth()->user()->timezone ?? 'UTC';
-    $kickoff = $fixture->starts_at->timezone($zone);
+    $kickoff = display_instant($fixture->starts_at);
     $day = $kickoff->isToday() ? __('sport.today') : ($kickoff->isTomorrow() ? __('sport.tomorrow') : sport_date($kickoff, 'j F'));
     $cells = $cardColumns ?? $columns;
 @endphp
@@ -15,7 +14,7 @@
                 @if (in_array($when ?? request('when', 'today'), ['all', 'tomorrow'], true))
                     {{ $day }} ·
                 @endif
-                {{ $kickoff->format('H:i') }}
+                {{ sport_digits($kickoff->format('H:i')) }}
             </span>
             <span class="text-[11px] font-bold text-[var(--accent)]">{{ __('sport.code_prefix', ['code' => $fixture->bulletin_code]) }}</span>
         </div>

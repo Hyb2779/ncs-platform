@@ -29,7 +29,7 @@
             $rows[] = [
                 'match' => ($s['home_name'] ?? '').' - '.($s['away_name'] ?? ''),
                 'league' => trim(($s['country_name'] ?? '').' · '.($s['competition_name'] ?? ''), ' ·'),
-                'time' => $mt ? \Carbon\Carbon::createFromTimestamp($mt)->timezone($tz)->format('d.m H:i') : null,
+                'time' => $mt ? display_clock($mt, 'd.m H:i') : null,
                 'market' => (string) ($s['market_name'] ?? ''),
                 'pick' => (string) ($s['selection_name'] ?? '').($handicap !== '' && $handicap !== '0' ? ' ('.$handicap.')' : ''),
                 'odds' => isset($s['odds']) ? number_format((float) $s['odds'], 2, ',', '.') : '',

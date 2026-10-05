@@ -4,7 +4,6 @@
 
 @section('content')
     @php
-        $tz = auth()->user()->timezone;
         $selections = is_array($coupon->detail['selections'] ?? null) ? $coupon->detail['selections'] : [];
         $pair = fn ($h, $a) => ($h === null || $a === null) ? null : $h.' - '.$a;
     @endphp
@@ -25,7 +24,7 @@
                     $handicap = (string) ($s['handicap'] ?? '');
                     $color = match ($sst) { 'won' => 'text-emerald-400', 'lost' => 'text-rose-400', 'pending' => 'text-amber-400', default => 'text-[var(--site-muted)]' };
                     $league = trim(($s['country_name'] ?? '').' · '.($s['competition_name'] ?? ''), ' ·');
-                    $time = isset($s['match_time']) && is_numeric($s['match_time']) ? \Carbon\Carbon::createFromTimestamp((int) $s['match_time'])->timezone($tz)->format('d.m H:i') : null;
+                    $time = isset($s['match_time']) && is_numeric($s['match_time']) ? display_clock((int) $s['match_time'], 'd.m H:i') : null;
                 @endphp
                 <div class="grid gap-1 px-4 py-3 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-4 {{ $i > 0 ? 'border-t border-[var(--site-line)]' : '' }}">
                     <div class="min-w-0">

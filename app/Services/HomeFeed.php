@@ -16,7 +16,6 @@ class HomeFeed
     public function build(?User $viewer): array
     {
         $now = now()->utc();
-        $zone = $viewer?->timezone ?? 'UTC';
 
         $candidates = Bulletin::query()
             ->where('starts_at', '>', $now->copy()->addMinutes(10))
@@ -34,18 +33,18 @@ class HomeFeed
         $popular = $withOdds->sortBy([fn ($a, $b) => ($picks[$b->id] ?? 0) <=> ($picks[$a->id] ?? 0), fn ($a, $b) => $a->starts_at <=> $b->starts_at])->values()->take(4);
 
         return [
-            'featured' => $popular->first() ? $this->match($popular->first(), $zone) : null,
+            'featured' => $popular->first() ? $this->match($popular->first()) : null,
             'quick' => [
                 'live' => SportFixture::query()->inPlay()->count(),
-                'today' => Bulletin::query()->whereBetween('starts_at', [$now->copy()->startOfDay(), $now->copy()->endOfDay()])->count(),
+                'today' => Bulletin::query()->whereBetween('starts_at', display_span_utc())->count(),
                 'slots' => app(\App\Services\Casino\GameAvailability::class)->apply(CasinoGame::query()->where('is_active', true)->where('is_live', false)
                     ->where(fn ($q) => $q->whereNull('category')->orWhereNotIn('category', ['mini', 'virtual'])), $viewer)->count(), // lobideki slot kurali: mini haric
                 'mini' => app(\App\Services\Casino\GameAvailability::class)->apply(CasinoGame::query()->where('is_active', true)->where('category', 'mini'), $viewer)->count(),
                 'casino' => app(\App\Services\Casino\GameAvailability::class)->apply(CasinoGame::query()->where('is_active', true)->where('is_live', true), $viewer)->count(),
             ],
-            'upcoming' => $candidates->take(5)->map(fn ($f) => $this->match($f, $zone))->values(),
-            'popular' => $popular->map(fn ($f) => $this->match($f, $zone))->values(),
-            'combo' => $this->combo($candidates, $zone),
+            'upcoming' => $candidates->take(5)->map(fn ($f) => $this->match($f))->values(),
+            'popular' => $popular->map(fn ($f) => $this->match($f))->values(),
+            'combo' => $this->combo($candidates),
             'winners' => $this->winners($viewer),
         ];
     }
@@ -55,11 +54,14 @@ class HomeFeed
         return $fixture->odds->first(fn ($o) => $o->market?->code === $market && $o->outcome === $outcome && ! $o->suspended);
     }
 
-    private function match(SportFixture $f, string $zone): array
+    private function match(SportFixture $f): array
     {
+        $kickoff = display_instant($f->starts_at);
+
         return [
             'id' => $f->id,
-            'time' => sport_digits($f->starts_at->timezone($zone)->format('H:i')),
+            'day' => $kickoff->isToday() ? __('home.today') : ($kickoff->isTomorrow() ? __('sport.tomorrow') : sport_date($kickoff, 'j F')),
+            'time' => sport_digits($kickoff->format('H:i')),
             'home' => sport_name($f->home),
             'away' => sport_name($f->away),
             'league' => sport_name($f->league),
@@ -69,7 +71,7 @@ class HomeFeed
         ];
     }
 
-    private function combo(Collection $candidates, string $zone): ?array
+    private function combo(Collection $candidates): ?array
     {
         $rows = [];
         foreach ($candidates as $f) {
@@ -86,7 +88,7 @@ class HomeFeed
                 continue;
             }
             $key = $pick->market->code === 'OU25' ? 'pick_over' : ($pick->outcome === 'home' ? 'pick_home' : 'pick_away');
-            $rows[] = ['odd' => $pick, 'match' => $this->match($f, $zone), 'label' => __('home.'.$key)];
+            $rows[] = ['odd' => $pick, 'match' => $this->match($f), 'label' => __('home.'.$key)];
             if (count($rows) === 4) {
                 break;
             }

@@ -33,14 +33,14 @@ class SportController extends Controller
 
         $query = $this->bulletinQuery();
 
-        if ($when === 'today' && ! $request->has('when') && ! (clone $query)->whereBetween('starts_at', [now()->utc()->startOfDay(), now()->utc()->endOfDay()])->exists()) {
+        if ($when === 'today' && ! $request->has('when') && ! (clone $query)->whereBetween('starts_at', display_span_utc())->exists()) {
             $when = 'all';
         }
 
         if ($when === 'today') {
-            $query->whereBetween('starts_at', [now()->utc()->startOfDay(), now()->utc()->endOfDay()]);
+            $query->whereBetween('starts_at', display_span_utc());
         } elseif ($when === 'tomorrow') {
-            $query->whereBetween('starts_at', [now()->utc()->addDay()->startOfDay(), now()->utc()->addDay()->endOfDay()]);
+            $query->whereBetween('starts_at', display_span_utc(1, 1));
         } elseif ($when === '3h') {
             $query->whereBetween('starts_at', [now(), now()->addHours(3)]);
         }
@@ -106,16 +106,14 @@ class SportController extends Controller
 
     public function results(Request $request): View
     {
-        $zone = $request->user()?->timezone ?? 'UTC';
-
         return view('site.sport.results', [
             'days' => SportFixture::query()
                 ->with(['league.country', 'home', 'away'])
                 ->finished()
-                ->where('starts_at', '>=', now()->utc()->subDays(3)->startOfDay())
+                ->where('starts_at', '>=', display_span_utc(-3, 0)[0])
                 ->orderByDesc('starts_at')
                 ->get()
-                ->groupBy(fn (SportFixture $fixture) => $fixture->starts_at->timezone($zone)->toDateString())
+                ->groupBy(fn (SportFixture $fixture) => display_instant($fixture->starts_at)->toDateString())
                 ->map(fn ($fixtures) => $fixtures->groupBy('league_id')),
         ]);
     }
@@ -270,6 +268,8 @@ class SportController extends Controller
      */
     private function sportFrame(Request $request): array
     {
+        [$from, $until] = display_span_utc(0, 3);
+
         return [
             'coupon' => $this->couponView($request),
             'liveFixtures' => SportFixture::query()
@@ -278,21 +278,21 @@ class SportController extends Controller
                 ->orderBy('starts_at')
                 ->limit(16)
                 ->get(),
-            'leagues' => SportLeague::query()->with('country')->withCount(['fixtures as bulletin_count' => function ($query): void {
-                $query->where('starts_at', '>=', now()->utc()->startOfDay())
-                    ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
+            'leagues' => SportLeague::query()->with('country')->withCount(['fixtures as bulletin_count' => function ($query) use ($from, $until): void {
+                $query->where('starts_at', '>=', $from)
+                    ->where('starts_at', '<', $until)
                     ->whereHas('odds');
-            }])->where('is_active', true)->whereHas('fixtures', function ($query): void {
-                $query->where('starts_at', '>=', now()->utc()->startOfDay())
-                    ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
+            }])->where('is_active', true)->whereHas('fixtures', function ($query) use ($from, $until): void {
+                $query->where('starts_at', '>=', $from)
+                    ->where('starts_at', '<', $until)
                     ->whereHas('odds');
             })->orderByDesc('is_featured')->orderBy('sort_order')->get(),
             'lookupCoupon' => $this->lookupCoupon($request),
             'footballCount' => SportFixture::query()
                 ->whereHas('league', fn ($q) => $q->where('is_active', true))
                 ->whereHas('odds')
-                ->where('starts_at', '>=', now()->utc()->startOfDay())
-                ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
+                ->where('starts_at', '>=', $from)
+                ->where('starts_at', '<', $until)
                 ->count(),
         ];
     }

@@ -10,8 +10,7 @@
 
 @section('content')
     @php
-        $zone = auth()->user()->timezone ?? 'UTC';
-        $kickoff = $fixture->starts_at->timezone($zone);
+        $kickoff = display_instant($fixture->starts_at);
         $groups = [
             'result' => ['1X2', 'DC'],
             'half' => ['HT1X2'],

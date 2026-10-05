@@ -10,12 +10,14 @@ class Bulletin
 {
     public static function query(): Builder
     {
+        [$from, $until] = display_span_utc(0, 3);
+
         return SportFixture::query()
             ->with(['league.country', 'home', 'away', 'odds.market'])
             ->whereHas('league', fn ($q) => $q->where('is_active', true))
             ->whereHas('odds')
-            ->where('starts_at', '>=', now()->utc()->startOfDay())
-            ->where('starts_at', '<', now()->utc()->addDays(3)->endOfDay())
+            ->where('starts_at', '>=', $from)
+            ->where('starts_at', '<', $until)
             ->orderBy('starts_at');
     }
 }
