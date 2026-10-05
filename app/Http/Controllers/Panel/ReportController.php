@@ -6,8 +6,8 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Stats\PeriodReport;
+use App\Support\ReportPeriod;
 use Illuminate\Http\Request;
-use Illuminate\Support\Carbon;
 use Illuminate\View\View;
 
 /**
@@ -16,9 +16,7 @@ use Illuminate\View\View;
  */
 class ReportController extends Controller
 {
-    public const PERIODS = ['today', 'yesterday', 'this_week', 'last_week', 'this_month', 'last_month', 'custom'];
-
-    private const MAX_DAYS = 92;
+    public const PERIODS = ReportPeriod::PERIODS;
 
     public function index(Request $request, PeriodReport $reports): View
     {
@@ -58,37 +56,7 @@ class ReportController extends Controller
     /** @return array{0: string, 1: Carbon, 2: Carbon} yerel gun baslangici, yerel son gun (dahil) */
     private function period(Request $request, string $zone): array
     {
-        $now = Carbon::now($zone);
-        $period = in_array($request->query('period'), self::PERIODS, true) ? (string) $request->query('period') : 'this_week';
-
-        if ($period === 'custom') {
-            try {
-                $from = Carbon::parse((string) $request->query('from'), $zone)->startOfDay();
-                $to = Carbon::parse((string) $request->query('to'), $zone)->startOfDay();
-            } catch (\Throwable) {
-                $from = $now->copy()->startOfDay();
-                $to = $from->copy();
-            }
-            if ($to->lt($from)) {
-                [$from, $to] = [$to, $from];
-            }
-            if ($from->diffInDays($to) >= self::MAX_DAYS) {
-                $from = $to->copy()->subDays(self::MAX_DAYS - 1);
-            }
-
-            return [$period, $from, $to];
-        }
-
-        $today = $now->copy()->startOfDay();
-
-        return match ($period) {
-            'yesterday' => [$period, $today->copy()->subDay(), $today->copy()->subDay()],
-            'this_week' => [$period, $today->copy()->startOfWeek(), $today],
-            'last_week' => [$period, $today->copy()->subWeek()->startOfWeek(), $today->copy()->subWeek()->endOfWeek()->startOfDay()],
-            'this_month' => [$period, $today->copy()->startOfMonth(), $today],
-            'last_month' => [$period, $today->copy()->subMonthNoOverflow()->startOfMonth(), $today->copy()->subMonthNoOverflow()->endOfMonth()->startOfDay()],
-            default => [$period, $today, $today],
-        };
+        return ReportPeriod::resolve($request, $zone);
     }
 
     /**

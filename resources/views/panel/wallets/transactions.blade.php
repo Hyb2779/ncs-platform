@@ -12,7 +12,7 @@
                 <input type="hidden" name="to" value="{{ request('to') }}">
             @endif
             <select class="h-11 rounded-md border border-[#E3E6EB] px-3 text-sm" name="user">
-                <option value="">{{ __('wallet.all_users') }}</option>
+                <option value="">{{ ! empty($dealerScope) ? __('panel.dealer_movements_all') : __('wallet.all_users') }}</option>
                 <option value="self" @selected((string) $selectedUser === 'self')>{{ __('wallet.own_account') }}</option>
                 @foreach ($subjects as $subject)
                     <option value="{{ $subject->id }}" @selected((string) $selectedUser === (string) $subject->id)>{{ $subject->username }}</option>
@@ -20,7 +20,7 @@
             </select>
             <select class="h-11 rounded-md border border-[#E3E6EB] px-3 text-sm" name="type">
                 <option value="">{{ __('wallet.all_types') }}</option>
-                @foreach (['mint', 'transfer_in', 'transfer_out', 'bet', 'win', 'refund', 'bonus', 'adjustment'] as $type)
+                @foreach (['mint', 'transfer_in', 'transfer_out', 'bonus', 'adjustment'] as $type)
                     <option value="{{ $type }}" @selected(request('type') === $type)>{{ __('wallet.types.'.$type) }}</option>
                 @endforeach
             </select>
@@ -78,4 +78,5 @@
         ]"
         :rows="$tableRows"
     />
+    @include('panel.partials.pager', ['pager' => $ledger])
 @endsection

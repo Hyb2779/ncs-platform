@@ -89,6 +89,8 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::post('/users/{user}/status', [UserController::class, 'toggleStatus'])->name('users.status');
     Route::post('/users/{user}/password', [UserController::class, 'resetPassword'])->name('users.password');
     Route::get('/transactions', [WalletController::class, 'transactions'])->name('transactions');
+    Route::get('/member-movements', [\App\Http\Controllers\Panel\MovementReportController::class, 'members'])->name('member-movements');
+    Route::get('/player-movements', [\App\Http\Controllers\Panel\MovementReportController::class, 'players'])->name('player-movements');
     Route::get('/balance', [WalletController::class, 'page'])->name('balance');
     Route::get('/casino/providers', [CasinoController::class, 'providers'])->name('casino.providers');
     Route::put('/casino/providers/{provider}', [CasinoController::class, 'updateProvider'])->name('casino.providers.update');

@@ -33,6 +33,8 @@ class PanelMenu
         ];
         $reports[] = self::item(__('panel.reports_title'), 'panel.reports.index', ['panel.reports.index']);
         $reports[] = self::item(self::ledgerLabel(), 'panel.transactions', ['panel.transactions']);
+        $reports[] = self::item(__('panel.member_movements'), 'panel.member-movements', ['panel.member-movements']);
+        $reports[] = self::item(__('panel.player_movements'), 'panel.player-movements', ['panel.player-movements']);
         $reports[] = self::item(__('site.panel_rounds'), 'panel.casino.rounds', ['panel.casino.rounds']);
         $reports[] = self::item(__('site.panel_sessions'), 'panel.casino.sessions', ['panel.casino.sessions']);
         if ($staff) {

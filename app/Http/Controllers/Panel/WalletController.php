@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Panel;
 
 use App\Enums\UserRole;
+use App\Enums\WalletProduct;
 use App\Enums\WalletTransactionType;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AdjustBalanceRequest;
@@ -14,7 +15,9 @@ use App\Support\Money;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class WalletController extends Controller
@@ -124,68 +127,62 @@ class WalletController extends Controller
 
         $focusedId = $ownAccount ? $actor->id : ($request->filled('user') ? $subject->id : null);
 
+        // Süperadmin "Bayi hareketleri": varsayılan liste yalnızca bayi cüzdanlarının kredi hareketi.
+        $dealerScope = $actor->role === UserRole::Superadmin && ! $ownAccount && $focusedId === null;
         $scopeIds = $focusedId !== null
             ? [$focusedId]
-            : User::query()->subtreeOf($actor)->pluck('id');
+            : ($dealerScope
+                ? User::query()->subtreeOf($actor)->where('role', UserRole::Bayi)->pluck('id')
+                : User::query()->subtreeOf($actor)->pluck('id'));
+
+        $balanceTypes = [
+            WalletTransactionType::Mint->value,
+            WalletTransactionType::TransferIn->value,
+            WalletTransactionType::TransferOut->value,
+            WalletTransactionType::Bonus->value,
+            WalletTransactionType::Adjustment->value,
+        ];
 
         $query = WalletTransaction::query()
             ->with(['user', 'creator', 'wallet', 'counterparty'])
             ->whereIn('user_id', $scopeIds)
+            ->whereIn('type', $balanceTypes)
+            ->whereNotIn('product', [WalletProduct::Sport->value, WalletProduct::Slot->value, WalletProduct::LiveCasino->value])
             ->orderByDesc('created_at')
             ->orderByDesc('id');
 
-        if ($request->filled('type') && in_array($request->query('type'), array_column(WalletTransactionType::cases(), 'value'), true)) {
+        if ($request->filled('type') && in_array($request->query('type'), $balanceTypes, true)) {
             $query->where('type', $request->query('type'));
         }
 
-        if ($request->filled('from')) {
-            $query->where('created_at', '>=', Carbon::parse($request->query('from'), $actor->timezone)->startOfDay()->utc());
-        }
+        $this->applyCreatedRange($query, $request, $actor);
 
-        if ($request->filled('to')) {
-            $query->where('created_at', '<=', Carbon::parse($request->query('to'), $actor->timezone)->endOfDay()->utc());
-        }
+        // Tek hesap veya yalnızca bayi cüzdanı: her transferin bir bacağı kapsamda, SQL sayfalama güvenli.
+        $singleLeg = $focusedId !== null || $dealerScope;
+        $preferIds = $actor->role === UserRole::Superadmin && ! $ownAccount
+            ? collect($scopeIds)->map(fn ($id) => (int) $id)->all()
+            : [];
 
-        $rows = $this->withGameNames($this->withTransferPartners($query->get()));
-        $entries = $this->ledgerEntries($rows, $actor, $focusedId);
+        if ($singleLeg) {
+            $ledger = $query->paginate(50)->withQueryString();
+            $display = $this->ledgerEntries($this->withTransferPartners($ledger->getCollection()), $actor, $focusedId, $preferIds);
+        } else {
+            $all = $this->ledgerEntries($this->withTransferPartners($query->get()), $actor, $focusedId, $preferIds);
+            $ledger = $this->paginateEntries($all, $request);
+            $display = collect($ledger->items());
+        }
 
         return view('panel.wallets.transactions', [
-            'rows' => $entries,
+            'rows' => $display,
+            'ledger' => $ledger,
             'subjects' => User::query()->subtreeOf($actor)->whereKeyNot($actor->id)->orderBy('username')->get(['id', 'username']),
-            'totals' => $this->viewerTotals($actor, $request, $ownAccount),
+            'totals' => $actor->role === UserRole::Superadmin && ! $ownAccount
+                ? $this->scopedTransferTotals($scopeIds, $request, $actor)
+                : $this->viewerTotals($actor, $request, $ownAccount),
             'ownAccount' => $ownAccount,
             'selectedUser' => $request->query('user'),
+            'dealerScope' => $dealerScope,
         ]);
-    }
-
-    /**
-     * 03.10 oncesi casino satirlarinda note bos: oyun adini game_rounds (provider + provider_transaction_id
-     * = idempotency anahtari) uzerinden sadece EKRAN icin doldurur, deftere yazmaz.
-     *
-     * @param  Collection<int, WalletTransaction>  $rows
-     * @return Collection<int, WalletTransaction>
-     */
-    private function withGameNames($rows)
-    {
-        $keys = $rows->filter(fn (WalletTransaction $row) => ($row->note === null || $row->note === '') && str_contains((string) $row->idempotency_key, ':')
-            && ! in_array($row->type, [WalletTransactionType::TransferIn, WalletTransactionType::TransferOut], true))
-            ->pluck('idempotency_key');
-        if ($keys->isEmpty()) {
-            return $rows;
-        }
-        $txIds = $keys->map(fn ($key) => substr($key, strpos($key, ':') + 1))->unique()->values()->all();
-        $names = \Illuminate\Support\Facades\DB::table('game_rounds')
-            ->join('casino_games', 'casino_games.id', '=', 'game_rounds.game_id')
-            ->whereIn('game_rounds.provider_transaction_id', $txIds)
-            ->get(['game_rounds.provider', 'game_rounds.provider_transaction_id', 'casino_games.name'])
-            ->mapWithKeys(fn ($r) => [$r->provider.':'.$r->provider_transaction_id => $r->name]);
-        foreach ($rows as $row) {
-            if (($row->note === null || $row->note === '') && isset($names[$row->idempotency_key])) {
-                $row->setAttribute('note', $names[$row->idempotency_key]);
-            }
-        }
-
-        return $rows;
     }
 
     /**
@@ -210,7 +207,7 @@ class WalletController extends Controller
      * @param  Collection<int, WalletTransaction>  $rows
      * @return Collection<int, array<string, mixed>>
      */
-    private function ledgerEntries($rows, User $actor, ?int $focusedId)
+    private function ledgerEntries($rows, User $actor, ?int $focusedId, array $preferIds = [])
     {
         $byId = $rows->keyBy('id');
         $seen = [];
@@ -229,7 +226,7 @@ class WalletController extends Controller
                 $seen[$partner->id] = true;
                 $out = $row->type === WalletTransactionType::TransferOut ? $row : $partner;
                 $in = $row->type === WalletTransactionType::TransferIn ? $row : $partner;
-                $entries[] = $this->presentTransfer($out, $in, $actor, $focusedId);
+                $entries[] = $this->presentTransfer($out, $in, $actor, $focusedId, $preferIds);
 
                 continue;
             }
@@ -248,9 +245,9 @@ class WalletController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function presentTransfer(WalletTransaction $out, WalletTransaction $in, User $actor, ?int $focusedId): array
+    private function presentTransfer(WalletTransaction $out, WalletTransaction $in, User $actor, ?int $focusedId, array $preferIds = []): array
     {
-        $subject = $this->subjectLeg($out, $in, $actor, $focusedId);
+        $subject = $this->subjectLeg($out, $in, $actor, $focusedId, $preferIds);
         $signed = bcadd((string) $subject->amount, '0', 2);
         $before = bcadd((string) $subject->balance_before, '0', 2);
         $after = bcadd((string) $subject->balance_after, '0', 2);
@@ -306,8 +303,18 @@ class WalletController extends Controller
         ];
     }
 
-    private function subjectLeg(WalletTransaction $out, WalletTransaction $in, User $actor, ?int $focusedId): WalletTransaction
+    private function subjectLeg(WalletTransaction $out, WalletTransaction $in, User $actor, ?int $focusedId, array $preferIds = []): WalletTransaction
     {
+        if ($preferIds !== []) {
+            $prefer = array_map('intval', $preferIds);
+            if (in_array((int) $out->user_id, $prefer, true)) {
+                return $out;
+            }
+            if (in_array((int) $in->user_id, $prefer, true)) {
+                return $in;
+            }
+        }
+
         $fromIsAncestor = $this->isAncestor($actor, $out->user);
         $toIsAncestor = $this->isAncestor($actor, $in->user);
 
@@ -349,13 +356,7 @@ class WalletController extends Controller
             ->where('user_id', $actor->id)
             ->whereIn('type', [WalletTransactionType::TransferOut, WalletTransactionType::TransferIn]);
 
-        if ($request->filled('from')) {
-            $query->where('created_at', '>=', Carbon::parse($request->query('from'), $actor->timezone)->startOfDay()->utc());
-        }
-
-        if ($request->filled('to')) {
-            $query->where('created_at', '<=', Carbon::parse($request->query('to'), $actor->timezone)->endOfDay()->utc());
-        }
+        $this->applyCreatedRange($query, $request, $actor);
 
         $totals = [];
 
@@ -429,5 +430,76 @@ class WalletController extends Controller
     private function isAncestor(User $viewer, User $person): bool
     {
         return $person->id !== $viewer->id && str_starts_with($viewer->path, $person->path);
+    }
+
+    private function applyCreatedRange(object $query, Request $request, User $actor, string $column = 'created_at'): void
+    {
+        if ($request->filled('from')) {
+            $query->where($column, '>=', Carbon::parse($request->query('from'), $actor->timezone)->startOfDay()->utc());
+        }
+
+        if ($request->filled('to')) {
+            $query->where($column, '<=', Carbon::parse($request->query('to'), $actor->timezone)->endOfDay()->utc());
+        }
+    }
+
+    /**
+     * Bayi cüzdanındaki yükleme/çekme: para birimi ayrı, eklenen − çıkarılan = fark.
+     *
+     * @param  Collection<int, int>|list<int>  $userIds
+     */
+    private function scopedTransferTotals(Collection|array $userIds, Request $request, User $actor): Collection
+    {
+        $ids = collect($userIds)->map(fn ($id) => (int) $id)->unique()->values();
+        $rows = collect();
+
+        if ($ids->isNotEmpty()) {
+            $query = DB::table('wallet_transactions as wt')
+                ->join('wallets as w', 'w.id', '=', 'wt.wallet_id')
+                ->whereIn('wt.user_id', $ids->all())
+                ->whereIn('wt.type', [WalletTransactionType::TransferIn->value, WalletTransactionType::TransferOut->value])
+                ->groupBy('w.currency')
+                ->selectRaw('w.currency as code, SUM(CASE WHEN wt.amount > 0 THEN wt.amount ELSE 0 END) as added, SUM(CASE WHEN wt.amount < 0 THEN -wt.amount ELSE 0 END) as removed');
+            $this->applyCreatedRange($query, $request, $actor, 'wt.created_at');
+            $rows = $query->get();
+        }
+
+        if ($rows->isEmpty()) {
+            $rows = collect([(object) ['code' => $actor->currency->value, 'added' => '0', 'removed' => '0']]);
+        }
+
+        $own = $actor->currency->value;
+        $sorted = $rows->sortBy(function ($row) use ($own): string {
+            return ($row->code === $own ? '0' : '1').$row->code;
+        })->values();
+
+        return $sorted->map(function ($row) {
+            $currency = \App\Enums\Currency::from((string) $row->code);
+            $added = bcadd((string) $row->added, '0', 2);
+            $removed = bcadd((string) $row->removed, '0', 2);
+
+            return [
+                'added' => Money::format($added, $currency),
+                'removed' => Money::format($removed, $currency),
+                'difference' => Money::format(bcsub($added, $removed, 2), $currency),
+            ];
+        })->values();
+    }
+
+    /**
+     * @param  Collection<int, array<string, mixed>>  $entries
+     */
+    private function paginateEntries(Collection $entries, Request $request): LengthAwarePaginator
+    {
+        $perPage = 50;
+        $page = max(1, (int) $request->query('page', 1));
+
+        return new LengthAwarePaginator(
+            $entries->slice(($page - 1) * $perPage, $perPage)->values(),
+            $entries->count(),
+            $perPage,
+            $page,
+            ['path' => $request->url(), 'query' => $request->query()],
+        );
     }
 }
