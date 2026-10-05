@@ -76,6 +76,7 @@
         @endif
         @yield('content')
     </main>
+    @include('site._footer')
     <nav class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-5 border-t border-[var(--site-line)] bg-[var(--site-bg-deep)] md:hidden" aria-label="{{ __('site.sport') }}">
         @foreach ([
             ...(wegas_sport_available(auth()->user()) ? [['route' => 'site.wegas_sport', 'match' => 'site.wegas_sport', 'label' => brand()->name().' '.__('site.sport'), 'path' => 'M12 21a9 9 0 100-18 9 9 0 000 18zM12 7l4 3-1.5 5h-5L8 10z']] : []),

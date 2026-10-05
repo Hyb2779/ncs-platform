@@ -154,4 +154,9 @@ class GameAvailability
     {
         Cache::forever(self::VERSION_KEY, (int) Cache::get(self::VERSION_KEY, 1) + 1);
     }
+
+    public static function cacheVersion(): int
+    {
+        return (int) Cache::get(self::VERSION_KEY, 1);
+    }
 }

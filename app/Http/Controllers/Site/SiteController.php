@@ -9,6 +9,7 @@ use App\Models\GameSession;
 use App\Models\User;
 use App\Models\WalletTransaction;
 use App\Services\Casino\DemoProvider;
+use App\Services\Casino\GameCatalog;
 use App\Services\Casino\GameLauncher;
 use App\Services\WalletException;
 use App\Support\Money;
@@ -48,6 +49,15 @@ class SiteController extends Controller
     public function mini(Request $request): View
     {
         return view('site.lobby', $this->lobby($request, 'mini'));
+    }
+
+    public function license(): View
+    {
+        return view('site.license', [
+            'domain' => GameCatalog::domain(),
+            'licenseNo' => GameCatalog::LICENSE_NO,
+            'companyNo' => GameCatalog::COMPANY_NO,
+        ]);
     }
 
     public function account(Request $request): View

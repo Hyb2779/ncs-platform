@@ -62,6 +62,7 @@ class AppServiceProvider extends ServiceProvider
             $view->with('headerBalance', $wallet === null ? '' : Money::format((string) $wallet->balance, $wallet->currency));
             $view->with('couponCount', count(app(CouponBook::class)->get()['selections']));
             $view->with('liveCount', SportFixture::query()->inPlay()->count());
+            $view->with('siteFooter', app(\App\Services\Casino\GameCatalog::class)->footer($user));
         });
 
         View::composer('layouts.panel', function ($view): void {

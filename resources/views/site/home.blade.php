@@ -122,12 +122,5 @@
             </div>
         </section>
     @endif
-
-    <footer class="flex flex-col gap-4 border-t border-[var(--site-line)] pt-6 text-[13px] text-[var(--site-muted)]">
-        <div class="flex items-center justify-between gap-4">
-            <span>{{ __('home.footer_note', ['brand' => brand()->name()]) }}</span>
-            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border-2 border-[var(--site-live)] font-extrabold text-[var(--site-text)]">18+</span>
-        </div>
-    </footer>
 </div>
 @endsection
