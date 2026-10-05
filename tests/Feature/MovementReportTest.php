@@ -113,6 +113,16 @@ class MovementReportTest extends TestCase
             ->assertSee(Money::format('1350.00', Currency::Try), false)
             ->assertDontSee(Money::format('17.35', Currency::Try), false)
             ->assertDontSee('Aviator');
+        $html = $page->getContent();
+        $this->assertDoesNotMatchRegularExpression('/<option[^>]*value="'.$member->id.'"/', $html);
+        $mobile = substr($html, (int) strpos($html, 'grid gap-3 md:hidden'));
+        preg_match_all('/<article[\s\S]*?<details>/', $mobile, $cards);
+        $primary = implode("\n", $cards[0]);
+        $this->assertStringContainsString($bayi->username, $primary);
+        $this->assertStringContainsString($second->username, $primary);
+        $this->assertStringNotContainsString($member->username, $primary);
+        $this->actingAs($sa)->get('/panel/transactions?user='.$member->id)->assertNotFound();
+        $this->actingAs($sa)->get('/panel/transactions?user='.$bayi->id)->assertOk()->assertSee($bayi->username);
     }
 
     public function test_player_movements_filter_games_and_link_to_existing_detail(): void

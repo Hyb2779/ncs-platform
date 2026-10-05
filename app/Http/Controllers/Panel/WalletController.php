@@ -123,6 +123,7 @@ class WalletController extends Controller
         if ($request->filled('user') && ! $ownAccount) {
             $subject = User::query()->subtreeOf($actor)->whereKey((int) $request->query('user'))->first();
             abort_if($subject === null, 404);
+            abort_if($actor->role === UserRole::Superadmin && $subject->role !== UserRole::Bayi, 404);
         }
 
         $focusedId = $ownAccount ? $actor->id : ($request->filled('user') ? $subject->id : null);
@@ -172,10 +173,16 @@ class WalletController extends Controller
             $display = collect($ledger->items());
         }
 
+        $subjects = User::query()->subtreeOf($actor)->whereKeyNot($actor->id)->orderBy('username');
+        if ($actor->role === UserRole::Superadmin) {
+            $subjects->where('role', UserRole::Bayi);
+        }
+
         return view('panel.wallets.transactions', [
             'rows' => $display,
             'ledger' => $ledger,
-            'subjects' => User::query()->subtreeOf($actor)->whereKeyNot($actor->id)->orderBy('username')->get(['id', 'username']),
+            'subjects' => $subjects->get(['id', 'username']),
+            'dealerLedger' => $actor->role === UserRole::Superadmin,
             'totals' => $actor->role === UserRole::Superadmin && ! $ownAccount
                 ? $this->scopedTransferTotals($scopeIds, $request, $actor)
                 : $this->viewerTotals($actor, $request, $ownAccount),
@@ -255,6 +262,7 @@ class WalletController extends Controller
 
         return [
             'when' => $subject->created_at->timezone($actor->timezone)->locale(app()->getLocale())->translatedFormat('d.m.Y H:i'),
+            'account' => $this->visibleName($subject->user, $actor),
             'parties' => $this->visibleName($out->user, $actor).' → '.$this->visibleName($in->user, $actor),
             'before' => Money::format($before, $subject->wallet->currency),
             'amount' => Money::formatSigned($signed, $subject->wallet->currency),
@@ -286,6 +294,7 @@ class WalletController extends Controller
 
         return [
             'when' => $row->created_at->timezone($actor->timezone)->locale(app()->getLocale())->translatedFormat('d.m.Y H:i'),
+            'account' => $this->visibleName($row->user, $actor),
             'parties' => $this->visibleName($row->creator, $actor).' → '.$this->visibleName($row->user, $actor),
             'before' => Money::format($before, $row->wallet->currency),
             'amount' => Money::formatSigned($signed, $row->wallet->currency),
