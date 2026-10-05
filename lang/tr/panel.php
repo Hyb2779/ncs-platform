@@ -47,7 +47,7 @@ return [
     'rep_commission' => 'Komisyon',
     'rep_net' => 'Net',
     'rep_totals' => 'Toplamlar',
-    'rep_hint' => 'Genel = Yatırılan − Kazanan − Bekleyen. Pozitifse hesap zararda (üst hesaba ödeyecek), negatifse kârda. Komisyon yalnızca bayiler için, oran tanımlıysa ve Genel pozitifse hesaplanır.',
+    'rep_hint' => 'Genel = Yatırılan − Kazanan − Bekleyen. Pozitifse hesap zararda (üst hesaba ödeyecek), negatifse kârda. Komisyon yalnızca bayiler için, oran tanımlıysa ve Genel pozitifse hesaplanır. Bayilerin kredi hareketleri Bayi hareketleri ekranında görülür.',
     'rep_account' => 'Hesap',
     'today_sport_lost' => 'Spor kaybeden',
     'today_sport_pending' => 'Spor bekleyen (açık)',

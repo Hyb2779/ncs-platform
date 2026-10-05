@@ -11,8 +11,10 @@
     $tone = fn ($v) => (float) $v < 0 ? 'text-rose-600' : ((float) $v > 0 ? 'text-emerald-700' : '');
     $role = fn ($u) => __('panel.reports_role_'.($u->role instanceof \BackedEnum ? $u->role->value : $u->role));
     $cols = [
-        ['given', __('panel.rep_given'), null],
-        ['withdrawn', __('panel.rep_withdrawn'), null],
+        ...($showCredit ? [
+            ['given', __('panel.rep_given'), null],
+            ['withdrawn', __('panel.rep_withdrawn'), null],
+        ] : []),
         ['staked', __('panel.rep_staked'), 'staked_n'],
         ['won', __('panel.rep_won'), 'won_n'],
         ['pending', __('panel.rep_pending'), 'pending_n'],
@@ -74,7 +76,9 @@
                         </td>
                         @foreach ($cols as [$k, $label, $n])
                             <td class="whitespace-nowrap px-3 py-2 text-end font-numeric">
-                                {{ $mm($r[$k]) }}@if ($n)<span class="text-xs text-slate-500"> ({{ $r[$n] }})</span>@endif
+                                @if (! in_array($k, ['given', 'withdrawn'], true) || $r['show_credit'])
+                                    {{ $mm($r[$k]) }}@if ($n)<span class="text-xs text-slate-500"> ({{ $r[$n] }})</span>@endif
+                                @endif
                             </td>
                         @endforeach
                         <td class="whitespace-nowrap px-3 py-2 text-end font-numeric font-semibold {{ $tone($r['general']) }}">{{ $mm($r['general']) }}</td>
@@ -117,6 +121,9 @@
                 </div>
                 <div class="grid grid-cols-2 gap-x-3 gap-y-1.5 text-sm">
                     @foreach ($cols as [$k, $label, $n])
+                        @if (in_array($k, ['given', 'withdrawn'], true) && ($isTotal ? ! $showCredit : ! $r['show_credit']))
+                            @continue
+                        @endif
                         <div>
                             <p class="text-xs text-slate-500">{{ $label }}</p>
                             <p class="font-numeric">{{ $mm($r[$k]) }}@if ($n)<span class="text-xs text-slate-500"> ({{ $r[$n] }})</span>@endif</p>

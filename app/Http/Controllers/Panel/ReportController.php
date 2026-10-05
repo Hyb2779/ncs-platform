@@ -50,6 +50,7 @@ class ReportController extends Controller
             'totals' => $report['totals'],
             'currency' => $focus->currency,
             'showCommission' => $report['show_commission'],
+            'showCredit' => $report['show_credit'],
         ]);
     }
 

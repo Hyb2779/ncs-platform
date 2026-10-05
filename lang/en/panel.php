@@ -47,7 +47,7 @@ return [
     'rep_commission' => 'Commission',
     'rep_net' => 'Net',
     'rep_totals' => 'Totals',
-    'rep_hint' => 'General = Staked − Won − Pending. Positive: the account lost (owes the upper account); negative: it won. Commission is calculated only for dealers, when a rate is set and General is positive.',
+    'rep_hint' => 'General = Staked − Won − Pending. Positive: the account lost (owes the upper account); negative: it won. Commission is calculated only for dealers, when a rate is set and General is positive. Dealer credit movements are shown on the Dealer transactions screen.',
     'rep_account' => 'Account',
     'today_sport_lost' => 'Sport lost',
     'today_sport_pending' => 'Sport pending (open)',

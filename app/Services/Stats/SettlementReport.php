@@ -48,6 +48,7 @@ class SettlementReport
             $row = [
                 'user' => $child,
                 'show_commission' => $showCommission,
+                'show_credit' => $role === UserRole::Uye->value,
                 'rate' => $hasRate ? rtrim(rtrim($rate, '0'), '.') : null,
                 'given' => $credit[$id]['in'] ?? '0.00',
                 'withdrawn' => $credit[$id]['out'] ?? '0.00',
@@ -67,6 +68,10 @@ class SettlementReport
             }
             $rows[] = $row;
             foreach (self::SUMS as $k) {
+                // Kredi toplami yalnizca oyuncu satirlari. Genel, komisyon ve net tum satirlardan.
+                if (in_array($k, ['given', 'withdrawn'], true) && ! $row['show_credit']) {
+                    continue;
+                }
                 $totals[$k] = bcadd($totals[$k], $row[$k], 2);
             }
             foreach (['staked_n', 'won_n', 'pending_n'] as $k) {
@@ -80,6 +85,7 @@ class SettlementReport
             'rows' => $rows,
             'totals' => $totals,
             'show_commission' => collect($rows)->contains(fn ($row) => $row['show_commission']),
+            'show_credit' => collect($rows)->contains(fn ($row) => $row['show_credit']),
         ];
     }
 

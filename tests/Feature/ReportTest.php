@@ -286,4 +286,43 @@ class ReportTest extends TestCase
             ->assertSee(\App\Support\Money::format('342.02', Currency::Try), false)
             ->assertSee(\App\Support\Money::format('798.03', Currency::Try), false);
     }
+
+    public function test_credit_lines_show_on_player_cards_only(): void
+    {
+        $from = Carbon::parse('2020-01-01')->utc();
+        $to = now()->addDay()->utc();
+        $svc = app(\App\Services\Stats\SettlementReport::class);
+
+        $dealers = $svc->build($this->sa1, $from, $to, 'TRY');
+        $bayi = collect($dealers['rows'])->first(fn ($x) => $x['user']->id === $this->bayi1->id);
+        $this->assertFalse($bayi['show_credit']);
+        $this->assertSame('1000.00', $bayi['given']);
+        $this->assertFalse($dealers['show_credit']);
+        $this->assertSame('0.00', $dealers['totals']['given']);
+        $this->assertSame('0.00', $dealers['totals']['withdrawn']);
+        $this->assertSame('0.00', $dealers['totals']['general']);
+
+        $players = $svc->build($this->bayi1, $from, $to, 'TRY');
+        $player = collect($players['rows'])->first(fn ($x) => $x['user']->id === $this->m1->id);
+        $this->assertTrue($player['show_credit']);
+        $this->assertSame('1000.00', $player['given']);
+        $this->assertTrue($players['show_credit']);
+        $this->assertSame('1000.00', $players['totals']['given']);
+
+        $credit = \App\Support\Money::format('1000.00', Currency::Try);
+        $this->actingAs($this->sa1)->get('http://panel.test/panel/reports?period=custom&from=2020-01-01&to=2026-10-03')
+            ->assertOk()
+            ->assertSee('bayi_one', false)
+            ->assertDontSee(__('panel.rep_given'), false)
+            ->assertDontSee(__('panel.rep_withdrawn'), false)
+            ->assertDontSee($credit, false)
+            ->assertSee('Bayi hareketleri ekranında görülür', false);
+
+        $this->actingAs($this->bayi1)->get('http://panel.test/panel/reports?period=custom&from=2020-01-01&to=2026-10-03')
+            ->assertOk()
+            ->assertSee('oyuncu_one', false)
+            ->assertSee(__('panel.rep_given'), false)
+            ->assertSee(__('panel.rep_withdrawn'), false)
+            ->assertSee($credit, false);
+    }
 }

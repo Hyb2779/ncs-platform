@@ -47,7 +47,7 @@ return [
     'rep_commission' => 'Provision',
     'rep_net' => 'Netto',
     'rep_totals' => 'Summen',
-    'rep_hint' => 'Gesamt = Eingesetzt − Gewonnen − Offen. Positiv: Konto im Verlust (schuldet dem oberen Konto); negativ: im Gewinn. Die Provision wird nur für Händler berechnet, wenn ein Satz festgelegt ist und der Gesamtwert positiv ist.',
+    'rep_hint' => 'Gesamt = Eingesetzt − Gewonnen − Offen. Positiv: Konto im Verlust (schuldet dem oberen Konto); negativ: im Gewinn. Die Provision wird nur für Händler berechnet, wenn ein Satz festgelegt ist und der Gesamtwert positiv ist. Kreditbewegungen der Händler sind unter Händler-Bewegungen zu sehen.',
     'rep_account' => 'Konto',
     'today_sport_lost' => 'Sport verloren',
     'today_sport_pending' => 'Sport offen',
