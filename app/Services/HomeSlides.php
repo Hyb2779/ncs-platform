@@ -6,55 +6,68 @@ use App\Models\CasinoGame;
 use App\Models\HomeSlide;
 use App\Models\User;
 use App\Services\Casino\GameAvailability;
+use App\Services\Casino\HomeCasinoRails;
 use App\Support\Vendors;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
-/** Ana sayfa slaytı: panel kayıtları, son 24 saatin en yüksek kazancı, günün maçı. */
+/** Ana sayfa slaytı: sabit oyunlar, son 24 saatin en yüksek kazancı, panel oyunları, popüler doldurma. */
 class HomeSlides
 {
+    public const MIN = 6;
+
     private const CACHE = 'home:slides:rows';
 
-    /** @var array<string, string> */
-    private const PINNED = [
-        'sweet-bonanza-2500' => 'Sweet Bonanza 2500',
-        'sweet-bonanza-super-scatter' => 'Sweet Bonanza Super Scatter',
-    ];
-
-    public function __construct(private readonly GameAvailability $availability) {}
+    public function __construct(
+        private readonly GameAvailability $availability,
+        private readonly HomeCasinoRails $rails,
+        private readonly GameImages $images,
+    ) {}
 
     /**
-     * @param  array<string, mixed>|null  $featured
      * @return list<array<string, mixed>>
      */
-    public function forViewer(?User $user, ?array $featured): array
+    public function forViewer(?User $user): array
     {
         $rows = $this->rows();
         $games = $this->gamesFor($rows);
-        $used = [];
-        $slides = [];
-
+        $suppressed = [];
+        $reserved = array_fill_keys(array_values(HomeSlide::PINNED), true);
         foreach ($rows as $row) {
+            if (! $row['is_active'] && $row['game_id'] !== null) {
+                $suppressed[(int) $row['game_id']] = true;
+            }
+        }
+
+        $used = [];
+        $names = [];
+        $slides = [];
+        foreach ($this->ordered($rows) as $row) {
             if (! $row['is_active']) {
                 continue;
             }
-            if ($row['key'] === HomeSlide::MATCH) {
-                $slide = $this->matchSlide($user, $featured);
-                if ($slide !== null) {
-                    $slides[] = $slide;
-                }
-                continue;
-            }
-
             $game = $row['key'] === HomeSlide::TOP_WIN
-                ? $this->topWin($user, $games, $used)
-                : $games->get($row['game_id']);
-
-            if (! $game instanceof CasinoGame || isset($used[$game->id]) || ! $this->showGame($game, $user)) {
-                continue;
+                ? $this->topWin($user, $games, $used, $names, $suppressed)
+                : $this->take($games->get($row['game_id']), $user, $used, $names, $suppressed);
+            if ($game instanceof CasinoGame) {
+                $slides[] = $this->gameSlide($game, $row['image_path'] ? route('site.home_slide.image', $row['id']) : null);
             }
-            $used[$game->id] = true;
-            $slides[] = $this->gameSlide($game, $row['image_path'] ? route('site.home_slide.image', $row['id']) : null);
+        }
+
+        if (count($slides) < self::MIN) {
+            foreach ($this->rails->popularSlots($user, self::MIN + count($used) + count($suppressed) + 12) as $game) {
+                if (isset($reserved[$game->name])) {
+                    continue;
+                }
+                $picked = $this->take($game, $user, $used, $names, $suppressed);
+                if (! $picked instanceof CasinoGame) {
+                    continue;
+                }
+                $slides[] = $this->gameSlide($picked, null);
+                if (count($slides) >= self::MIN) {
+                    break;
+                }
+            }
         }
 
         if ($slides !== []) {
@@ -71,29 +84,58 @@ class HomeSlides
 
     public function ensureDefaults(): void
     {
-        $order = 10;
-        foreach (self::PINNED as $key => $name) {
-            $slide = HomeSlide::query()->firstOrCreate(['key' => $key], [
-                'game_id' => $this->findNamed($name)?->id,
+        if (! HomeSlide::query()->exists()) {
+            $order = 10;
+            foreach (HomeSlide::PINNED as $key => $name) {
+                HomeSlide::query()->firstOrCreate(['key' => $key], [
+                    'game_id' => $this->findNamed($name)?->id,
+                    'sort_order' => $order,
+                    'is_active' => true,
+                ]);
+                $order += 10;
+            }
+            HomeSlide::query()->firstOrCreate(['key' => HomeSlide::TOP_WIN], [
                 'sort_order' => $order,
                 'is_active' => true,
             ]);
-            if ($slide->game_id === null) {
-                $game = $this->findNamed($name);
-                if ($game !== null) {
-                    $slide->game_id = $game->id;
-                    $slide->save();
-                    $this->forget();
-                }
-            }
-            $order += 10;
         }
-        HomeSlide::query()->firstOrCreate(['key' => HomeSlide::TOP_WIN], ['sort_order' => $order, 'is_active' => true]);
-        HomeSlide::query()->firstOrCreate(['key' => HomeSlide::MATCH], ['sort_order' => $order + 10, 'is_active' => true]);
+
+        foreach (HomeSlide::PINNED as $key => $name) {
+            $slide = HomeSlide::query()->where('key', $key)->first();
+            if ($slide === null || $slide->game_id !== null) {
+                continue;
+            }
+            $game = $this->findNamed($name);
+            if ($game === null) {
+                continue;
+            }
+            $slide->game_id = $game->id;
+            $slide->save();
+            $this->forget();
+        }
     }
 
     /**
-     * @param  list<array<string, mixed>>  $rows
+     * @param  list<array{id: int, key: ?string, game_id: ?int, is_active: bool, image_path: ?string}>  $rows
+     * @return list<array{id: int, key: ?string, game_id: ?int, is_active: bool, image_path: ?string}>
+     */
+    private function ordered(array $rows): array
+    {
+        $pinned = [];
+        $rest = [];
+        foreach ($rows as $row) {
+            if ($row['key'] !== null && array_key_exists($row['key'], HomeSlide::PINNED)) {
+                $pinned[] = $row;
+            } else {
+                $rest[] = $row;
+            }
+        }
+
+        return [...$pinned, ...$rest];
+    }
+
+    /**
+     * @param  list<array{id: int, key: ?string, game_id: ?int, is_active: bool, image_path: ?string}>  $rows
      */
     private function gamesFor(array $rows)
     {
@@ -110,17 +152,35 @@ class HomeSlides
     /**
      * @param  \Illuminate\Support\Collection<int, CasinoGame>  $games
      * @param  array<int, true>  $used
+     * @param  array<string, true>  $names
+     * @param  array<int, true>  $suppressed
      */
-    private function topWin(?User $user, $games, array $used): ?CasinoGame
+    private function topWin(?User $user, $games, array &$used, array &$names, array $suppressed): ?CasinoGame
     {
         foreach ($this->topWinIds() as $id) {
-            $game = $games->get($id);
-            if ($game instanceof CasinoGame && ! isset($used[$game->id]) && $this->showGame($game, $user)) {
+            $game = $this->take($games->get($id), $user, $used, $names, $suppressed);
+            if ($game instanceof CasinoGame) {
                 return $game;
             }
         }
 
         return null;
+    }
+
+    /**
+     * @param  array<int, true>  $used
+     * @param  array<string, true>  $names
+     * @param  array<int, true>  $suppressed
+     */
+    private function take(mixed $game, ?User $user, array &$used, array &$names, array $suppressed): ?CasinoGame
+    {
+        if (! $game instanceof CasinoGame || isset($used[$game->id]) || isset($names[$game->name]) || isset($suppressed[$game->id]) || ! $this->showGame($game, $user)) {
+            return null;
+        }
+        $used[$game->id] = true;
+        $names[$game->name] = true;
+
+        return $game;
     }
 
     /**
@@ -166,25 +226,8 @@ class HomeSlides
             'type' => 'game',
             'name' => $game->name,
             'provider' => Vendors::name($game->vendor) ?? $game->provider?->name,
-            'image' => $customImage ?: app(GameImages::class)->url($game),
+            'image' => $customImage ?: $this->images->url($game),
             'href' => auth()->check() ? route('site.launch', $game) : route('login'),
-            'eager' => false,
-        ];
-    }
-
-    /**
-     * @param  array<string, mixed>|null  $featured
-     * @return array<string, mixed>|null
-     */
-    private function matchSlide(?User $user, ?array $featured): ?array
-    {
-        if ($featured === null || ! wegas_sport_available($user)) {
-            return null;
-        }
-
-        return [
-            'type' => 'match',
-            'featured' => $featured,
             'eager' => false,
         ];
     }

@@ -33,7 +33,7 @@ class SiteController extends Controller
         return view('site.home', $data + [
             'popularSlots' => $rails->popularSlots($user),
             'liveTables' => $rails->liveTables($user),
-            'slides' => $slides->forViewer($user, $data['featured']),
+            'slides' => $slides->forViewer($user),
         ]);
     }
 

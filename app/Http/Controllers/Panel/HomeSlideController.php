@@ -31,8 +31,12 @@ class HomeSlideController extends Controller
             ->limit(12)
             ->get();
 
+        $slides = HomeSlide::query()->with('game.provider')->orderBy('sort_order')->orderBy('id')->get()
+            ->sortBy(fn (HomeSlide $slide) => sprintf('%d-%08d-%08d', $slide->isPinned() ? 0 : 1, $slide->sort_order, $slide->id))
+            ->values();
+
         return view('panel.home-slides.index', [
-            'slides' => HomeSlide::query()->with('game.provider')->orderBy('sort_order')->orderBy('id')->get(),
+            'slides' => $slides,
             'found' => $found,
             'q' => $q,
         ]);
@@ -75,6 +79,11 @@ class HomeSlideController extends Controller
         $this->owner($request);
         $data = $request->validate(['direction' => ['required', 'in:up,down']]);
         $neighbor = HomeSlide::query()
+            ->when(
+                $slide->isPinned(),
+                fn ($query) => $query->whereIn('key', array_keys(HomeSlide::PINNED)),
+                fn ($query) => $query->where(fn ($inner) => $inner->whereNull('key')->orWhere('key', HomeSlide::TOP_WIN)),
+            )
             ->where('sort_order', $data['direction'] === 'up' ? '<' : '>', $slide->sort_order)
             ->orderBy('sort_order', $data['direction'] === 'up' ? 'desc' : 'asc')
             ->orderBy('id', $data['direction'] === 'up' ? 'desc' : 'asc')
@@ -124,7 +133,7 @@ class HomeSlideController extends Controller
     public function destroy(Request $request, HomeSlide $slide): RedirectResponse
     {
         $this->owner($request);
-        abort_if($slide->isSystem(), 404);
+        abort_if($slide->isTopWin(), 404);
         if ($slide->image_path) {
             Storage::disk('public')->delete($slide->image_path);
         }

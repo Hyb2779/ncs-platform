@@ -27,7 +27,7 @@ class HomeSlidesTest extends TestCase
     {
         $provider = $this->provider();
         $first = $this->game($provider, 'Sweet Bonanza 2500', 'https://cdn.test/a.png');
-        $second = $this->game($provider, 'Sweet Bonanza Super Scatter', 'https://cdn.test/b.png');
+        $this->game($provider, 'Sweet Bonanza Super Scatter', 'https://cdn.test/b.png');
         $winner = $this->game($provider, 'Gates of Olympus', 'https://cdn.test/c.png');
         $quiet = $this->game($provider, 'Wolf Gold', 'https://cdn.test/d.png');
         $player = $this->player('uye-slide');
@@ -35,16 +35,36 @@ class HomeSlidesTest extends TestCase
         $this->win($player, $winner, '80.00');
         $this->win($player, $winner, '20.00');
 
+        foreach (['Slide Fill 1', 'Slide Fill 2', 'Slide Fill 3'] as $name) {
+            $this->game($provider, $name, 'https://cdn.test/'.$name.'.png');
+        }
+
         $home = $this->get('/');
+        $slides = app(HomeSlides::class)->forViewer(null);
+        $names = array_column($slides, 'name');
+        $this->assertGreaterThanOrEqual(6, count($slides));
+        $this->assertSame('Sweet Bonanza 2500', $slides[0]['name']);
+        $this->assertSame('Sweet Bonanza Super Scatter', $slides[1]['name']);
+        $this->assertSame('Gates of Olympus', $slides[2]['name']);
+        $this->assertSame(['game'], array_values(array_unique(array_column($slides, 'type'))));
+        $this->assertSame(1, count(array_keys($names, 'Sweet Bonanza 2500', true)));
+        $this->assertSame(1, count(array_keys($names, 'Sweet Bonanza Super Scatter', true)));
+        $this->assertNotContains('match', array_column($slides, 'type'));
+
         $home->assertOk()
             ->assertSee('data-home-carousel', false)
+            ->assertDontSee('data-slide="match"', false)
             ->assertSeeInOrder(['Sweet Bonanza 2500', 'Sweet Bonanza Super Scatter', 'Gates of Olympus'])
             ->assertSee(__('home.play_now'), false)
             ->assertSee('fetchpriority="high"', false)
             ->assertSee('loading="lazy"', false)
             ->assertSee('PRAGMATIC PLAY', false)
             ->assertDontSee(__('home.hero_title', ['brand' => brand()->name()]), false)
-            ->assertSee('data-home-rail="popular"', false);
+            ->assertSee('data-home-rail="popular"', false)
+            ->assertSee('data-slides="'.count($slides).'"', false)
+            ->assertDontSee('Günün kombinesi', false)
+            ->assertDontSee('Günün popüler maçları', false)
+            ->assertDontSee('Yaklaşan maçlar', false);
 
         GameBlock::query()->create([
             'superadmin_id' => null, 'scope' => 'game', 'value' => (string) $first->id, 'created_by' => $player->id,
@@ -58,36 +78,33 @@ class HomeSlidesTest extends TestCase
             ->assertSee(__('home.play_now', [], 'ar'), false);
     }
 
-    public function test_match_slide_follows_sport_availability_and_the_owner_switch(): void
+    public function test_pinned_slides_can_be_reordered_and_need_confirmation_before_delete(): void
     {
-        config(['services.ncs_bridge.secret' => 'test-secret']);
-        app()->setLocale('tr');
-        $featured = ['league' => 'Premier Lig', 'day' => 'Bugün', 'time' => '21:00', 'home' => 'Arsenal', 'away' => 'Chelsea', 'o1' => null, 'ox' => null, 'o2' => null];
-        $slides = app(HomeSlides::class);
-
-        $names = array_column($slides->forViewer(null, $featured), 'type');
-        $this->assertContains('match', $names);
-
-        $owner = $this->player('owner-slide', UserRole::Owner);
+        $owner = $this->player('owner-pinned', UserRole::Owner);
         $owner->path = '/'.$owner->id.'/';
         $owner->save();
-        $sa = app(HierarchyService::class)->create($owner->refresh(), $this->locale('sa-slide'));
-        $member = app(HierarchyService::class)->create(
-            app(HierarchyService::class)->create($sa, $this->locale('bayi-slide')),
-            $this->locale('uye-slide-2'),
-        );
-        GameBlock::query()->create([
-            'superadmin_id' => $sa->id, 'scope' => 'product', 'value' => 'wegas_sport', 'created_by' => $sa->id,
-        ]);
-        app(\App\Services\Casino\GameAvailability::class)->flush();
 
-        $hidden = array_column($slides->forViewer($member->refresh(), $featured), 'type');
-        $this->assertNotContains('match', $hidden);
+        $this->actingAs($owner)->get(route('panel.home-slides.index'))
+            ->assertOk()
+            ->assertSeeInOrder(['Sweet Bonanza 2500', 'Sweet Bonanza Super Scatter'])
+            ->assertSee(__('panel.home_slides_pinned'), false)
+            ->assertSee(__('panel.home_slides_delete_confirm'), false)
+            ->assertDontSee('data-slide="match"', false);
 
-        HomeSlide::query()->where('key', HomeSlide::MATCH)->update(['is_active' => false]);
-        $slides->forget();
-        $closed = array_column($slides->forViewer(null, $featured), 'type');
-        $this->assertNotContains('match', $closed);
+        $first = HomeSlide::query()->where('key', 'sweet-bonanza-2500')->firstOrFail();
+        $second = HomeSlide::query()->where('key', 'sweet-bonanza-super-scatter')->firstOrFail();
+        $this->actingAs($owner)->post(route('panel.home-slides.move', $second), ['direction' => 'up'])
+            ->assertRedirect()
+            ->assertSessionHasNoErrors();
+        $this->assertTrue($second->refresh()->sort_order < $first->refresh()->sort_order);
+
+        $this->actingAs($owner)->delete(route('panel.home-slides.destroy', $first))->assertRedirect();
+        $this->assertDatabaseMissing('home_slides', ['key' => 'sweet-bonanza-2500']);
+        $this->actingAs($owner)->get(route('panel.home-slides.index'))->assertOk();
+        $this->assertDatabaseMissing('home_slides', ['key' => 'sweet-bonanza-2500']);
+
+        $top = HomeSlide::query()->where('key', HomeSlide::TOP_WIN)->firstOrFail();
+        $this->actingAs($owner)->delete(route('panel.home-slides.destroy', $top))->assertNotFound();
     }
 
     public function test_owner_manages_slides_and_other_roles_cannot(): void
@@ -101,8 +118,9 @@ class HomeSlidesTest extends TestCase
 
         $this->actingAs($owner)->get(route('panel.home-slides.index'))
             ->assertOk()
-            ->assertSee(__('panel.home_slides_match'), false)
-            ->assertSee(__('panel.home_slides_top_win'), false);
+            ->assertSee(__('panel.home_slides_pinned'), false)
+            ->assertSee(__('panel.home_slides_top_win'), false)
+            ->assertDontSee(__('home.hero_title', ['brand' => brand()->name()]), false);
 
         $this->actingAs($owner)->post(route('panel.home-slides.store'), ['game_id' => $extra->id])
             ->assertRedirect()

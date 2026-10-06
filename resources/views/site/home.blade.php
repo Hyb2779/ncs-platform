@@ -50,47 +50,6 @@
         @endforeach
     </section>
 
-    <section class="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:gap-5">
-        <div class="order-2 flex flex-col gap-3 rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-4 md:p-5 lg:order-1">
-            <div class="flex items-center justify-between"><h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.upcoming') }}</h2><a class="text-[13px] font-bold text-[var(--accent)]" href="{{ route('site.wegas_sport') }}">{{ __('home.all') }}</a></div>
-            @forelse ($upcoming as $m)
-                <a class="flex gap-3 rounded-xl bg-[var(--site-panel-2)] p-3" href="{{ route('site.wegas_sport') }}">
-                    <span class="flex w-14 flex-col"><span class="text-xs text-[var(--site-muted)]">{{ $m['day'] }}</span><span class="font-numeric text-xl font-bold text-[var(--site-text)]">{{ $m['time'] }}</span></span>
-                    <span class="flex min-w-0 flex-col"><span class="truncate text-[15px] font-bold text-[var(--site-text)]">{{ $m['home'] }} - {{ $m['away'] }}</span><span class="truncate text-xs text-[var(--site-muted)]">{{ $m['league'] }}</span></span>
-                </a>
-            @empty
-                <p class="text-sm text-[var(--site-muted)]">{{ __('home.empty') }}</p>
-            @endforelse
-        </div>
-
-        <div class="order-3 flex flex-col gap-3 rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-4 md:p-5 lg:order-2">
-            <div class="flex items-center justify-between"><h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.popular') }}</h2><a class="text-[13px] font-bold text-[var(--accent)]" href="{{ route('site.wegas_sport') }}">{{ __('home.all') }}</a></div>
-            @forelse ($popular as $m)
-                <div class="flex flex-col gap-2.5 rounded-xl bg-[var(--site-panel-2)] p-3">
-                    <div class="flex justify-between gap-2"><span class="truncate text-[15px] font-bold text-[var(--site-text)]">{{ $m['home'] }} - {{ $m['away'] }}</span><span class="font-numeric text-[17px] font-bold text-[var(--site-muted)]">{{ $m['time'] }}</span></div>
-                    @include('site._home_odds', ['m' => $m, 'size' => 'sm'])
-                </div>
-            @empty
-                <p class="text-sm text-[var(--site-muted)]">{{ __('home.empty') }}</p>
-            @endforelse
-        </div>
-
-        @if ($combo)
-            <div class="order-1 flex flex-col gap-3 rounded-2xl border border-[var(--accent)] bg-[var(--site-panel)] p-4 md:p-5 lg:order-3">
-                <h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.combo') }}</h2>
-                <div class="flex items-baseline justify-between px-0.5"><span class="text-sm font-bold text-[var(--site-muted)]">{{ __('home.combo_count', ['count' => count($combo['rows'])]) }}</span><span class="font-numeric text-3xl font-bold text-[var(--accent)]">{{ $combo['total'] }}</span></div>
-                @foreach ($combo['rows'] as $row)
-                    <input type="hidden" name="odds[]" value="{{ $row['odd']->id }}">
-                    <div class="flex items-center justify-between rounded-xl bg-[var(--site-panel-2)] px-3 py-2.5">
-                        <span class="flex min-w-0 flex-col"><span class="truncate text-sm font-bold text-[var(--site-text)]">{{ $row['match']['home'] }} - {{ $row['match']['away'] }}</span><span class="text-xs text-[var(--site-muted)]">{{ $row['label'] }} · {{ $row['match']['time'] }}</span></span>
-                        <span class="font-numeric text-xl font-bold text-[var(--accent)]">{{ $row['odd']->shown_odd }}</span>
-                    </div>
-                @endforeach
-                <a class="mt-1 flex h-12 items-center justify-center rounded-xl bg-[var(--accent)] text-[15px] font-extrabold text-[var(--site-on-accent)]" href="{{ route('site.wegas_sport') }}">{{ __('home.combo_add') }}</a>
-            </div>
-        @endif
-    </section>
-
     @if (! empty($winners))
         <section class="flex flex-col gap-3 rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-4 md:p-5">
             <h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.winners') }}</h2>
