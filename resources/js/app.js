@@ -5,6 +5,73 @@ import { mountPanelCharts } from './panel-chart';
 window.Alpine = Alpine;
 window.translations = translations;
 
+document.addEventListener('alpine:init', () => {
+    Alpine.data('homeCarousel', () => ({
+        i: 0,
+        n: 0,
+        rtl: false,
+        timer: null,
+        originX: null,
+        init() {
+            this.n = Number(this.$el.dataset.slides || 0);
+            this.rtl = document.documentElement.dir === 'rtl';
+            this.play();
+        },
+        play() {
+            this.stop();
+            if (this.n < 2) {
+                return;
+            }
+            this.timer = window.setInterval(() => this.next(), 5000);
+        },
+        stop() {
+            if (this.timer) {
+                window.clearInterval(this.timer);
+            }
+            this.timer = null;
+        },
+        next() {
+            this.i = (this.i + 1) % this.n;
+        },
+        prev() {
+            this.i = (this.i - 1 + this.n) % this.n;
+        },
+        go(index) {
+            this.i = index;
+            this.play();
+        },
+        down(event) {
+            if (event.pointerType === 'mouse' && event.button !== 0) {
+                return;
+            }
+            this.originX = event.clientX;
+            this.stop();
+        },
+        up(event) {
+            if (this.originX === null) {
+                this.play();
+                return;
+            }
+            const delta = event.clientX - this.originX;
+            this.originX = null;
+            if (Math.abs(delta) > 40) {
+                const forward = this.rtl ? delta > 0 : delta < 0;
+                if (forward) {
+                    this.next();
+                } else {
+                    this.prev();
+                }
+            }
+            this.play();
+        },
+        shift() {
+            const sign = this.rtl ? 1 : -1;
+
+            return `translateX(${sign * this.i * 100}%)`;
+        },
+    }));
+});
+
 window.makeUuid = function makeUuid() {
     try {
         if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {

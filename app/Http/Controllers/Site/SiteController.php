@@ -12,6 +12,7 @@ use App\Services\Casino\DemoProvider;
 use App\Services\Casino\GameCatalog;
 use App\Services\Casino\GameLauncher;
 use App\Services\Casino\HomeCasinoRails;
+use App\Services\HomeSlides;
 use App\Services\WalletException;
 use App\Support\Money;
 use Carbon\Carbon;
@@ -24,13 +25,15 @@ use Illuminate\View\View;
 
 class SiteController extends Controller
 {
-    public function home(\App\Services\HomeFeed $feed, HomeCasinoRails $rails): View
+    public function home(\App\Services\HomeFeed $feed, HomeCasinoRails $rails, HomeSlides $slides): View
     {
         $user = auth()->user();
+        $data = $feed->build($user);
 
-        return view('site.home', $feed->build($user) + [
+        return view('site.home', $data + [
             'popularSlots' => $rails->popularSlots($user),
             'liveTables' => $rails->liveTables($user),
+            'slides' => $slides->forViewer($user, $data['featured']),
         ]);
     }
 

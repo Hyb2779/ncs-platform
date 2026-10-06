@@ -2,6 +2,8 @@
 
 return [
     'hero_badge' => 'SPIEL DES TAGES',
+    'play_now' => 'Jetzt spielen',
+    'slide_nav' => 'Folien',
     'hero_title' => 'Willkommen bei :brand',
     'hero_text' => 'Verfolge die Spiele live bei Wegas Sport und platziere deine Wetten.',
     'go_bulletin' => 'Zum Wettprogramm',

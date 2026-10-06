@@ -2,6 +2,8 @@
 
 return [
     'hero_badge' => 'MATCH OF THE DAY',
+    'play_now' => 'Play now',
+    'slide_nav' => 'Slides',
     'hero_title' => 'Welcome to :brand',
     'hero_text' => 'Follow matches live on Wegas Sport and place your bets.',
     'go_bulletin' => 'Go to sportsbook',

@@ -43,6 +43,20 @@ html[dir='rtl'] .home-rail {
     direction: rtl;
 }
 
+.home-carousel {
+    touch-action: pan-y;
+}
+
+.home-carousel-track {
+    transition: transform 450ms ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .home-carousel-track {
+        transition: none;
+    }
+}
+
 .sport-tab-on {
     box-shadow: inset 0 -2px 0 var(--accent);
 }

@@ -2,6 +2,8 @@
 
 return [
     'hero_badge' => 'مباراة اليوم',
+    'play_now' => 'العب الآن',
+    'slide_nav' => 'الشرائح',
     'hero_title' => 'مرحبًا بك في :brand',
     'hero_text' => 'تابع المباريات مباشرة على Wegas Sport وضع رهانك.',
     'go_bulletin' => 'إلى المراهنات',

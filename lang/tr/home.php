@@ -2,6 +2,8 @@
 
 return [
     'hero_badge' => 'GÜNÜN MAÇI',
+    'play_now' => 'Hemen Oyna',
+    'slide_nav' => 'Slaytlar',
     'hero_title' => ':brand\'ta maçın nabzı',
     'hero_text' => 'Maçları Wegas Spor\'da canlı takip et, bahsini yap.',
     'go_bulletin' => 'Bültene git',

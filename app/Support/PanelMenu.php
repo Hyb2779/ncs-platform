@@ -63,6 +63,7 @@ class PanelMenu
             $settings[] = self::item(__('panel.theme_title'), 'panel.theme', ['panel.theme']);
         }
         if ($owner) {
+            $settings[] = self::item(__('panel.home_slides_title'), 'panel.home-slides.index', ['panel.home-slides.index']);
             $settings[] = self::item(__('site.panel_providers'), 'panel.casino.providers', ['panel.casino.providers']);
         }
 

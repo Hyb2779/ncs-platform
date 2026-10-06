@@ -110,6 +110,13 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::get('/coupons/tipo/{tipoCoupon}', [\App\Http\Controllers\Panel\TipoCouponController::class, 'show'])->name('coupons.tipo');
     Route::post('/coupons/{coupon}/cancel', [PanelCouponController::class, 'cancel'])->name('coupons.cancel');
     Route::get('/sport/limits', [SportAdminController::class, 'limits'])->name('sport.limits');
+    Route::get('/home-slides', [\App\Http\Controllers\Panel\HomeSlideController::class, 'index'])->name('home-slides.index');
+    Route::post('/home-slides', [\App\Http\Controllers\Panel\HomeSlideController::class, 'store'])->name('home-slides.store');
+    Route::post('/home-slides/{slide}/active', [\App\Http\Controllers\Panel\HomeSlideController::class, 'active'])->name('home-slides.active');
+    Route::post('/home-slides/{slide}/move', [\App\Http\Controllers\Panel\HomeSlideController::class, 'move'])->name('home-slides.move');
+    Route::post('/home-slides/{slide}/image', [\App\Http\Controllers\Panel\HomeSlideController::class, 'image'])->name('home-slides.image');
+    Route::delete('/home-slides/{slide}/image', [\App\Http\Controllers\Panel\HomeSlideController::class, 'clearImage'])->name('home-slides.image.clear');
+    Route::delete('/home-slides/{slide}', [\App\Http\Controllers\Panel\HomeSlideController::class, 'destroy'])->name('home-slides.destroy');
     Route::get('/theme', [\App\Http\Controllers\Panel\ThemeController::class, 'edit'])->name('theme');
     Route::post('/theme', [\App\Http\Controllers\Panel\ThemeController::class, 'update'])->name('theme.update');
     Route::put('/sport/limits', [SportAdminController::class, 'updateLimits'])->name('sport.limits.update');
@@ -127,3 +134,4 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
 });
 
 Route::get('/cache/g/{file}', \App\Http\Controllers\Site\GameImageController::class)->where('file', '[0-9]+-[0-9a-f]{8}\.webp')->name('game.image');
+Route::get('/home-slides/{slide}/image', \App\Http\Controllers\Site\HomeSlideImageController::class)->whereNumber('slide')->name('site.home_slide.image');

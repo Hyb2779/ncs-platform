@@ -5,29 +5,11 @@
 @section('mainClass', 'mx-auto w-full max-w-[90rem] px-4 py-4 md:px-6 md:py-6')
 
 @section('content')
-@php
-    $oddButton = fn ($odd, $label, $accent = false) => $odd;
-@endphp
 <div class="flex flex-col gap-5 md:gap-7">
 
-    <section class="grid grid-cols-1 overflow-hidden rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] lg:grid-cols-[minmax(0,1fr)_28rem]">
-        <div class="flex flex-col justify-center gap-3 p-5 md:gap-4 md:p-12">
-            <span class="self-start rounded-lg bg-[var(--site-panel-2)] px-3 py-1.5 text-xs font-extrabold tracking-wider text-[var(--accent)]">{{ __('home.hero_badge') }}</span>
-            <h1 class="font-numeric text-3xl font-bold leading-none text-[var(--site-text)] md:text-6xl">{{ __('home.hero_title', ['brand' => brand()->name()]) }}</h1>
-            <p class="hidden max-w-xl text-[15px] leading-relaxed text-[var(--site-muted)] md:block md:text-[17px]">{{ __('home.hero_text') }}</p>
-            <div class="flex flex-wrap gap-3">
-                <a class="inline-flex h-11 items-center rounded-xl md:h-12 bg-[var(--accent)] px-6 text-[15px] font-extrabold text-[var(--site-on-accent)]" href="{{ route('site.wegas_sport') }}">{{ __('home.go_bulletin') }}</a>
-                <a class="inline-flex h-11 items-center rounded-xl md:h-12 border border-[var(--site-line)] px-6 text-[15px] font-bold text-[var(--site-text)]" href="{{ route('site.wegas_sport') }}">{{ __('home.live_matches') }}</a>
-            </div>
-        </div>
-        @if ($featured)
-            <div class="flex flex-col justify-center gap-2.5 bg-[var(--site-panel-2)] p-5 md:gap-3 md:p-8">
-                <div class="flex justify-between text-[13px] font-bold text-[var(--site-muted)]"><span>{{ $featured['league'] }}</span><span>{{ $featured['day'] }} {{ $featured['time'] }}</span></div>
-                <div class="flex flex-wrap gap-x-1.5 gap-y-1 text-lg font-extrabold text-[var(--site-text)] md:flex-col md:text-2xl"><span>{{ $featured['home'] }}</span><span class="md:hidden" aria-hidden="true">-</span><span>{{ $featured['away'] }}</span></div>
-                @include('site._home_odds', ['m' => $featured, 'size' => 'lg'])
-            </div>
-        @endif
-    </section>
+    @if ($slides !== [])
+        @include('site._carousel')
+    @endif
 
     @if ($popularSlots->isNotEmpty())
         <section class="flex flex-col gap-4" data-home-rail="popular">
