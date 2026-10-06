@@ -92,6 +92,20 @@ class ResultSearchTest extends TestCase
             ->assertSee('Çaykur Rizespor', false);
     }
 
+    public function test_filter_labels_follow_the_locale(): void
+    {
+        foreach (['en', 'de', 'ar'] as $locale) {
+            $page = $this->get('/sport/results?lang='.$locale);
+            $page->assertOk()
+                ->assertSee(__('sport.results_filter', [], $locale), false)
+                ->assertSee(__('sport.results_team', [], $locale), false)
+                ->assertSee(__('sport.results_all_leagues', [], $locale), false)
+                ->assertSee(__('sport.results_clear', [], $locale), false);
+        }
+
+        $this->get('/sport/results?lang=ar')->assertSee('dir="rtl"', false);
+    }
+
     private function finished(SportLeague $league, string $home, string $away, $starts): SportFixture
     {
         $homeTeam = SportTeam::query()->create(['api_id' => random_int(1000, 999999), 'name' => $home]);

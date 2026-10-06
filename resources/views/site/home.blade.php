@@ -14,9 +14,9 @@
     <section class="grid grid-cols-2 gap-3 md:gap-4 {{ wegas_sport_available(auth()->user()) ? 'md:grid-cols-4' : 'md:grid-cols-3' }}" data-home-tiles>
         @foreach ([
             ...(wegas_sport_available(auth()->user()) ? [['route' => 'site.wegas_sport', 'title' => brand()->name().' '.__('site.sport'), 'sub' => __('site.wegas_sport_sub')]] : []),
-            ['route' => 'site.slots', 'title' => __('home.quick_slot'), 'sub' => __('home.quick_slot_sub', ['count' => number_format($quick['slots'], 0, ',', '.')])],
-            ['route' => 'site.live_casino', 'title' => __('home.quick_casino'), 'sub' => $quick['casino'] > 0 ? __('home.quick_slot_sub', ['count' => $quick['casino']]) : __('home.soon')],
-            ['route' => 'site.mini', 'title' => __('site.mini'), 'sub' => ($quick['mini'] ?? 0) > 0 ? __('home.quick_slot_sub', ['count' => $quick['mini']]) : __('home.soon')],
+            ['route' => 'site.slots', 'title' => __('home.quick_slot'), 'sub' => __('home.quick_slot_sub', ['count' => \Illuminate\Support\Number::format($quick['slots'], 0, locale: app()->getLocale())])],
+            ['route' => 'site.live_casino', 'title' => __('home.quick_casino'), 'sub' => $quick['casino'] > 0 ? __('home.quick_slot_sub', ['count' => \Illuminate\Support\Number::format($quick['casino'], 0, locale: app()->getLocale())]) : __('home.soon')],
+            ['route' => 'site.mini', 'title' => __('site.mini'), 'sub' => ($quick['mini'] ?? 0) > 0 ? __('home.quick_slot_sub', ['count' => \Illuminate\Support\Number::format($quick['mini'], 0, locale: app()->getLocale())]) : __('home.soon')],
         ] as $tile)
             <a class="flex h-20 items-center justify-between rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] px-4 last:odd:col-span-2 md:h-24 md:px-5 md:last:odd:col-span-1" href="{{ route($tile['route']) }}">
                 <span class="flex flex-col gap-1">

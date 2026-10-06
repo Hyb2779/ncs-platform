@@ -107,6 +107,22 @@ class HomeSlidesTest extends TestCase
         $this->actingAs($owner)->delete(route('panel.home-slides.destroy', $top))->assertNotFound();
     }
 
+    public function test_slide_screen_follows_the_owner_language(): void
+    {
+        foreach (['en' => Language::En, 'de' => Language::De, 'ar' => Language::Ar] as $code => $language) {
+            $owner = $this->player('owner-lang-'.$code, UserRole::Owner);
+            $owner->language = $language;
+            $owner->path = '/'.$owner->id.'/';
+            $owner->save();
+
+            $page = $this->actingAs($owner)->get(route('panel.home-slides.index'));
+            $page->assertOk()
+                ->assertSee(__('panel.home_slides_title', [], $code), false)
+                ->assertSee(__('panel.home_slides_search', [], $code), false)
+                ->assertSee('dir="'.($code === 'ar' ? 'rtl' : 'ltr').'"', false);
+        }
+    }
+
     public function test_owner_manages_slides_and_other_roles_cannot(): void
     {
         Storage::fake('public');

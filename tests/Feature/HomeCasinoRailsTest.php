@@ -109,6 +109,28 @@ class HomeCasinoRailsTest extends TestCase
             ->assertSee('Lightning Roulette', false);
     }
 
+    public function test_category_counts_and_headings_follow_the_locale(): void
+    {
+        $slots = $this->provider('goldpalace', 'GoldPalace');
+        $live = $this->provider('romaspin', 'RomaSpin');
+        for ($i = 1; $i <= 1005; $i++) {
+            $this->game($slots, 'Count Slot '.$i);
+        }
+        $this->game($slots, 'Featured Count', ['is_popular' => true]);
+        $this->game($live, 'Count Table', ['is_live' => true, 'category' => 'live']);
+
+        $this->get('/?lang=en')->assertOk()
+            ->assertSee('1,006', false)
+            ->assertSee(__('home.popular_games', [], 'en'), false)
+            ->assertDontSee('1.006', false);
+        $this->get('/?lang=tr')->assertOk()->assertSee('1.006', false)->assertSee(__('home.popular_games', [], 'tr'), false);
+        $this->get('/?lang=de')->assertOk()->assertSee('1.006', false)->assertSee(__('home.popular_games', [], 'de'), false);
+        $this->get('/?lang=ar')->assertOk()
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('1,006', false)
+            ->assertSee(__('home.popular_games', [], 'ar'), false);
+    }
+
     private function provider(string $code, string $name): CasinoProvider
     {
         return CasinoProvider::query()->create([
