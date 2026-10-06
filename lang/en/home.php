@@ -22,6 +22,8 @@ return [
     'all' => 'All',
     'show_all' => 'Show all',
     'popular_slots' => 'Popular slots',
+    'popular_games' => 'Popular games',
+    'live_casino' => 'Live Casino',
     'winners' => 'Recent winners',
     'providers' => 'Game providers',
     'footer_note' => ':brand is a private betting and casino club. Betting is prohibited for anyone under 18.',

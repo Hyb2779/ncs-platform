@@ -22,6 +22,8 @@ return [
     'all' => 'Alle',
     'show_all' => 'Alle anzeigen',
     'popular_slots' => 'Beliebte Slots',
+    'popular_games' => 'Beliebte Spiele',
+    'live_casino' => 'Live-Casino',
     'winners' => 'Letzte Gewinner',
     'providers' => 'Spieleanbieter',
     'footer_note' => ':brand ist ein privater Wett- und Casino-Club. Wetten ist unter 18 Jahren verboten.',

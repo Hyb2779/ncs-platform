@@ -11,6 +11,7 @@ use App\Models\WalletTransaction;
 use App\Services\Casino\DemoProvider;
 use App\Services\Casino\GameCatalog;
 use App\Services\Casino\GameLauncher;
+use App\Services\Casino\HomeCasinoRails;
 use App\Services\WalletException;
 use App\Support\Money;
 use Carbon\Carbon;
@@ -23,16 +24,13 @@ use Illuminate\View\View;
 
 class SiteController extends Controller
 {
-    public function home(\App\Services\HomeFeed $feed): View
+    public function home(\App\Services\HomeFeed $feed, HomeCasinoRails $rails): View
     {
-        $pool = $this->games('slot')->where('is_popular', true)->limit(60)->get();
-        $seed = crc32(now()->toDateString());
-        $daily = $pool->sortBy(fn ($game) => crc32($seed.'-'.$game->id))->take(6)->values();
+        $user = auth()->user();
 
-        return view('site.home', $feed->build(auth()->user()) + [
-            'dailyGames' => $daily,
-            'slots' => $pool->reject(fn ($game) => $daily->contains('id', $game->id))->take(12)->values(),
-            'live' => $this->games('live')->limit(12)->get(),
+        return view('site.home', $feed->build($user) + [
+            'popularSlots' => $rails->popularSlots($user),
+            'liveTables' => $rails->liveTables($user),
         ]);
     }
 
@@ -222,7 +220,7 @@ class SiteController extends Controller
         }
 
         $list = (string) $request->query('list', 'all');
-        if ($list === 'popular') {
+        if ($list === 'popular' && $mode !== 'slot') {
             $query->where('is_popular', true);
         }
 
@@ -259,11 +257,16 @@ class SiteController extends Controller
             ->sort(fn ($a, $b) => [$b['plays'], $b['popular'], \App\Support\Vendors::priority($a['slug'])] <=> [$a['plays'], $a['popular'], \App\Support\Vendors::priority($b['slug'])])
             ->values();
 
+        $limit = $vendor !== '' ? 200 : 90;
+        $games = ($list === 'popular' && $mode === 'slot')
+            ? app(HomeCasinoRails::class)->ranked($query, $limit)
+            : $query->orderByDesc('is_popular')->orderBy('sort_order')->orderBy('name')->limit($limit)->get();
+
         return [
             'live' => $mode === 'live',
             'mode' => $mode,
             'total' => (clone $query)->count(),
-            'games' => $query->orderByDesc('is_popular')->orderBy('sort_order')->orderBy('name')->limit($vendor !== '' ? 200 : 90)->get(),
+            'games' => $games,
             'providers' => CasinoProvider::query()->where('status', 'active')->orderBy('name')->get(),
             'vendors' => $vendors,
             'vendor' => $vendor,

@@ -29,11 +29,22 @@
         @endif
     </section>
 
-    @if ($dailyGames->isNotEmpty())
-        <section class="flex flex-col gap-4">
-            <div class="flex items-center justify-between"><h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.daily_games') }}</h2><a class="text-[13px] font-bold text-[var(--accent)]" href="{{ route('site.slots') }}">{{ __('home.show_all') }}</a></div>
-            <div class="no-scrollbar flex gap-3 overflow-x-auto md:grid md:grid-cols-6 md:gap-4 md:overflow-visible">
-                @foreach ($dailyGames as $game)
+    @if ($popularSlots->isNotEmpty())
+        <section class="flex flex-col gap-4" data-home-rail="popular">
+            <div class="flex items-center justify-between"><h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.popular_games') }}</h2><a class="text-[13px] font-bold text-[var(--accent)]" href="{{ route('site.slots', ['list' => 'popular']) }}">{{ __('home.show_all') }}</a></div>
+            <div class="home-rail no-scrollbar flex gap-3 overflow-x-auto overscroll-x-contain md:grid md:grid-cols-6 md:gap-4 md:overflow-visible">
+                @foreach ($popularSlots as $game)
+                    <div class="w-36 shrink-0 md:w-auto [&>*]:w-full">@include('site._card', ['game' => $game])</div>
+                @endforeach
+            </div>
+        </section>
+    @endif
+
+    @if ($liveTables->isNotEmpty())
+        <section class="flex flex-col gap-4" data-home-rail="live">
+            <div class="flex items-center justify-between"><h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.live_casino') }}</h2><a class="text-[13px] font-bold text-[var(--accent)]" href="{{ route('site.live_casino') }}">{{ __('home.show_all') }}</a></div>
+            <div class="home-rail no-scrollbar flex gap-3 overflow-x-auto overscroll-x-contain md:grid md:grid-cols-6 md:gap-4 md:overflow-visible">
+                @foreach ($liveTables as $game)
                     <div class="w-36 shrink-0 md:w-auto [&>*]:w-full">@include('site._card', ['game' => $game])</div>
                 @endforeach
             </div>
@@ -97,17 +108,6 @@
             </div>
         @endif
     </section>
-
-    @if ($slots->isNotEmpty())
-        <section class="flex flex-col gap-4 rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-4 md:p-5">
-            <div class="flex items-center justify-between"><h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.popular_slots') }}</h2><a class="text-[13px] font-bold text-[var(--accent)]" href="{{ route('site.slots') }}">{{ __('home.show_all') }}</a></div>
-            <div class="no-scrollbar flex gap-3 overflow-x-auto md:grid md:grid-cols-6 md:overflow-visible">
-                @foreach ($slots->take(12) as $game)
-                    <div class="w-32 shrink-0 md:w-auto [&>*]:w-full">@include('site._card', ['game' => $game])</div>
-                @endforeach
-            </div>
-        </section>
-    @endif
 
     @if (! empty($winners))
         <section class="flex flex-col gap-3 rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-4 md:p-5">

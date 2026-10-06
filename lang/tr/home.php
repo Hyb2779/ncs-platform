@@ -22,6 +22,8 @@ return [
     'all' => 'Tümü',
     'show_all' => 'Tümünü göster',
     'popular_slots' => 'Popüler slotlar',
+    'popular_games' => 'Popüler Oyunlar',
+    'live_casino' => 'Canlı Casino',
     'winners' => 'Son kazananlar',
     'providers' => 'Oyun sağlayıcıları',
     'footer_note' => ':brand, özel bir bahis ve casino kulübüdür. 18 yaşından küçüklerin bahis oynaması yasaktır.',

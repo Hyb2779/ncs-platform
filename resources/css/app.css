@@ -34,6 +34,15 @@ html[dir='rtl'] body {
     scrollbar-width: none;
 }
 
+.home-rail {
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x pan-y;
+}
+
+html[dir='rtl'] .home-rail {
+    direction: rtl;
+}
+
 .sport-tab-on {
     box-shadow: inset 0 -2px 0 var(--accent);
 }
