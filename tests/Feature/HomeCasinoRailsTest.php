@@ -69,6 +69,7 @@ class HomeCasinoRailsTest extends TestCase
 
         $this->get('/')
             ->assertOk()
+            ->assertSeeInOrder(['data-home-tiles', 'data-home-rail="popular"', 'data-home-rail="live"'], false)
             ->assertSee('data-home-rail="live"', false)
             ->assertSee('Lightning Roulette', false)
             ->assertSee('/live-casino', false)

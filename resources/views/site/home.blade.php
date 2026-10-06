@@ -11,6 +11,23 @@
         @include('site._carousel')
     @endif
 
+    <section class="grid grid-cols-2 gap-3 md:gap-4 {{ wegas_sport_available(auth()->user()) ? 'md:grid-cols-4' : 'md:grid-cols-3' }}" data-home-tiles>
+        @foreach ([
+            ...(wegas_sport_available(auth()->user()) ? [['route' => 'site.wegas_sport', 'title' => brand()->name().' '.__('site.sport'), 'sub' => __('site.wegas_sport_sub')]] : []),
+            ['route' => 'site.slots', 'title' => __('home.quick_slot'), 'sub' => __('home.quick_slot_sub', ['count' => number_format($quick['slots'], 0, ',', '.')])],
+            ['route' => 'site.live_casino', 'title' => __('home.quick_casino'), 'sub' => $quick['casino'] > 0 ? __('home.quick_slot_sub', ['count' => $quick['casino']]) : __('home.soon')],
+            ['route' => 'site.mini', 'title' => __('site.mini'), 'sub' => ($quick['mini'] ?? 0) > 0 ? __('home.quick_slot_sub', ['count' => $quick['mini']]) : __('home.soon')],
+        ] as $tile)
+            <a class="flex h-20 items-center justify-between rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] px-4 last:odd:col-span-2 md:h-24 md:px-5 md:last:odd:col-span-1" href="{{ route($tile['route']) }}">
+                <span class="flex flex-col gap-1">
+                    <span class="text-[15px] font-extrabold text-[var(--site-text)] md:text-lg">{{ $tile['title'] }}</span>
+                    <span class="text-xs text-[var(--site-muted)] md:text-[13px]">{{ $tile['sub'] }}</span>
+                </span>
+                <span class="hidden h-11 w-11 items-center justify-center rounded-xl bg-[var(--site-panel-2)] text-xl font-extrabold text-[var(--accent)] md:flex rtl:rotate-180" aria-hidden="true">&rarr;</span>
+            </a>
+        @endforeach
+    </section>
+
     @if ($popularSlots->isNotEmpty())
         <section class="flex flex-col gap-4" data-home-rail="popular">
             <div class="flex items-center justify-between"><h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.popular_games') }}</h2><a class="text-[13px] font-bold text-[var(--accent)]" href="{{ route('site.slots', ['list' => 'popular']) }}">{{ __('home.show_all') }}</a></div>
@@ -32,23 +49,6 @@
             </div>
         </section>
     @endif
-
-    <section class="grid grid-cols-2 gap-3 md:gap-4 {{ wegas_sport_available(auth()->user()) ? 'md:grid-cols-4' : 'md:grid-cols-3' }}">
-        @foreach ([
-            ...(wegas_sport_available(auth()->user()) ? [['route' => 'site.wegas_sport', 'title' => brand()->name().' '.__('site.sport'), 'sub' => __('site.wegas_sport_sub')]] : []),
-            ['route' => 'site.slots', 'title' => __('home.quick_slot'), 'sub' => __('home.quick_slot_sub', ['count' => number_format($quick['slots'], 0, ',', '.')])],
-            ['route' => 'site.live_casino', 'title' => __('home.quick_casino'), 'sub' => $quick['casino'] > 0 ? __('home.quick_slot_sub', ['count' => $quick['casino']]) : __('home.soon')],
-            ['route' => 'site.mini', 'title' => __('site.mini'), 'sub' => ($quick['mini'] ?? 0) > 0 ? __('home.quick_slot_sub', ['count' => $quick['mini']]) : __('home.soon')],
-        ] as $tile)
-            <a class="flex h-20 items-center justify-between rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] px-4 last:odd:col-span-2 md:h-24 md:px-5 md:last:odd:col-span-1" href="{{ route($tile['route']) }}">
-                <span class="flex flex-col gap-1">
-                    <span class="text-[15px] font-extrabold text-[var(--site-text)] md:text-lg">{{ $tile['title'] }}</span>
-                    <span class="text-xs text-[var(--site-muted)] md:text-[13px]">{{ $tile['sub'] }}</span>
-                </span>
-                <span class="hidden h-11 w-11 items-center justify-center rounded-xl bg-[var(--site-panel-2)] text-xl font-extrabold text-[var(--accent)] md:flex rtl:rotate-180" aria-hidden="true">&rarr;</span>
-            </a>
-        @endforeach
-    </section>
 
     @if (! empty($winners))
         <section class="flex flex-col gap-3 rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-4 md:p-5">
