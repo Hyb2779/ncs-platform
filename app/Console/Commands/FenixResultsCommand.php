@@ -62,6 +62,10 @@ class FenixResultsCommand extends Command
 
         $this->info("kontrol: {$checked}, sonuclanan: {$done}");
 
+        if ($done > 0) {
+            app(\App\Services\Sport\ResultBoard::class)->forget();
+        }
+
         return self::SUCCESS;
     }
 }

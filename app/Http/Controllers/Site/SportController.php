@@ -13,6 +13,7 @@ use App\Services\Sport\CouponCalculator;
 use App\Services\Sport\CouponException;
 use App\Services\Sport\CouponPlacer;
 use App\Services\Sport\MarginEngine;
+use App\Services\Sport\ResultBoard;
 use App\Support\Money;
 use Illuminate\Database\DeadlockException;
 use Illuminate\Database\Eloquent\Builder;
@@ -104,18 +105,9 @@ class SportController extends Controller
         ]);
     }
 
-    public function results(Request $request): View
+    public function results(Request $request, ResultBoard $board): View
     {
-        return view('site.sport.results', [
-            'days' => SportFixture::query()
-                ->with(['league.country', 'home', 'away'])
-                ->finished()
-                ->where('starts_at', '>=', display_span_utc(-3, 0)[0])
-                ->orderByDesc('starts_at')
-                ->get()
-                ->groupBy(fn (SportFixture $fixture) => display_instant($fixture->starts_at)->toDateString())
-                ->map(fn ($fixtures) => $fixtures->groupBy('league_id')),
-        ]);
+        return view('site.sport.results', $board->present($request));
     }
 
     public function show(Request $request, SportFixture $fixture): View

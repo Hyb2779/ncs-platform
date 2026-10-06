@@ -51,6 +51,20 @@ html[dir='rtl'] .home-rail {
     transition: transform 450ms ease;
 }
 
+details.results-filters:not([open]) > form {
+    display: none !important;
+}
+
+@media (min-width: 768px) {
+    details.results-filters > summary {
+        display: none;
+    }
+
+    details.results-filters:not([open]) > form {
+        display: flex !important;
+    }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .home-carousel-track {
         transition: none;

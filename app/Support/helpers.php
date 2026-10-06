@@ -66,6 +66,21 @@ function display_timezone(): string
     return (string) config('app.display_timezone', 'Europe/Istanbul');
 }
 
+/** Takım araması: büyük/küçük harf ve Türkçe karakter farkını kaldırır. */
+function sport_search_key(string $value): string
+{
+    $value = strtr($value, [
+        'İ' => 'i', 'I' => 'i', 'ı' => 'i',
+        'Ş' => 's', 'ş' => 's',
+        'Ğ' => 'g', 'ğ' => 'g',
+        'Ü' => 'u', 'ü' => 'u',
+        'Ö' => 'o', 'ö' => 'o',
+        'Ç' => 'c', 'ç' => 'c',
+    ]);
+
+    return mb_strtolower($value, 'UTF-8');
+}
+
 /**
  * Mutlak anı Europe/Istanbul duvar saatine çevirir. Offset'siz metin UTC kabul edilir.
  * Kaynak Carbon nesnesini değiştirmez.

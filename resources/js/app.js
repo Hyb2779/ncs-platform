@@ -6,6 +6,35 @@ window.Alpine = Alpine;
 window.translations = translations;
 
 document.addEventListener('alpine:init', () => {
+    Alpine.data('resultLeague', (options, selected, allLabel) => ({
+        options,
+        selected: selected ? String(selected) : '',
+        allLabel,
+        q: '',
+        open: false,
+        fold(value) {
+            return String(value).replace(/[İIı]/g, 'i').replace(/[Şş]/g, 's').replace(/[Ğğ]/g, 'g').replace(/[Üü]/g, 'u').replace(/[Öö]/g, 'o').replace(/[Çç]/g, 'c').toLowerCase();
+        },
+        get shown() {
+            const key = this.fold(this.q);
+            if (key === '') {
+                return this.options;
+            }
+
+            return this.options.filter((item) => this.fold(item.label).includes(key));
+        },
+        current() {
+            const hit = this.options.find((item) => String(item.id) === this.selected);
+
+            return hit ? hit.label : this.allLabel;
+        },
+        choose(id) {
+            this.selected = id === null ? '' : String(id);
+            this.open = false;
+            this.q = '';
+            this.$nextTick(() => this.$root.closest('form')?.requestSubmit());
+        },
+    }));
     Alpine.data('homeCarousel', () => ({
         i: 0,
         n: 0,
