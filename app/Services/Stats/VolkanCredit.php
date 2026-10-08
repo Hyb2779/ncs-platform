@@ -6,13 +6,13 @@ use App\Enums\Currency;
 use App\Enums\UserRole;
 use App\Enums\WalletTransactionType;
 use App\Models\User;
-use App\Models\WalletTransaction;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Kök owner'ın Volkan ekranı. Üretim = eksi bakiyenin yeni dip noktaları (credit_issues ile aynı kural).
- * Dağıtım = Volkan'ın kendi altındaki hesaplara yüklediği transferler; geri alış düşülmez.
+ * Kök owner'ın Volkan ekranı.
+ * Üretim = credit_issues tutarları (WalletService, eksi dip yeniden hesaplanmaz).
+ * Dağıtım = Volkan'ın kendi altındaki hesaplara yüklediği transfer_out; geri alış düşülmez.
  */
 class VolkanCredit
 {
@@ -26,9 +26,9 @@ class VolkanCredit
     }
 
     /**
-     * @return list<array{currency: Currency, produced: string, distributed: string}>
+     * @return list<array{currency: Currency, days: list<array{date: string, produced: string, distributed: string}>, produced: string, distributed: string}>
      */
-    public function rows(User $sub, Carbon $fromLocal, Carbon $toLocal): array
+    public function tables(User $sub, Carbon $fromLocal, Carbon $toLocal, string $zone): array
     {
         $fromUtc = $fromLocal->copy()->startOfDay()->utc();
         $toUtc = $toLocal->copy()->endOfDay()->utc();
@@ -37,56 +37,61 @@ class VolkanCredit
             $currencies = collect([$sub->currency]);
         }
 
-        $rows = [];
+        $tables = [];
         foreach ($currencies as $currency) {
             $currency = $currency instanceof Currency ? $currency : Currency::from((string) $currency);
-            $produced = $this->produced($sub, $currency, $fromUtc, $toUtc);
-            $distributed = $this->distributed($sub, $currency, $fromUtc, $toUtc);
-            if ($currency !== $sub->currency && bccomp($produced, '0', 2) === 0 && bccomp($distributed, '0', 2) === 0) {
+            $produced = $this->producedByDay($sub, $currency, $fromUtc, $toUtc, $zone);
+            $distributed = $this->distributedByDay($sub, $currency, $fromUtc, $toUtc, $zone);
+            $days = [];
+            $producedTotal = '0.00';
+            $distributedTotal = '0.00';
+            for ($day = $toLocal->copy()->startOfDay(); $day->greaterThanOrEqualTo($fromLocal->copy()->startOfDay()); $day->subDay()) {
+                $key = $day->toDateString();
+                $producedDay = $produced[$key] ?? '0.00';
+                $distributedDay = $distributed[$key] ?? '0.00';
+                $producedTotal = bcadd($producedTotal, $producedDay, 2);
+                $distributedTotal = bcadd($distributedTotal, $distributedDay, 2);
+                $days[] = [
+                    'date' => $key,
+                    'produced' => $producedDay,
+                    'distributed' => $distributedDay,
+                ];
+            }
+            if ($currency !== $sub->currency && bccomp($producedTotal, '0', 2) === 0 && bccomp($distributedTotal, '0', 2) === 0) {
                 continue;
             }
-            $rows[] = [
+            $tables[] = [
                 'currency' => $currency,
-                'produced' => $produced,
-                'distributed' => $distributed,
+                'days' => $days,
+                'produced' => $producedTotal,
+                'distributed' => $distributedTotal,
             ];
         }
 
-        return $rows;
+        return $tables;
     }
 
-    private function produced(User $sub, Currency $currency, Carbon $fromUtc, Carbon $toUtc): string
+    /**
+     * @return array<string, string>
+     */
+    private function producedByDay(User $sub, Currency $currency, Carbon $fromUtc, Carbon $toUtc, string $zone): array
     {
-        $transactions = WalletTransaction::query()
+        $rows = DB::table('credit_issues')
             ->where('user_id', $sub->id)
-            ->whereIn('wallet_id', $sub->wallets()->where('currency', $currency)->select('id'))
-            ->orderBy('created_at')
-            ->orderBy('sequence')
-            ->orderBy('id')
-            ->get(['balance_after', 'created_at']);
+            ->where('currency', $currency->value)
+            ->where('created_at', '>=', $fromUtc)
+            ->where('created_at', '<=', $toUtc)
+            ->get(['amount', 'created_at']);
 
-        $peak = '0.00';
-        $period = '0.00';
-        foreach ($transactions as $transaction) {
-            $after = bcadd((string) $transaction->balance_after, '0', 2);
-            $negative = bccomp($after, '0', 2) < 0 ? bcsub('0', $after, 2) : '0.00';
-            if (bccomp($negative, $peak, 2) !== 1) {
-                continue;
-            }
-            $increment = bcsub($negative, $peak, 2);
-            $at = $transaction->created_at;
-            if ($at !== null && $at->greaterThanOrEqualTo($fromUtc) && $at->lessThanOrEqualTo($toUtc)) {
-                $period = bcadd($period, $increment, 2);
-            }
-            $peak = $negative;
-        }
-
-        return $period;
+        return $this->bucket($rows, 'amount', $zone);
     }
 
-    private function distributed(User $sub, Currency $currency, Carbon $fromUtc, Carbon $toUtc): string
+    /**
+     * @return array<string, string>
+     */
+    private function distributedByDay(User $sub, Currency $currency, Carbon $fromUtc, Carbon $toUtc, string $zone): array
     {
-        $amounts = DB::table('wallet_transactions as t')
+        $rows = DB::table('wallet_transactions as t')
             ->join('wallets as w', 'w.id', '=', 't.wallet_id')
             ->where('t.user_id', $sub->id)
             ->where('w.currency', $currency->value)
@@ -100,17 +105,28 @@ class VolkanCredit
                     ->where('u.path', 'like', $sub->path.'%')
                     ->where('u.id', '!=', $sub->id);
             })
-            ->pluck('t.amount');
+            ->get(['t.amount', 't.created_at']);
 
-        $total = '0.00';
-        foreach ($amounts as $amount) {
-            $value = bcadd((string) $amount, '0', 2);
-            if (bccomp($value, '0', 2) < 0) {
+        return $this->bucket($rows, 'amount', $zone, true);
+    }
+
+    /**
+     * @param  iterable<int, object>  $rows
+     * @return array<string, string>
+     */
+    private function bucket(iterable $rows, string $amountKey, string $zone, bool $absolute = false): array
+    {
+        $days = [];
+        foreach ($rows as $row) {
+            $at = $row->created_at instanceof Carbon ? $row->created_at->copy() : Carbon::parse((string) $row->created_at, 'UTC');
+            $key = $at->timezone($zone)->toDateString();
+            $value = bcadd((string) $row->{$amountKey}, '0', 2);
+            if ($absolute && bccomp($value, '0', 2) < 0) {
                 $value = bcsub('0', $value, 2);
             }
-            $total = bcadd($total, $value, 2);
+            $days[$key] = bcadd($days[$key] ?? '0.00', $value, 2);
         }
 
-        return $total;
+        return $days;
     }
 }

@@ -8,7 +8,7 @@ use App\Support\ReportPeriod;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
-/** Volkan'ın net kredi üretimi ve dağıtımı. Yalnızca kök owner. */
+/** Volkan'ın günlük kredi üretimi ve dağıtımı. Yalnızca kök owner. */
 class VolkanCreditController extends Controller
 {
     public function index(Request $request, VolkanCredit $credit): View
@@ -24,7 +24,7 @@ class VolkanCreditController extends Controller
             'period' => $period,
             'from' => $from->toDateString(),
             'to' => $to->toDateString(),
-            'rows' => $subject === null ? [] : $credit->rows($subject, $from, $to),
+            'tables' => $subject === null ? [] : $credit->tables($subject, $from, $to, $zone),
         ]);
     }
 }

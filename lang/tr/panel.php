@@ -276,6 +276,8 @@ return [
     'volkan_credit_produced' => 'Ürettiği kredi',
     'volkan_credit_distributed' => 'Dağıttığı kredi',
     'volkan_credit_missing' => 'Volkan hesabı bulunamadı.',
+    'volkan_credit_date' => 'Tarih',
+    'volkan_credit_total' => 'Toplam',
     'credit_fee_hint' => 'Süperadminlere verilen kredi (brüt, geri almalar düşülmez) üzerinden hesaplanır. Sadece siz görürsünüz.',
     'credit_fee_issued' => 'Verilen kredi',
     'credit_fee_fee' => 'Ücret',

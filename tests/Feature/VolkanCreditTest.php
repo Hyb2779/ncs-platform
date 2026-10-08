@@ -7,8 +7,8 @@ use App\Enums\Language;
 use App\Enums\UserRole;
 use App\Enums\UserStatus;
 use App\Models\User;
+use App\Models\Wallet;
 use App\Services\HierarchyService;
-use App\Services\WalletService;
 use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Carbon;
@@ -53,45 +53,50 @@ class VolkanCreditTest extends TestCase
         }
     }
 
-    public function test_only_new_negative_troughs_count_and_the_week_filter_splits_them(): void
+    public function test_each_day_sums_recorded_issues_and_loads_newest_first(): void
     {
         [$root, $sub, , , $member] = $this->world();
-        $wallets = app(WalletService::class);
+        app(\App\Services\WalletProvisioner::class)->openFor($sub);
+        $wallet = $sub->wallets()->where('currency', Currency::Try)->firstOrFail();
 
-        Carbon::setTestNow(Carbon::parse('2026-09-30 12:00:00', 'Europe/Istanbul'));
-        $wallets->transfer($sub, $member, '100.00', 'load-100', $sub);
+        $this->issue($sub, '15000.00', '2026-10-07 15:00:00');
+        $this->issue($sub, '10000.00', '2026-10-08 11:00:00');
+        $this->load($wallet, $sub, $member, '-7000.00', '2026-10-07 16:00:00', 'day-7000');
+        $this->load($wallet, $sub, $member, '-5000.00', '2026-10-08 12:00:00', 'day-5000');
+        $this->load($wallet, $sub, $root, '-999.00', '2026-10-08 13:00:00', 'to-root');
 
-        Carbon::setTestNow(Carbon::parse('2026-10-06 12:00:00', 'Europe/Istanbul'));
-        $wallets->transfer($member, $sub, '70.00', 'return-70', $member);
-        $wallets->transfer($sub, $member, '20.00', 'load-20', $sub);
-        $wallets->transfer($sub, $root, '80.00', 'to-root', $sub);
-        $wallets->transfer($root, $sub, '90.00', 'repay-90', $root);
-
-        Carbon::setTestNow(Carbon::parse('2026-10-08 12:00:00', 'Europe/Istanbul'));
+        Carbon::setTestNow(Carbon::parse('2026-10-08 18:00:00', 'Europe/Istanbul'));
 
         $week = $this->actingAs($root)->get(self::BASE.'/volkan-credit');
         $week->assertOk();
         $week->assertSee('period=this_week', false);
-        $week->assertSee(Money::format('30.00', Currency::Try), false);
-        $week->assertSee(Money::format('20.00', Currency::Try), false);
-        $week->assertDontSee(Money::format('100.00', Currency::Try), false);
+        $week->assertSeeInOrder([
+            '08.10.2026',
+            Money::format('10000.00', Currency::Try),
+            Money::format('5000.00', Currency::Try),
+            '07.10.2026',
+            Money::format('15000.00', Currency::Try),
+            Money::format('7000.00', Currency::Try),
+            __('panel.volkan_credit_total'),
+            Money::format('25000.00', Currency::Try),
+            Money::format('12000.00', Currency::Try),
+        ], false);
+        $week->assertDontSee(Money::format('999.00', Currency::Try), false);
 
-        $lastWeek = $this->actingAs($root)->get(self::BASE.'/volkan-credit?period=custom&from=2026-09-28&to=2026-10-04');
-        $lastWeek->assertOk()->assertSee(Money::format('100.00', Currency::Try), false);
-        $lastWeek->assertDontSee(Money::format('20.00', Currency::Try), false);
+        $yesterday = $this->actingAs($root)->get(self::BASE.'/volkan-credit?period=custom&from=2026-10-07&to=2026-10-07');
+        $yesterday->assertOk();
+        $yesterday->assertSeeInOrder([
+            '07.10.2026',
+            Money::format('15000.00', Currency::Try),
+            Money::format('7000.00', Currency::Try),
+            __('panel.volkan_credit_total'),
+            Money::format('15000.00', Currency::Try),
+            Money::format('7000.00', Currency::Try),
+        ], false);
+        $yesterday->assertDontSee('08.10.2026', false);
+        $yesterday->assertDontSee(Money::format('10000.00', Currency::Try), false);
 
-        $both = $this->actingAs($root)->get(self::BASE.'/volkan-credit?period=custom&from=2026-09-28&to=2026-10-08');
-        $both->assertOk();
-        $both->assertSee(Money::format('130.00', Currency::Try), false);
-        $both->assertSee(Money::format('120.00', Currency::Try), false);
-
-        $this->actingAs($sub)->get(self::BASE)->assertOk()
-            ->assertDontSee(__('panel.volkan_credit_produced'), false)
-            ->assertDontSee(Money::format('130.00', Currency::Try), false)
-            ->assertDontSee(Money::format('120.00', Currency::Try), false);
-        $this->actingAs($sub)->get(self::BASE.'/reports')->assertOk()
-            ->assertDontSee(Money::format('130.00', Currency::Try), false)
-            ->assertDontSee(Money::format('120.00', Currency::Try), false);
+        $this->actingAs($sub)->get(self::BASE.'/volkan-credit')->assertForbidden();
     }
 
     /**
@@ -108,6 +113,34 @@ class VolkanCreditTest extends TestCase
         $member = $hierarchy->create($bayi, ['username' => 'volkan_uye'] + $base);
 
         return [$root->refresh(), $sub->refresh(), $sa, $bayi, $member];
+    }
+
+    private function issue(User $sub, string $amount, string $local): void
+    {
+        \Illuminate\Support\Facades\DB::table('credit_issues')->insert([
+            'user_id' => $sub->id,
+            'currency' => Currency::Try->value,
+            'amount' => $amount,
+            'created_at' => Carbon::parse($local, 'Europe/Istanbul')->utc(),
+        ]);
+    }
+
+    private function load(Wallet $wallet, User $sub, User $counterparty, string $amount, string $local, string $key): void
+    {
+        \Illuminate\Support\Facades\DB::table('wallet_transactions')->insert([
+            'id' => (string) \Illuminate\Support\Str::uuid(),
+            'wallet_id' => $wallet->id,
+            'user_id' => $sub->id,
+            'type' => 'transfer_out',
+            'product' => 'transfer',
+            'amount' => $amount,
+            'balance_before' => '0.00',
+            'balance_after' => '0.00',
+            'idempotency_key' => $key,
+            'counterparty_user_id' => $counterparty->id,
+            'created_by' => $sub->id,
+            'created_at' => Carbon::parse($local, 'Europe/Istanbul')->utc(),
+        ]);
     }
 
     private function raw(string $username, UserRole $role, ?User $parent): User

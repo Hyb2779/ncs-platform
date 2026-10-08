@@ -276,6 +276,8 @@ return [
     'volkan_credit_produced' => 'Credit he produced',
     'volkan_credit_distributed' => 'Credit he distributed',
     'volkan_credit_missing' => 'Volkan account was not found.',
+    'volkan_credit_date' => 'Date',
+    'volkan_credit_total' => 'Total',
     'credit_fee_hint' => 'Calculated on credit given to superadmins (gross, take-backs not deducted). Only visible to you.',
     'credit_fee_issued' => 'Credit given',
     'credit_fee_fee' => 'Fee',

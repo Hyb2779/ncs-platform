@@ -32,23 +32,38 @@
 
 <p class="mb-4 font-numeric text-sm text-slate-500">{{ __('panel.reports_range', ['from' => $from, 'to' => $to]) }}</p>
 
-@if ($rows === [])
+@if ($tables === [])
     <div class="rounded-lg border border-[#E3E6EB] bg-white p-6 text-center text-sm text-slate-500">{{ __('panel.volkan_credit_missing') }}</div>
 @else
-    <div class="grid gap-3 sm:grid-cols-2">
-        @foreach ($rows as $row)
-            <section class="rounded-lg border border-[#E3E6EB] bg-white p-4">
-                <p class="text-xs font-semibold tracking-wide text-slate-500">{{ $row['currency']->value }}</p>
-                <dl class="mt-3 grid gap-4">
-                    <div>
-                        <dt class="text-sm text-slate-500">{{ __('panel.volkan_credit_produced') }}</dt>
-                        <dd class="mt-1 font-numeric text-2xl font-semibold">{{ \App\Support\Money::format($row['produced'], $row['currency']) }}</dd>
-                    </div>
-                    <div>
-                        <dt class="text-sm text-slate-500">{{ __('panel.volkan_credit_distributed') }}</dt>
-                        <dd class="mt-1 font-numeric text-2xl font-semibold">{{ \App\Support\Money::format($row['distributed'], $row['currency']) }}</dd>
-                    </div>
-                </dl>
+    <div class="grid gap-4">
+        @foreach ($tables as $table)
+            <section class="overflow-x-auto rounded-lg border border-[#E3E6EB] bg-white">
+                <p class="border-b border-[#E3E6EB] px-4 py-3 text-xs font-semibold tracking-wide text-slate-500">{{ $table['currency']->value }}</p>
+                <table class="w-full min-w-[36rem] text-sm">
+                    <thead>
+                        <tr class="border-b border-[#E3E6EB] text-slate-500">
+                            <th class="px-4 py-3 text-start font-medium">{{ __('panel.volkan_credit_date') }}</th>
+                            <th class="px-4 py-3 text-end font-medium">{{ __('panel.volkan_credit_produced') }}</th>
+                            <th class="px-4 py-3 text-end font-medium">{{ __('panel.volkan_credit_distributed') }}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach ($table['days'] as $day)
+                            <tr class="border-b border-[#E3E6EB]">
+                                <td class="px-4 py-3 text-start">{{ \Illuminate\Support\Carbon::parse($day['date'])->format('d.m.Y') }}</td>
+                                <td class="px-4 py-3 text-end font-numeric">{{ \App\Support\Money::format($day['produced'], $table['currency']) }}</td>
+                                <td class="px-4 py-3 text-end font-numeric">{{ \App\Support\Money::format($day['distributed'], $table['currency']) }}</td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                    <tfoot>
+                        <tr class="font-semibold">
+                            <td class="px-4 py-3 text-start">{{ __('panel.volkan_credit_total') }}</td>
+                            <td class="px-4 py-3 text-end font-numeric">{{ \App\Support\Money::format($table['produced'], $table['currency']) }}</td>
+                            <td class="px-4 py-3 text-end font-numeric">{{ \App\Support\Money::format($table['distributed'], $table['currency']) }}</td>
+                        </tr>
+                    </tfoot>
+                </table>
             </section>
         @endforeach
     </div>

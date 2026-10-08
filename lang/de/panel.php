@@ -276,6 +276,8 @@ return [
     'volkan_credit_produced' => 'Von ihm erzeugtes Guthaben',
     'volkan_credit_distributed' => 'Von ihm verteiltes Guthaben',
     'volkan_credit_missing' => 'Volkan-Konto wurde nicht gefunden.',
+    'volkan_credit_date' => 'Datum',
+    'volkan_credit_total' => 'Summe',
     'credit_fee_hint' => 'Berechnet auf den an Superadmins vergebenen Kredit (brutto, Rücknahmen nicht abgezogen). Nur für Sie sichtbar.',
     'credit_fee_issued' => 'Vergebener Kredit',
     'credit_fee_fee' => 'Gebühr',

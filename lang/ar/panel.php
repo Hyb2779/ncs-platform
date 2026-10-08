@@ -276,6 +276,8 @@ return [
     'volkan_credit_produced' => 'الائتمان الذي أنتجه',
     'volkan_credit_distributed' => 'الائتمان الذي وزعه',
     'volkan_credit_missing' => 'لم يُعثر على حساب Volkan.',
+    'volkan_credit_date' => 'التاريخ',
+    'volkan_credit_total' => 'المجموع',
     'credit_fee_hint' => 'تُحسب على الائتمان الممنوح للمشرفين (إجمالي، دون خصم المسترد). تظهر لك فقط.',
     'credit_fee_issued' => 'الائتمان الممنوح',
     'credit_fee_fee' => 'الرسوم',
