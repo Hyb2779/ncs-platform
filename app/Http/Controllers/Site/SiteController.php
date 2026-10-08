@@ -25,7 +25,7 @@ use Illuminate\View\View;
 
 class SiteController extends Controller
 {
-    public function home(\App\Services\HomeFeed $feed, HomeCasinoRails $rails, HomeSlides $slides): View
+    public function home(\App\Services\HomeFeed $feed, HomeCasinoRails $rails, HomeSlides $slides, \App\Services\HomeCategoryImages $images): View
     {
         $user = auth()->user();
         $data = $feed->build($user);
@@ -34,6 +34,7 @@ class SiteController extends Controller
             'popularSlots' => $rails->popularSlots($user),
             'liveTables' => $rails->liveTables($user),
             'slides' => $slides->forViewer($user),
+            'categoryImages' => $images->urls($user),
         ]);
     }
 
