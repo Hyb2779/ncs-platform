@@ -1,5 +1,4 @@
 <div class="lobby-hero" id="lobbyHero">
-    <div class="lobby-hero-scale">
         @foreach ($slides as $index => $slide)
             @php
                 $heroUrl = str_replace(['\\', "'", '(', ')'], ['%5C', '%27', '%28', '%29'], (string) ($slide['image'] ?? ''));
@@ -32,7 +31,6 @@
                 @endforeach
             </div>
         @endif
-    </div>
 </div>
 <script>
 (function () {
