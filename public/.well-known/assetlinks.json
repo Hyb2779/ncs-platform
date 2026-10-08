@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.wegas11.panel",
+      "sha256_cert_fingerprints": [
+        "79:1D:6B:F4:00:48:87:49:5D:6C:A0:09:AB:92:FD:17:C2:C1:71:84:1C:52:FB:61:E5:65:75:3C:76:C0:2A:AE"
+      ]
+    }
+  }
+]

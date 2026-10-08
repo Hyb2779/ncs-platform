@@ -1,0 +1,41 @@
+{
+  "packageId": "com.wegas11.panel",
+  "host": "panel.wegas11.com",
+  "name": "Wegas Panel",
+  "launcherName": "Wegas Panel",
+  "display": "standalone",
+  "themeColor": "#161A22",
+  "themeColorDark": "#161A22",
+  "navigationColor": "#161A22",
+  "navigationColorDark": "#161A22",
+  "navigationDividerColor": "#161A22",
+  "navigationDividerColorDark": "#161A22",
+  "backgroundColor": "#161A22",
+  "enableNotifications": false,
+  "startUrl": "/login",
+  "iconUrl": "https://panel.wegas11.com/img/brand/icon-512.png",
+  "maskableIconUrl": "https://panel.wegas11.com/img/brand/icon-512.png",
+  "splashScreenFadeOutDuration": 300,
+  "signingKey": {
+    "path": "/var/lib/wegas-panel-apk/wegas-panel.keystore",
+    "alias": "wegas-panel"
+  },
+  "appVersionCode": 1,
+  "appVersion": "1",
+  "shortcuts": [],
+  "generatorApp": "bubblewrap-cli",
+  "fallbackType": "customtabs",
+  "features": {},
+  "alphaDependencies": {
+    "enabled": false
+  },
+  "enableSiteSettingsShortcut": false,
+  "isChromeOSOnly": false,
+  "isMetaQuest": false,
+  "fullScopeUrl": "https://panel.wegas11.com/",
+  "minSdkVersion": 21,
+  "orientation": "default",
+  "fingerprints": [],
+  "additionalTrustedOrigins": [],
+  "retainedBundles": []
+}

@@ -28,4 +28,13 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 /public/cache
+/public/downloads/*.apk
 *.bak-*
+/android/panel-twa/.gradle/
+/android/panel-twa/build/
+/android/panel-twa/app/build/
+/android/panel-twa/*.apk
+/android/panel-twa/*.aab
+/android/panel-twa/*.idsig
+/android/panel-twa/local.properties
+/android/panel-twa/manifest-checksum.txt
