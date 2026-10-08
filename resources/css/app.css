@@ -356,3 +356,53 @@ html[dir='rtl'] .site-footer { font-family: var(--font-arabic); }
     line-height: 1;
     color: var(--site-text);
 }
+
+/* Mobil slayt: yükseklik 190px'in %70'i. Görsel kendi 4:3 oranında sığar. */
+@media (max-width: 767px) {
+    .home-carousel {
+        height: calc(190px * 0.7);
+    }
+
+    .home-slide-img {
+        object-fit: contain;
+        aspect-ratio: 4 / 3;
+    }
+
+    .home-slide-copy {
+        gap: calc(2px * 0.7);
+        max-width: min(78%, calc(28rem * 0.7));
+        padding: calc(14px * 0.7) calc(14px * 0.7) calc(26px * 0.7);
+    }
+
+    .home-slide-provider {
+        font-size: calc(11px * 0.7);
+    }
+
+    .home-slide-title {
+        font-size: calc(16px * 0.7);
+    }
+
+    .home-slide-play {
+        height: calc(36px * 0.7);
+        margin-top: calc(6px * 0.7);
+        padding-inline: calc(14px * 0.7);
+        border-radius: calc(8px * 0.7);
+        font-size: calc(13px * 0.7);
+    }
+
+    .home-slide-dots {
+        bottom: calc(8px * 0.7);
+        gap: calc(6px * 0.7);
+    }
+
+    .home-slide-dots button {
+        width: calc(6px * 0.7);
+        height: calc(6px * 0.7);
+    }
+
+    .home-slide-arrow {
+        width: calc(36px * 0.7);
+        height: calc(36px * 0.7);
+        font-size: calc(18px * 0.7);
+    }
+}
