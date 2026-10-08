@@ -32,6 +32,9 @@ class PanelMenu
             self::item(__('panel.density_title'), 'panel.coupons.density', ['panel.coupons.density']),
         ];
         $reports[] = self::item(__('panel.reports_title'), 'panel.reports.index', ['panel.reports.index']);
+        if ($user->isRootOwner()) {
+            $reports[] = self::item(__('panel.volkan_credit'), 'panel.volkan-credit.index', ['panel.volkan-credit.index']);
+        }
         $reports[] = self::item(self::ledgerLabel(), 'panel.transactions', ['panel.transactions']);
         $reports[] = self::item(__('panel.member_movements'), 'panel.member-movements', ['panel.member-movements']);
         $reports[] = self::item(__('panel.player_movements'), 'panel.player-movements', ['panel.player-movements']);

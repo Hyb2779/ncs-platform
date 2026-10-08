@@ -75,6 +75,7 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
     Route::post('/credit-fees/payments', [\App\Http\Controllers\Panel\CreditFeeController::class, 'store'])->name('credit-fees.payments.store');
     Route::get('/reports', [\App\Http\Controllers\Panel\ReportController::class, 'index'])->name('reports.index');
+    Route::get('/volkan-credit', [\App\Http\Controllers\Panel\VolkanCreditController::class, 'index'])->name('volkan-credit.index');
     Route::get('/online', [\App\Http\Controllers\Panel\OnlineController::class, 'index'])->name('online.index');
     Route::get('/password', [\App\Http\Controllers\Panel\PasswordController::class, 'edit'])->name('password.edit');
     Route::post('/password', [\App\Http\Controllers\Panel\PasswordController::class, 'update'])->name('password.update');
