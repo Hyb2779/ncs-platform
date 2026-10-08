@@ -129,15 +129,42 @@ class SiteController extends Controller
         }
 
         // Oyun kendi ekranımızda (iframe + Geri Dön) açılır; üye siteden çıkmaz.
-        $back = $game->is_live ? 'site.live_casino' : (str_starts_with((string) $game->vendor, 'mini-') ? 'site.mini' : 'site.slots');
-
         return view('site.play', [
             'gameUrl' => $url,
             'gameName' => (string) $game->name,
-            'backUrl' => route($back),
+            'backUrl' => $this->gameReturnUrl($request),
             'isLive' => (bool) $game->is_live,
         ]);
     }
+
+    /**
+     * Oyuna gelinen sayfa. Referrer yoksa, başka bir domainse veya sağlayıcı adresiyse ana sayfa.
+     */
+    private function gameReturnUrl(Request $request): string
+    {
+        $home = route('site.home');
+        $referer = trim((string) $request->headers->get('referer', ''));
+        $parts = parse_url($referer);
+        if (! is_array($parts)) {
+            return $home;
+        }
+
+        $scheme = strtolower((string) ($parts['scheme'] ?? ''));
+        $host = strtolower((string) ($parts['host'] ?? ''));
+        if (! in_array($scheme, ['http', 'https'], true) || $host === '' || $host !== strtolower($request->getHost())) {
+            return $home;
+        }
+
+        $path = (string) ($parts['path'] ?? '/');
+        if ($path === '' || str_contains($path, '\\') || str_starts_with($path, '//') || preg_match('#^/(play|api)(?:/|$)#', $path) === 1) {
+            return $home;
+        }
+
+        $query = isset($parts['query']) && $parts['query'] !== '' ? '?'.$parts['query'] : '';
+
+        return $scheme.'://'.$host.(isset($parts['port']) ? ':'.$parts['port'] : '').($path === '' ? '/' : $path).$query;
+    }
+
 
     public function favorite(Request $request, CasinoGame $game): RedirectResponse
     {
