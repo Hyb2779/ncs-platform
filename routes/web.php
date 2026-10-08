@@ -25,6 +25,7 @@ Route::get('/', function () {
 })->name('site.home');
 
 Route::get('/slots', [SiteController::class, 'slots'])->name('site.slots');
+Route::get('/games/suggest', [SiteController::class, 'suggest'])->name('site.games.suggest');
 Route::get('/live-casino', [SiteController::class, 'live'])->name('site.live_casino');
 Route::get('/mini', [SiteController::class, 'mini'])->name('site.mini');
 Route::get('/lisans-dogrula', [SiteController::class, 'license'])->name('site.license');

@@ -684,3 +684,79 @@ html[dir='rtl'] .site-footer { font-family: var(--font-arabic); }
     line-height: 1;
     color: var(--site-text);
 }
+
+.game-suggest {
+    position: absolute;
+    inset-inline: 0;
+    top: calc(100% + 6px);
+    z-index: 40;
+    max-height: min(22rem, 70dvh);
+    overflow-x: hidden;
+    overflow-y: auto;
+    border: 1px solid var(--site-line);
+    border-radius: 12px;
+    background: var(--site-panel);
+    box-shadow: 0 12px 32px rgb(0 0 0 / 0.28);
+}
+
+.game-suggest-row,
+.game-suggest-all,
+.game-suggest-empty {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+    padding: 6px 10px;
+    color: var(--site-text);
+    text-decoration: none;
+}
+
+.game-suggest-row {
+    min-height: 52px;
+}
+
+.game-suggest-row img {
+    width: 40px;
+    height: 40px;
+    flex: none;
+    object-fit: contain;
+    border-radius: 8px;
+    background: var(--site-bg);
+}
+
+.game-suggest-name,
+.game-suggest-provider {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.game-suggest-name {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.game-suggest-provider {
+    color: var(--site-muted);
+    font-size: 12px;
+    line-height: 1.3;
+}
+
+.game-suggest-row.is-on,
+.game-suggest-row:hover {
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+
+.game-suggest-empty {
+    color: var(--site-muted);
+    font-size: 13px;
+}
+
+.game-suggest-all {
+    border-top: 1px solid var(--site-line);
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 800;
+}

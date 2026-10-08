@@ -16,6 +16,8 @@ return [
     'popular_slots' => 'Popüler Slotlar',
     'popular_live' => 'Canlı Casino',
     'search' => 'Oyun ara',
+    'search_empty' => 'Oyun bulunamadı',
+    'search_all' => 'Tüm sonuçlar (:count)',
     'providers' => 'Sağlayıcılar',
     'categories' => 'Kategoriler',
     'all' => 'Tümü',

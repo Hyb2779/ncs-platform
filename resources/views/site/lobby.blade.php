@@ -26,10 +26,23 @@
                     @endforeach
                 </nav>
             </div>
-            <form method="GET">
+            <form class="relative" method="GET" x-data="gameSuggest(@js(['mode' => $mode, 'vendor' => $vendor, 'url' => route('site.games.suggest'), 'empty' => __('site.search_empty'), 'all' => __('site.search_all', ['count' => ':count'])]))" @click.outside="close()">
                 @if ($vendor !== '')<input type="hidden" name="vendor" value="{{ $vendor }}">@endif
                 @if ($list !== 'all')<input type="hidden" name="list" value="{{ $list }}">@endif
-                <input class="h-11 w-full rounded-xl border border-[var(--site-line)] bg-[var(--site-bg)] px-4 text-[15px] text-[var(--site-text)] outline-none focus:border-[var(--accent)]" type="search" name="q" value="{{ request('q') }}" placeholder="{{ __('site.search') }}" enterkeyhint="search">
+                <input class="h-11 w-full rounded-xl border border-[var(--site-line)] bg-[var(--site-bg)] px-4 text-[15px] text-[var(--site-text)] outline-none focus:border-[var(--accent)]" type="search" name="q" value="{{ request('q') }}" placeholder="{{ __('site.search') }}" enterkeyhint="search" autocomplete="off" role="combobox" :aria-expanded="open.toString()" aria-autocomplete="list" aria-controls="game-suggest-list" x-model="q" @input="schedule()" @keydown.arrow-down.prevent="move(1)" @keydown.arrow-up.prevent="move(-1)" @keydown.escape.prevent="close()" @keydown.enter="submit($event)">
+                <div class="game-suggest" id="game-suggest-list" role="listbox" x-show="open" x-cloak>
+                    <template x-for="(game, index) in games" :key="game.id">
+                        <a class="game-suggest-row" role="option" :href="game.href" :class="index === active ? 'is-on' : ''" :aria-selected="(index === active).toString()" @mouseenter="active = index" @click="pick($event, game)">
+                            <img :src="game.image || ''" alt="" width="40" height="40" x-show="game.image">
+                            <span class="min-w-0">
+                                <span class="game-suggest-name" x-text="game.name"></span>
+                                <span class="game-suggest-provider" x-text="game.provider || ''"></span>
+                            </span>
+                        </a>
+                    </template>
+                    <p class="game-suggest-empty" x-show="games.length === 0" x-text="labels.empty"></p>
+                    <a class="game-suggest-all" :href="allHref()" x-show="total > 0" x-text="allText()"></a>
+                </div>
             </form>
             <div class="no-scrollbar flex gap-2 overflow-x-auto lg:hidden">
                 <a class="inline-flex h-9 shrink-0 items-center rounded-full px-3.5 text-sm font-bold {{ $vendor === '' ? 'bg-[var(--accent)] text-[var(--site-on-accent)]' : 'border border-[var(--site-line)] text-[var(--site-muted)]' }}" href="{{ request()->fullUrlWithQuery(['vendor' => null]) }}">{{ __('site.all_providers') }}</a>

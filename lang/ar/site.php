@@ -16,6 +16,8 @@ return [
     'popular_slots' => 'سلوت شائعة',
     'popular_live' => 'كازينو مباشر',
     'search' => 'ابحث عن لعبة',
+    'search_empty' => 'لم يتم العثور على لعبة',
+    'search_all' => 'كل النتائج (:count)',
     'providers' => 'المزودون',
     'categories' => 'التصنيفات',
     'all' => 'الكل',

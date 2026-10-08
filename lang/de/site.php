@@ -16,6 +16,8 @@ return [
     'popular_slots' => 'Beliebte Slots',
     'popular_live' => 'Live-Casino',
     'search' => 'Spiele suchen',
+    'search_empty' => 'Kein Spiel gefunden',
+    'search_all' => 'Alle Ergebnisse (:count)',
     'providers' => 'Anbieter',
     'categories' => 'Kategorien',
     'all' => 'Alle',

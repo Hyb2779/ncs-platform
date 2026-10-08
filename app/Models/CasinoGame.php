@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Support\GameSearch;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -20,6 +21,15 @@ class CasinoGame extends Model
             'is_active' => 'boolean',
             'is_popular' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::saving(function (CasinoGame $game) {
+            if ($game->isDirty('name') || $game->name_folded === null || $game->name_folded === '') {
+                $game->name_folded = GameSearch::fold((string) $game->name);
+            }
+        });
     }
 
     public function provider(): BelongsTo

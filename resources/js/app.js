@@ -116,6 +116,104 @@ document.addEventListener('alpine:init', () => {
             this.swiped = false;
         },
     }));
+
+    Alpine.data('gameSuggest', (options) => ({
+        q: '',
+        open: false,
+        games: [],
+        total: 0,
+        active: -1,
+        timer: null,
+        labels: options || {},
+        init() {
+            this.q = this.$el.querySelector('input[name="q"]')?.value || '';
+        },
+        schedule() {
+            this.active = -1;
+            if (this.timer) {
+                window.clearTimeout(this.timer);
+            }
+            if (this.q.trim().length < 2) {
+                this.games = [];
+                this.total = 0;
+                this.close();
+
+                return;
+            }
+            this.timer = window.setTimeout(() => this.load(), 300);
+        },
+        async load() {
+            const term = this.q.trim();
+            if (term.length < 2) {
+                return;
+            }
+            const url = new URL(this.labels.url, window.location.origin);
+            url.searchParams.set('q', term);
+            url.searchParams.set('mode', this.labels.mode || 'slot');
+            if (this.labels.vendor) {
+                url.searchParams.set('vendor', this.labels.vendor);
+            }
+            try {
+                const response = await fetch(url, { headers: { Accept: 'application/json' } });
+                if (!response.ok || this.q.trim() !== term) {
+                    return;
+                }
+                const payload = await response.json();
+                if (this.q.trim() !== term) {
+                    return;
+                }
+                this.games = Array.isArray(payload.games) ? payload.games : [];
+                this.total = Number(payload.total || 0);
+                this.open = true;
+            } catch (error) {
+                // Liste açılmaz; Enter tam sonuç sayfasına gider.
+            }
+        },
+        close() {
+            this.open = false;
+            this.active = -1;
+        },
+        move(step) {
+            if (!this.open || this.games.length === 0) {
+                return;
+            }
+            const last = this.games.length - 1;
+            if (this.active < 0) {
+                this.active = step > 0 ? 0 : last;
+
+                return;
+            }
+            this.active = Math.min(last, Math.max(0, this.active + step));
+        },
+        submit(event) {
+            if (!(this.open && this.active >= 0 && this.games[this.active])) {
+                return;
+            }
+            event.preventDefault();
+            this.pick(event, this.games[this.active]);
+        },
+        pick(event, game) {
+            const dialog = document.getElementById('login-dialog');
+            if (dialog && String(game.href).includes('/login')) {
+                event.preventDefault();
+                dialog.showModal();
+
+                return;
+            }
+            if (event.type === 'keydown') {
+                window.location.href = game.href;
+            }
+        },
+        allHref() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('q', this.q.trim());
+
+            return url.pathname + url.search;
+        },
+        allText() {
+            return String(this.labels.all || '').replace(':count', String(this.total));
+        },
+    }));
 });
 
 window.makeUuid = function makeUuid() {

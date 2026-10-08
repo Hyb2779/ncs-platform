@@ -16,6 +16,8 @@ return [
     'popular_slots' => 'Popular slots',
     'popular_live' => 'Live casino',
     'search' => 'Search games',
+    'search_empty' => 'No games found',
+    'search_all' => 'All results (:count)',
     'providers' => 'Providers',
     'categories' => 'Categories',
     'all' => 'All',

@@ -11,9 +11,11 @@ use App\Models\WalletTransaction;
 use App\Services\Casino\DemoProvider;
 use App\Services\Casino\GameCatalog;
 use App\Services\Casino\GameLauncher;
+use App\Services\Casino\GameSuggest;
 use App\Services\Casino\HomeCasinoRails;
 use App\Services\HomeSlides;
 use App\Services\WalletException;
+use App\Support\GameSearch;
 use App\Support\Money;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -42,6 +44,18 @@ class SiteController extends Controller
     {
         return view('site.lobby', $this->lobby($request, 'slot'));
     }
+
+
+    public function suggest(Request $request, GameSuggest $suggest): JsonResponse
+    {
+        $mode = (string) $request->query('mode', 'slot');
+        $term = mb_substr(trim((string) $request->query('q', '')), 0, 80);
+
+        return response()->json(
+            $suggest->search($request->user(), $mode, $term, (string) $request->query('vendor', ''))
+        )->header('Cache-Control', 'no-store');
+    }
+
 
     public function live(Request $request): View
     {
@@ -237,8 +251,9 @@ class SiteController extends Controller
     {
         $query = $this->games($mode);
 
-        if ($request->filled('q')) {
-            $query->where('name', 'like', '%'.$request->string('q').'%');
+        $needle = GameSearch::like((string) $request->query('q', ''));
+        if ($needle !== '%%') {
+            $query->where('name_folded', 'like', $needle);
         }
 
         if ($request->filled('provider')) {
