@@ -18,6 +18,82 @@ html[dir='rtl'] body {
     font-family: var(--font-arabic);
 }
 
+img.brand-logo {
+    --brand-logo-h: 28px;
+    display: block;
+    height: var(--brand-logo-h);
+    width: auto;
+    max-width: none;
+    aspect-ratio: 2128 / 660;
+    transform: none;
+}
+
+@media (min-width: 768px) {
+    img.brand-logo {
+        --brand-logo-h: 36px;
+    }
+}
+
+html[dir='rtl'] img.brand-logo {
+    transform: none;
+}
+
+/* Üst menü logosu. Dil solda, logo ortada, sağda Giriş ya da bakiye. */
+.site-brand img.brand-logo {
+    --brand-logo-h: 36px;
+}
+
+@media (min-width: 768px) {
+    .site-brand img.brand-logo {
+        --brand-logo-h: 44px;
+    }
+}
+
+.site-header-bar {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+}
+
+@media (max-width: 767px) {
+    .site-header-bar .site-brand img.brand-logo {
+        --brand-logo-h: 40px;
+    }
+}
+
+.site-footer-logo {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 6px;
+    text-decoration: none;
+}
+
+.site-footer-logo img.brand-logo {
+    --brand-logo-h: 40px;
+}
+
+@media (min-width: 768px) {
+    .site-footer-logo img.brand-logo {
+        --brand-logo-h: 44px;
+    }
+}
+
+/* Panel menüsü koyu: logo doğrudan zeminde. Açık temada gümüş yazı için koyu zemin. */
+.panel-brand {
+    display: inline-flex;
+    align-items: center;
+    padding: 0;
+    border-radius: 0;
+    background: transparent;
+}
+
+.panel-brand img.brand-logo {
+    --brand-logo-h: 32px;
+}
+
+html:not([data-panel-theme='dark']) .panel-brand {
+    background-color: #161A22;
+}
+
 .font-numeric {
     font-family: var(--font-numeric);
 }
@@ -41,6 +117,105 @@ html[dir='rtl'] body {
 
 html[dir='rtl'] .home-rail {
     direction: rtl;
+}
+
+.win-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    width: 15.5rem;
+    flex: none;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--site-line);
+    border-radius: 1rem;
+    background: var(--site-panel);
+    color: inherit;
+    text-decoration: none;
+}
+
+.win-chip-art {
+    width: 44px;
+    height: 44px;
+    flex: none;
+    border-radius: 0.625rem;
+    object-fit: cover;
+    background: var(--site-panel-2);
+}
+
+.win-chip-letter {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.875rem;
+    font-weight: 800;
+}
+
+.win-chip-copy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 0.125rem;
+}
+
+.win-chip-game {
+    overflow: hidden;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.win-chip-user {
+    font-size: 0.75rem;
+    color: var(--site-muted);
+}
+
+.win-chip-amount {
+    font-family: var(--font-numeric);
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--site-gold);
+}
+
+/* Kart oranı 4:3: örneklenen GoldPalace görsellerinin çoğunluğu (584×438 ve 580×430). */
+.game-card-art {
+    position: relative;
+    display: block;
+    aspect-ratio: 4 / 3;
+    overflow: hidden;
+    border-radius: 1rem;
+    background: var(--site-panel-2);
+}
+
+.game-card-blur,
+.game-card-img {
+    object-position: center;
+}
+
+.game-card-blur {
+    position: absolute;
+    inset: -12%;
+    width: 124%;
+    height: 124%;
+    object-fit: cover;
+    filter: blur(16px);
+    transform: scale(1.08);
+    pointer-events: none;
+}
+
+.game-card-img {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    transition: transform 200ms;
+}
+
+.group:hover .game-card-img,
+.group:focus-visible .game-card-img {
+    transform: scale(1.05);
 }
 
 .lobby-hero { position: relative; overflow: hidden; border-radius: 14px; background: #0f172a; margin-bottom: 12px; height: 256px; width: 100%; }
@@ -225,6 +400,195 @@ html[dir='rtl'] .home-cat-shade {
     box-shadow: 0 12px 28px rgb(0 0 0 / 0.35);
 }
 
+.home-matches {
+    min-width: 0;
+}
+
+.home-matches-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    min-width: 0;
+}
+
+.home-match-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid var(--site-line);
+    border-radius: 16px;
+    background: var(--site-panel);
+    color: var(--site-text);
+}
+
+.home-match-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-width: 0;
+    height: 44px;
+    padding-inline: 12px;
+    border-bottom: 1px solid var(--site-line);
+}
+
+.home-match-card-title {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    color: inherit;
+    font-size: 14px;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.home-match-live-dot {
+    width: 8px;
+    height: 8px;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: var(--site-live);
+}
+
+.home-matches-all {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 4px;
+    color: var(--accent);
+    font-size: 13px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+.home-match-row {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    box-sizing: border-box;
+    height: 64px;
+    min-width: 0;
+    padding-inline: 12px;
+    border-bottom: 1px solid var(--site-line);
+    color: inherit;
+    text-decoration: none;
+}
+
+.home-match-row:last-child {
+    border-bottom: 0;
+}
+
+.home-match-meta {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 2px;
+    width: 4.75rem;
+    min-width: 0;
+}
+
+.home-match-badge {
+    display: inline-flex;
+    align-items: center;
+    max-width: 100%;
+    height: 18px;
+    overflow: hidden;
+    padding-inline: 5px;
+    border-radius: 4px;
+    background: var(--site-live);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+}
+
+.home-match-badge[hidden],
+.home-match-day[hidden],
+.home-match-scores[hidden] {
+    display: none;
+}
+
+.home-match-day,
+.home-match-clock {
+    max-width: 100%;
+    overflow: hidden;
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-match-day {
+    color: var(--site-text);
+}
+
+.home-match-clock {
+    color: var(--site-text-2);
+}
+
+.home-match-main {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 1px;
+    min-width: 0;
+}
+
+.home-match-team,
+.home-match-league {
+    max-width: 100%;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.home-match-team {
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.25;
+}
+
+.home-match-league {
+    color: var(--site-muted);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.25;
+}
+
+.home-match-scores {
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 1px;
+    min-width: 1.25rem;
+}
+
+.home-match-score {
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-align: end;
+}
+
+@media (min-width: 768px) {
+    .home-matches-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .home-matches-grid:has(> .home-match-card[hidden]) > .home-match-card:not([hidden]) {
+        grid-column: 1 / -1;
+    }
+}
 
 .sport-tab-on {
     box-shadow: inset 0 -2px 0 var(--accent);
@@ -496,6 +860,193 @@ html[dir='rtl'] .site-footer { font-family: var(--font-arabic); }
     line-height: 1.35;
     color: var(--site-muted);
 }
+.acct-plus {
+    color: #3ddc97;
+}
+.acct-minus {
+    color: #ff5d73;
+}
+.acct-zero {
+    color: var(--site-muted);
+}
+.account-menu {
+    display: grid;
+    gap: 8px;
+    margin-top: 16px;
+}
+
+.account-menu a,
+.account-menu button {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    box-sizing: border-box;
+    width: 100%;
+    height: 52px;
+    padding-inline: 16px;
+    border: 1px solid var(--site-line);
+    border-radius: 8px;
+    background: var(--site-panel);
+    color: var(--site-text);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.account-logout {
+    color: var(--site-live);
+}
+
+.account-logout svg {
+    width: 20px;
+    height: 20px;
+    flex: none;
+}
+
+html[dir='rtl'] .account-logout svg {
+    transform: scaleX(-1);
+}
+
+.acct-head {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+}
+
+.acct-back {
+    display: inline-flex;
+    flex: 0 0 32px;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    color: var(--site-text);
+    font-size: 18px;
+    line-height: 1;
+    text-decoration: none;
+}
+
+.acct-title {
+    min-width: 0;
+    font-size: 20px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.acct-tabs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin-top: 12px;
+    overflow: hidden;
+    border: 1px solid var(--site-line);
+    border-radius: 8px;
+    background: var(--site-panel);
+}
+
+.acct-tabs a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 8px;
+    color: var(--site-text);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    text-align: center;
+    text-decoration: none;
+}
+
+.acct-tabs a + a {
+    border-inline-start: 1px solid var(--site-line);
+}
+
+.acct-tabs a[aria-current='page'] {
+    background: var(--accent);
+    color: var(--site-on-accent);
+}
+
+.acct-filter {
+    display: grid;
+    gap: 8px;
+    min-width: 0;
+    max-width: 28rem;
+    margin-top: 12px;
+}
+
+.acct-dates {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    min-width: 0;
+}
+
+.acct-field {
+    display: grid;
+    gap: 4px;
+    min-width: 0;
+}
+
+.acct-field span {
+    color: var(--site-muted);
+    font-size: 12px;
+    line-height: 1.2;
+}
+
+.acct-control {
+    box-sizing: border-box;
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: 44px;
+    margin: 0;
+    padding-inline: 10px;
+    border: 1px solid var(--site-line);
+    border-radius: 8px;
+    background: var(--site-panel);
+    color: var(--site-text);
+    font: inherit;
+    font-size: 16px;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.acct-control::-webkit-date-and-time-value {
+    text-align: left;
+}
+
+html[dir='rtl'] .acct-control::-webkit-date-and-time-value {
+    text-align: right;
+}
+
+.acct-control::-webkit-datetime-edit {
+    min-width: 0;
+    padding: 0;
+}
+
+select.acct-control {
+    padding-inline-end: 28px;
+    background-color: var(--site-panel);
+    background-image: linear-gradient(45deg, transparent 50%, var(--site-muted) 50%), linear-gradient(135deg, var(--site-muted) 50%, transparent 50%);
+    background-position: calc(100% - 18px) calc(50% - 2px), calc(100% - 13px) calc(50% - 2px);
+    background-repeat: no-repeat;
+    background-size: 5px 5px, 5px 5px;
+}
+
+html[dir='rtl'] select.acct-control {
+    background-position: 18px calc(50% - 2px), 13px calc(50% - 2px);
+}
+
+.acct-submit {
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 .site-footer-age {
     display: inline-flex;
     align-items: center;
@@ -511,6 +1062,7 @@ html[dir='rtl'] .site-footer { font-family: var(--font-arabic); }
     line-height: 1;
     color: var(--site-text);
 }
+
 
 .game-suggest {
     position: absolute;

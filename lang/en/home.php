@@ -2,8 +2,10 @@
 
 return [
     'play_now' => 'Play now',
-    'slide_nav' => 'Slides',
     'sit_down' => 'Take a seat',
+    'slide_nav' => 'Slides',
+    'slide_prev' => 'Previous slide',
+    'slide_next' => 'Next slide',
     'slide_label' => 'Slide :n',
     'badge_new' => 'New',
     'hero_title' => 'Welcome to :brand',
@@ -21,11 +23,15 @@ return [
     'popular_slots' => 'Popular slots',
     'popular_games' => 'Popular games',
     'live_casino' => 'Live Casino',
-    'winners' => 'Recent winners',
+    'winners' => 'Recent wins',
     'providers' => 'Game providers',
     'footer_note' => ':brand is a private betting and casino club. Betting is prohibited for anyone under 18.',
     'product_slot' => 'Slot',
     'product_sport' => 'Sport',
     'product_live_casino' => 'Live casino',
     'daily_games' => 'Games of the day',
+    'matches_label' => 'Matches',
+    'matches_live' => 'Live Matches',
+    'matches_upcoming' => 'Upcoming Matches',
+    'matches_all' => 'All',
 ];

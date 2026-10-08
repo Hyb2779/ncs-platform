@@ -57,18 +57,54 @@
     @endif
 
     @if (! empty($winners))
-        <section class="flex flex-col gap-3 rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-4 md:p-5">
+        <section class="flex flex-col gap-3" data-win-ticker aria-label="{{ __('home.winners') }}">
             <h2 class="text-lg font-extrabold text-[var(--site-text)] md:text-xl">{{ __('home.winners') }}</h2>
-            <div class="grid grid-cols-2 gap-3 md:grid-cols-6">
-                @foreach ($winners as $w)
-                    <div class="flex flex-col gap-1 rounded-xl bg-[var(--site-panel-2)] p-3">
-                        <span class="text-xs text-[var(--site-muted)]">{{ $w['user'] }} · {{ $w['product'] }}</span>
-                        <span class="font-numeric text-xl font-bold text-[var(--site-gold)]">{{ $w['amount'] }}</span>
-                    </div>
+            <div class="home-rail no-scrollbar flex gap-3 overflow-x-auto overscroll-x-contain" data-win-rail>
+                @foreach (count($winners) > 1 ? [false, true] : [false] as $clone)
+                    @foreach ($winners as $w)
+                        @include('site._winner_chip', ['w' => $w, 'clone' => $clone])
+                    @endforeach
                 @endforeach
             </div>
+            @if (count($winners) > 1)
+                <script>
+                    (function () {
+                        var rail = document.querySelector('[data-win-rail]');
+                        if (!rail || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+                        var paused = false;
+                        var hold;
+                        var last = performance.now();
+                        function pause() {
+                            paused = true;
+                            clearTimeout(hold);
+                        }
+                        function resume() {
+                            clearTimeout(hold);
+                            hold = setTimeout(function () { paused = false; last = performance.now(); }, 1200);
+                        }
+                        rail.addEventListener('pointerdown', pause);
+                        rail.addEventListener('pointerup', resume);
+                        rail.addEventListener('pointercancel', resume);
+                        rail.addEventListener('pointerleave', resume);
+                        function step(now) {
+                            var half = rail.scrollWidth / 2;
+                            if (!paused && half > rail.clientWidth) {
+                                var dt = Math.min(now - last, 50);
+                                rail.scrollLeft += (half / 32000) * dt;
+                                if (rail.scrollLeft >= half) rail.scrollLeft -= half;
+                            }
+                            last = now;
+                            requestAnimationFrame(step);
+                        }
+                        requestAnimationFrame(step);
+                    })();
+                </script>
+            @endif
         </section>
     @endif
 
+    @if (is_array($homeMatches ?? null) && (($homeMatches['live'] ?? []) !== [] || ($homeMatches['upcoming'] ?? []) !== []))
+        @include('site._home_matches', ['matches' => $homeMatches])
+    @endif
 </div>
 @endsection

@@ -2,8 +2,10 @@
 
 return [
     'play_now' => 'Hemen Oyna',
-    'slide_nav' => 'Slaytlar',
     'sit_down' => 'Masaya Otur',
+    'slide_nav' => 'Slaytlar',
+    'slide_prev' => 'Önceki slayt',
+    'slide_next' => 'Sonraki slayt',
     'slide_label' => 'Slayt :n',
     'badge_new' => 'Yeni',
     'hero_title' => ':brand\'ta maçın nabzı',
@@ -21,11 +23,15 @@ return [
     'popular_slots' => 'Popüler slotlar',
     'popular_games' => 'Popüler Oyunlar',
     'live_casino' => 'Canlı Casino',
-    'winners' => 'Son kazananlar',
+    'winners' => 'Son kazançlar',
     'providers' => 'Oyun sağlayıcıları',
     'footer_note' => ':brand, özel bir bahis ve casino kulübüdür. 18 yaşından küçüklerin bahis oynaması yasaktır.',
     'product_slot' => 'Slot',
     'product_sport' => 'Spor',
     'product_live_casino' => 'Canlı casino',
     'daily_games' => 'Günün oyunları',
+    'matches_label' => 'Maçlar',
+    'matches_live' => 'Canlı Maçlar',
+    'matches_upcoming' => 'Yaklaşan Maçlar',
+    'matches_all' => 'Tümü',
 ];

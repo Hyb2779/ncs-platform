@@ -2,8 +2,10 @@
 
 return [
     'play_now' => 'Jetzt spielen',
-    'slide_nav' => 'Folien',
     'sit_down' => 'Platz nehmen',
+    'slide_nav' => 'Folien',
+    'slide_prev' => 'Vorherige Folie',
+    'slide_next' => 'Nächste Folie',
     'slide_label' => 'Folie :n',
     'badge_new' => 'Neu',
     'hero_title' => 'Willkommen bei :brand',
@@ -21,11 +23,15 @@ return [
     'popular_slots' => 'Beliebte Slots',
     'popular_games' => 'Beliebte Spiele',
     'live_casino' => 'Live-Casino',
-    'winners' => 'Letzte Gewinner',
+    'winners' => 'Letzte Gewinne',
     'providers' => 'Spieleanbieter',
     'footer_note' => ':brand ist ein privater Wett- und Casino-Club. Wetten ist unter 18 Jahren verboten.',
     'product_slot' => 'Slot',
     'product_sport' => 'Sport',
     'product_live_casino' => 'Live-Casino',
     'daily_games' => 'Spiele des Tages',
+    'matches_label' => 'Spiele',
+    'matches_live' => 'Live-Spiele',
+    'matches_upcoming' => 'Kommende Spiele',
+    'matches_all' => 'Alle',
 ];
