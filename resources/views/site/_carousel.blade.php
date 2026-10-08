@@ -1,34 +1,73 @@
-<section class="home-hero" data-home-hero data-slides="{{ count($slides) }}" x-data="homeHero()" :class="{ 'is-paused': paused }" @mouseenter="enter()" @mouseleave="leave()" @pointerdown="down($event)" @pointerup="up($event)" @pointercancel="up($event)">
-    @foreach ($slides as $index => $slide)
-        <a class="home-hero-slide {{ $loop->first ? 'is-on' : '' }}" :class="i === {{ $index }} ? 'is-on' : 'is-off'" href="{{ $slide['href'] }}" @click="open($event)" @guest onclick="const d = document.getElementById('login-dialog'); if (d && !event.defaultPrevented) { event.preventDefault(); d.showModal(); }" @endguest>
-            @if ($slide['image'])
-                <img class="home-hero-blur" src="{{ $slide['image'] }}" alt="" draggable="false" aria-hidden="true" @if ($slide['eager']) fetchpriority="low" @else loading="lazy" decoding="async" @endif>
-            @endif
-            @if ($slide['image'])
-                <img class="home-hero-art" src="{{ $slide['image'] }}" @if (! empty($slide['srcset'])) srcset="{{ $slide['srcset'] }}" sizes="(min-width: 768px) 148px, 68px" @endif alt="" draggable="false" @if ($slide['eager']) fetchpriority="high" @else loading="lazy" decoding="async" @endif>
-            @endif
-            <span class="home-hero-copy">
-                <span class="home-hero-badges">
-                    @if ($slide['winner'] ?? false)
-                        <span class="home-hero-badge is-winner">{{ __('home.day_winner') }}</span>
-                    @endif
-                    @if ($slide['provider'])
-                        <span class="home-hero-badge">{{ $slide['provider'] }}</span>
-                    @endif
-                </span>
-                <strong class="home-hero-name">{{ $slide['name'] }}</strong>
-                @if (! empty($slide['yesterday']))
-                    <span class="home-hero-win">{{ __('home.yesterday_won', ['amount' => $slide['yesterday']]) }}</span>
+<div class="lobby-hero" id="lobbyHero">
+    <div class="lobby-hero-scale">
+        @foreach ($slides as $index => $slide)
+            @php
+                $heroUrl = str_replace(['\\', "'", '(', ')'], ['%5C', '%27', '%28', '%29'], (string) ($slide['image'] ?? ''));
+            @endphp
+            <a class="lobby-hero-slide{{ $loop->first ? ' is-on' : '' }}" href="{{ $slide['href'] }}" @if ($heroUrl !== '') style="--hero:url('{{ $heroUrl }}')" @endif @guest onclick="const d = document.getElementById('login-dialog'); if (d) { event.preventDefault(); d.showModal(); }" @endguest>
+                @if ($slide['image'])
+                    <img class="lobby-hero-art" src="{{ $slide['image'] }}" alt="{{ $slide['name'] }}" decoding="async" @if ($slide['eager']) fetchpriority="high" loading="eager" @else fetchpriority="low" loading="lazy" @endif>
                 @endif
-                <span class="home-hero-cta">{{ __($slide['cta'] ?? 'home.play_now') }}</span>
-            </span>
-        </a>
-    @endforeach
-    @if (count($slides) > 1)
-        <div class="home-hero-progress" role="tablist" aria-label="{{ __('home.slide_nav') }}">
-            @foreach ($slides as $index => $slide)
-                <button type="button" role="tab" class="{{ $loop->first ? 'is-on' : '' }}" :class="i === {{ $index }} ? 'is-on' : 'is-off'" :aria-selected="(i === {{ $index }}).toString()" aria-label="{{ __('home.slide_label', ['n' => $index + 1]) }}" @click.stop="go({{ $index }})"><span class="fill"></span></button>
-            @endforeach
-        </div>
-    @endif
-</section>
+                <div class="lobby-hero-copy">
+                    <div class="kicker-wrap">
+                        @if ($slide['winner'] ?? false)
+                            <span class="kicker kicker-winner">{{ __('home.day_winner') }}</span>
+                        @endif
+                        @if ($slide['provider'])
+                            <span class="kicker">{{ $slide['provider'] }}</span>
+                        @endif
+                    </div>
+                    <strong>{{ $slide['name'] }}</strong>
+                    @if (! empty($slide['yesterday']))
+                        <span class="hero-win-line">{{ __('home.yesterday_won', ['amount' => $slide['yesterday']]) }}</span>
+                    @endif
+                    <span class="lobby-hero-cta">{{ __($slide['cta'] ?? 'home.play_now') }}</span>
+                </div>
+            </a>
+        @endforeach
+        @if (count($slides) > 1)
+            <div class="lobby-hero-progress">
+                @foreach ($slides as $index => $slide)
+                    <button type="button" class="{{ $loop->first ? 'is-on' : '' }}" data-hero="{{ $index }}" aria-label="{{ __('home.slide_label', ['n' => $index + 1]) }}"><span class="fill"></span></button>
+                @endforeach
+            </div>
+        @endif
+    </div>
+</div>
+<script>
+(function () {
+    var hero = document.getElementById('lobbyHero');
+    if (!hero) return;
+    var slides = hero.querySelectorAll('.lobby-hero-slide');
+    var ticks = hero.querySelectorAll('[data-hero]');
+    var i = 0;
+    var timer = null;
+    var Dwell = 4500;
+    function go(n) {
+        if (!slides.length) return;
+        i = ((n % slides.length) + slides.length) % slides.length;
+        slides.forEach(function (s, idx) { s.classList.toggle('is-on', idx === i); });
+        ticks.forEach(function (t, idx) {
+            t.classList.toggle('is-on', idx === i);
+            var fill = t.querySelector('.fill');
+            if (fill && idx === i) { fill.style.animation = 'none'; void fill.offsetWidth; fill.style.animation = ''; }
+        });
+        restart();
+    }
+    function restart() {
+        if (timer) clearInterval(timer);
+        if (slides.length < 2) return;
+        timer = setInterval(function () { go(i + 1); }, Dwell);
+    }
+    ticks.forEach(function (t) {
+        t.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            go(parseInt(t.getAttribute('data-hero'), 10));
+        });
+    });
+    hero.addEventListener('mouseenter', function () { hero.classList.add('is-paused'); if (timer) clearInterval(timer); });
+    hero.addEventListener('mouseleave', function () { hero.classList.remove('is-paused'); go(i); });
+    restart();
+})();
+</script>

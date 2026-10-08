@@ -19,7 +19,7 @@ class HomeSlides
 {
     public const MIN = 6;
 
-    public const MAX = 12;
+    public const MAX = 8;
 
     private const CACHE = 'home:slides:rows';
 
@@ -103,7 +103,7 @@ class HomeSlides
             $buckets[$slide['category']][] = $slide;
         }
 
-        $woven = $this->weave($buckets);
+        $woven = array_slice($this->weave($buckets), 0, self::MAX);
         if ($woven !== []) {
             $woven[0]['eager'] = true;
         }
@@ -253,8 +253,8 @@ class HomeSlides
     }
 
     /**
-     * Özel banner varsa o kullanılır. Yoksa sağlayıcı görseli; 584x438 küçük kare
-     * büyütülmez, CDN'deki 800 / 1000 / 1200 karşılığı srcset ile verilir.
+     * Özel banner varsa o kullanılır. Yoksa sağlayıcının 4:3 (800x600) görseli;
+     * kare 1000x1000 slaytta afişi daraltır.
      *
      * @return array{src: ?string, srcset: ?string}
      */
@@ -272,11 +272,10 @@ class HomeSlides
         $base = preg_replace('/_584x438_NB\.[a-z0-9]+$/i', '', $url);
         $ext = $match[1];
         $medium = $base.'_800x600_NB'.$ext;
-        $square = $base.'_1000x1000_NB'.$ext;
 
         return [
-            'src' => $square,
-            'srcset' => $medium.' 800w, '.$square.' 1000w',
+            'src' => $medium,
+            'srcset' => null,
         ];
     }
 
@@ -450,7 +449,7 @@ class HomeSlides
         if (count($active) < 2) {
             $only = $active[0] ?? null;
 
-            return $only === null ? [] : $buckets[$only];
+            return $only === null ? [] : array_slice($buckets[$only], 0, self::MAX);
         }
 
         $out = [];

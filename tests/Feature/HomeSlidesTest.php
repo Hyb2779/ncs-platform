@@ -45,6 +45,7 @@ class HomeSlidesTest extends TestCase
         $slides = app(HomeSlides::class)->forViewer(null);
         $names = array_column($slides, 'name');
         $this->assertGreaterThanOrEqual(6, count($slides));
+        $this->assertLessThanOrEqual(8, count($slides));
         $this->assertSame('Sweet Bonanza 2500', $slides[0]['name']);
         $this->assertSame('Sweet Bonanza Super Scatter', $slides[1]['name']);
         $this->assertSame('Gates of Olympus', $slides[2]['name']);
@@ -54,19 +55,18 @@ class HomeSlidesTest extends TestCase
         $this->assertNotContains('match', array_column($slides, 'type'));
 
         $home->assertOk()
-            ->assertSee('data-home-hero', false)
+            ->assertSee('id="lobbyHero"', false)
+            ->assertSee('lobby-hero-art', false)
             ->assertDontSee('data-home-carousel', false)
+            ->assertDontSee('home-hero-slide', false)
             ->assertDontSee('data-slide="match"', false)
             ->assertSeeInOrder(['Sweet Bonanza 2500', 'Sweet Bonanza Super Scatter', 'Gates of Olympus'])
             ->assertSee(__('home.play_now'), false)
             ->assertSee(__('home.day_winner'), false)
             ->assertSee('fetchpriority="high"', false)
             ->assertSee('loading="lazy"', false)
-            ->assertSee('home-hero-art', false)
-            ->assertSee('home-hero-progress', false)
-            ->assertSee('vs20swbon2500_1000x1000_NB.jpg', false)
-            ->assertSee('800w', false)
-            ->assertSee('sizes="(min-width: 768px) 148px, 68px"', false)
+            ->assertSee('lobby-hero-progress', false)
+            ->assertSee('vs20swbon2500_800x600_NB.jpg', false)
             ->assertDontSee('home-slide-arrow', false)
             ->assertDontSee('vs20swbon2500_584x438_NB.jpg', false)
             ->assertDontSee('object-contain', false)
@@ -75,7 +75,7 @@ class HomeSlidesTest extends TestCase
             ->assertSee('Pragmatic Play', false)
             ->assertDontSee(__('home.hero_title', ['brand' => brand()->name()]), false)
             ->assertSee('data-home-rail="popular"', false)
-            ->assertSee('data-slides="'.count($slides).'"', false)
+            ->assertSee('lobby-hero-slide is-on', false)
             ->assertDontSee('Günün kombinesi', false)
             ->assertDontSee('Günün popüler maçları', false)
             ->assertDontSee('Yaklaşan maçlar', false);
