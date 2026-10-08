@@ -3,6 +3,10 @@
 return [
     'play_now' => 'Jetzt spielen',
     'slide_nav' => 'Folien',
+    'sit_down' => 'Platz nehmen',
+    'slide_label' => 'Folie :n',
+    'day_winner' => 'Gewinner des Tages',
+    'yesterday_won' => 'Gestern wurden in diesem Spiel insgesamt :amount gewonnen',
     'hero_title' => 'Willkommen bei :brand',
     'hero_text' => 'Verfolge die Spiele live bei Wegas Sport und platziere deine Wetten.',
     'live_matches' => 'Live-Spiele',

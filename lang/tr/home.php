@@ -3,6 +3,10 @@
 return [
     'play_now' => 'Hemen Oyna',
     'slide_nav' => 'Slaytlar',
+    'sit_down' => 'Masaya Otur',
+    'slide_label' => 'Slayt :n',
+    'day_winner' => 'Günün Kazandıranı',
+    'yesterday_won' => 'Dün bu oyunda toplam :amount kazanıldı',
     'hero_title' => ':brand\'ta maçın nabzı',
     'hero_text' => 'Maçları Wegas Spor\'da canlı takip et, bahsini yap.',
     'live_matches' => 'Canlı maçlar',

@@ -3,6 +3,10 @@
 return [
     'play_now' => 'Play now',
     'slide_nav' => 'Slides',
+    'sit_down' => 'Take a seat',
+    'slide_label' => 'Slide :n',
+    'day_winner' => "Today's top winner",
+    'yesterday_won' => 'Players won :amount on this game yesterday',
     'hero_title' => 'Welcome to :brand',
     'hero_text' => 'Follow matches live on Wegas Sport and place your bets.',
     'live_matches' => 'Live matches',

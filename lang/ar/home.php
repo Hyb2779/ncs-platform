@@ -3,6 +3,10 @@
 return [
     'play_now' => 'العب الآن',
     'slide_nav' => 'الشرائح',
+    'sit_down' => 'اجلس إلى الطاولة',
+    'slide_label' => 'الشريحة :n',
+    'day_winner' => 'رابح اليوم',
+    'yesterday_won' => 'ربح اللاعبون :amount في هذه اللعبة أمس',
     'hero_title' => 'مرحبًا بك في :brand',
     'hero_text' => 'تابع المباريات مباشرة على Wegas Sport وضع رهانك.',
     'live_matches' => 'المباريات المباشرة',

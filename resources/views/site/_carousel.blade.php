@@ -1,35 +1,33 @@
-<section class="home-carousel" data-home-carousel data-slides="{{ count($slides) }}" x-data="homeCarousel()" :class="{ 'is-static': wide && n < 3 }" @mouseenter="enter()" @mouseleave="leave()" @pointerdown="down($event)" @pointerup="up($event)" @pointercancel="up($event)">
-    <button class="home-slide-arrow home-slide-prev" type="button" :hidden="!deck" @click.stop="step(-1)" aria-label="{{ __('home.slide_prev') }}">
-        <span class="rtl:rotate-180" aria-hidden="true">&larr;</span>
-    </button>
-    <button class="home-slide-arrow home-slide-next" type="button" :hidden="!deck" @click.stop="step(1)" aria-label="{{ __('home.slide_next') }}">
-        <span class="rtl:rotate-180" aria-hidden="true">&rarr;</span>
-    </button>
-    <div class="home-carousel-view">
-    <div class="home-carousel-track" :class="{ 'is-still': !anim }" :style="{ transform: shift() }" @transitionend="landed($event)">
-        @foreach ($slides as $slide)
-            <div class="home-slide">
-                <div class="home-slide-media">
-                    @if ($slide['image'])
-                        <img class="home-slide-blur" src="{{ $slide['image'] }}" @if (! empty($slide['srcset'])) srcset="{{ $slide['srcset'] }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" @endif alt="" draggable="false" aria-hidden="true" @if ($slide['eager']) fetchpriority="low" @else loading="lazy" decoding="async" @endif>
-                        <img class="home-slide-img" src="{{ $slide['image'] }}" @if (! empty($slide['srcset'])) srcset="{{ $slide['srcset'] }}" sizes="(min-width: 1024px) 33vw, (min-width: 768px) 50vw, 100vw" @endif alt="" draggable="false" @if ($slide['eager']) fetchpriority="high" @else loading="lazy" decoding="async" @endif>
+<section class="home-hero" data-home-hero data-slides="{{ count($slides) }}" x-data="homeHero()" :class="{ 'is-paused': paused }" @mouseenter="enter()" @mouseleave="leave()" @pointerdown="down($event)" @pointerup="up($event)" @pointercancel="up($event)">
+    @foreach ($slides as $index => $slide)
+        <a class="home-hero-slide {{ $loop->first ? 'is-on' : '' }}" :class="i === {{ $index }} ? 'is-on' : 'is-off'" href="{{ $slide['href'] }}" @click="open($event)" @guest onclick="const d = document.getElementById('login-dialog'); if (d && !event.defaultPrevented) { event.preventDefault(); d.showModal(); }" @endguest>
+            @if ($slide['image'])
+                <img class="home-hero-blur" src="{{ $slide['image'] }}" alt="" draggable="false" aria-hidden="true" @if ($slide['eager']) fetchpriority="low" @else loading="lazy" decoding="async" @endif>
+            @endif
+            @if ($slide['image'])
+                <img class="home-hero-art" src="{{ $slide['image'] }}" @if (! empty($slide['srcset'])) srcset="{{ $slide['srcset'] }}" sizes="(min-width: 768px) 148px, 68px" @endif alt="" draggable="false" @if ($slide['eager']) fetchpriority="high" @else loading="lazy" decoding="async" @endif>
+            @endif
+            <span class="home-hero-copy">
+                <span class="home-hero-badges">
+                    @if ($slide['winner'] ?? false)
+                        <span class="home-hero-badge is-winner">{{ __('home.day_winner') }}</span>
                     @endif
-                </div>
-                <div class="home-slide-copy">
                     @if ($slide['provider'])
-                        <p class="home-slide-provider">{{ mb_strtoupper((string) $slide['provider']) }}</p>
+                        <span class="home-hero-badge">{{ $slide['provider'] }}</span>
                     @endif
-                    <h2 class="home-slide-title">{{ $slide['name'] }}</h2>
-                    <a class="home-slide-play" href="{{ $slide['href'] }}" @guest onclick="const d = document.getElementById('login-dialog'); if (d) { event.preventDefault(); d.showModal(); }" @endguest>{{ __($slide['cta'] ?? 'home.play_now') }}</a>
-                </div>
-            </div>
-        @endforeach
-    </div>
-    </div>
+                </span>
+                <strong class="home-hero-name">{{ $slide['name'] }}</strong>
+                @if (! empty($slide['yesterday']))
+                    <span class="home-hero-win">{{ __('home.yesterday_won', ['amount' => $slide['yesterday']]) }}</span>
+                @endif
+                <span class="home-hero-cta">{{ __($slide['cta'] ?? 'home.play_now') }}</span>
+            </span>
+        </a>
+    @endforeach
     @if (count($slides) > 1)
-        <div class="home-slide-dots" role="tablist" aria-label="{{ __('home.slide_nav') }}">
+        <div class="home-hero-progress" role="tablist" aria-label="{{ __('home.slide_nav') }}">
             @foreach ($slides as $index => $slide)
-                <button type="button" role="tab" :class="i === {{ $index }} ? 'is-on' : ''" :aria-selected="(i === {{ $index }}).toString()" @click="go({{ $index }})"></button>
+                <button type="button" role="tab" class="{{ $loop->first ? 'is-on' : '' }}" :class="i === {{ $index }} ? 'is-on' : 'is-off'" :aria-selected="(i === {{ $index }}).toString()" aria-label="{{ __('home.slide_label', ['n' => $index + 1]) }}" @click.stop="go({{ $index }})"><span class="fill"></span></button>
             @endforeach
         </div>
     @endif

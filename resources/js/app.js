@@ -35,38 +35,26 @@ document.addEventListener('alpine:init', () => {
             this.$nextTick(() => this.$root.closest('form')?.requestSubmit());
         },
     }));
-    Alpine.data('homeCarousel', () => ({
+    Alpine.data('homeHero', () => ({
         i: 0,
         n: 0,
         rtl: false,
-        wide: false,
-        cols: 1,
-        vw: 0,
-        anim: false,
-        moving: false,
-        over: false,
+        paused: false,
         timer: null,
         originX: null,
+        swiped: false,
+        dwell: 4500,
         init() {
             this.n = Number(this.$el.dataset.slides || 0);
             this.rtl = document.documentElement.dir === 'rtl';
-            this.layout();
-            this.$nextTick(() => { this.anim = true; });
             this.play();
-            window.addEventListener('resize', () => this.onResize());
-        },
-        get deck() {
-            return this.wide && this.n >= 3;
         },
         play() {
             this.stop();
-            if (!this.wide && this.n < 2) {
+            if (this.n < 2 || this.paused) {
                 return;
             }
-            if (this.wide && this.n < 3) {
-                return;
-            }
-            this.timer = window.setInterval(() => this.next(), 5000);
+            this.timer = window.setInterval(() => this.go(this.i + 1), this.dwell);
         },
         stop() {
             if (this.timer) {
@@ -75,159 +63,57 @@ document.addEventListener('alpine:init', () => {
             this.timer = null;
         },
         enter() {
-            this.over = true;
+            this.paused = true;
             this.stop();
         },
         leave() {
-            this.over = false;
-            this.play();
-        },
-        next() {
-            if (this.wide && this.n < 3) {
-                return;
-            }
-            if (!this.wide) {
-                this.i = (this.i + 1) % this.n;
-                return;
-            }
-            if (this.moving) {
-                return;
-            }
-            this.moving = true;
-            this.i += 1;
-            window.setTimeout(() => { this.moving = false; }, 520);
-        },
-        prev() {
-            if (this.wide && this.n < 3) {
-                return;
-            }
-            if (!this.wide) {
-                this.i = (this.i - 1 + this.n) % this.n;
-                return;
-            }
-            if (this.moving) {
-                return;
-            }
-            this.moving = true;
-            this.i -= 1;
-            window.setTimeout(() => { this.moving = false; }, 520);
-        },
-        step(dir) {
-            if (dir < 0) {
-                this.prev();
-            } else {
-                this.next();
-            }
+            this.paused = false;
+            this.go(this.i);
         },
         go(index) {
-            this.i = index;
+            if (this.n < 1) {
+                return;
+            }
+            this.i = ((index % this.n) + this.n) % this.n;
+            this.$nextTick(() => {
+                const fill = this.$el.querySelector('.home-hero-progress button.is-on .fill');
+                if (!fill) {
+                    return;
+                }
+                fill.style.animation = 'none';
+                void fill.offsetWidth;
+                fill.style.animation = '';
+            });
             this.play();
         },
         down(event) {
+            if (event.target.closest('.home-hero-progress')) {
+                return;
+            }
             if (event.pointerType === 'mouse' && event.button !== 0) {
                 return;
             }
             this.originX = event.clientX;
-            this.stop();
         },
         up(event) {
             if (this.originX === null) {
-                if (!(this.wide && this.over)) {
-                    this.play();
-                }
                 return;
             }
             const delta = event.clientX - this.originX;
             this.originX = null;
-            if (Math.abs(delta) > 40) {
-                const forward = this.rtl ? delta > 0 : delta < 0;
-                if (forward) {
-                    this.next();
-                } else {
-                    this.prev();
-                }
-            }
-            if (!(this.wide && this.over)) {
-                this.play();
-            }
-        },
-        shift() {
-            if (!this.wide) {
-                const sign = this.rtl ? 1 : -1;
-
-                return `translateX(${sign * this.i * 100}%)`;
-            }
-            if (!this.deck) {
-                return 'translateX(0)';
-            }
-            const gap = 16;
-            const width = this.vw || this.$el.clientWidth;
-            const card = (width - gap * (this.cols - 1)) / this.cols;
-            const sign = this.rtl ? 1 : -1;
-
-            return `translateX(${sign * this.i * (card + gap)}px)`;
-        },
-        layout() {
-            const track = this.$el.querySelector('.home-carousel-track');
-            track.querySelectorAll('[data-clone]').forEach((node) => node.remove());
-            this.wide = window.innerWidth >= 768;
-            this.cols = !this.wide ? 1 : (window.innerWidth >= 1024 ? 3 : 2);
-            this.vw = this.$el.querySelector('.home-carousel-view').clientWidth;
-            this.moving = false;
-            if (!this.deck) {
-                this.i = 0;
+            if (Math.abs(delta) < 40) {
                 return;
             }
-            const slides = [...track.querySelectorAll('.home-slide')];
-            const before = document.createDocumentFragment();
-            const after = document.createDocumentFragment();
-            for (let k = 0; k < this.cols; k++) {
-                const tail = slides[slides.length - this.cols + k].cloneNode(true);
-                const head = slides[k].cloneNode(true);
-                [tail, head].forEach((node) => {
-                    node.setAttribute('data-clone', '1');
-                    node.setAttribute('aria-hidden', 'true');
-                    node.inert = true;
-                });
-                before.appendChild(tail);
-                after.appendChild(head);
-            }
-            track.prepend(before);
-            track.append(after);
-            this.anim = false;
-            this.i = this.cols;
+            this.swiped = true;
+            const forward = this.rtl ? delta > 0 : delta < 0;
+            this.go(this.i + (forward ? 1 : -1));
         },
-        onResize() {
-            const wide = window.innerWidth >= 768;
-            const cols = !wide ? 1 : (window.innerWidth >= 1024 ? 3 : 2);
-            this.vw = this.$el.querySelector('.home-carousel-view').clientWidth;
-            if (wide === this.wide && cols === this.cols) {
+        open(event) {
+            if (!this.swiped) {
                 return;
             }
-            this.layout();
-            this.$nextTick(() => { this.anim = true; });
-            this.play();
-        },
-        landed(event) {
-            if (event.target !== event.currentTarget || event.propertyName !== 'transform' || !this.deck) {
-                return;
-            }
-            if (this.i >= this.n + this.cols) {
-                this.anim = false;
-                this.i -= this.n;
-            } else if (this.i < this.cols) {
-                this.anim = false;
-                this.i += this.n;
-            } else {
-                this.moving = false;
-                return;
-            }
-            this.$nextTick(() => {
-                requestAnimationFrame(() => {
-                    this.anim = true;
-                    this.moving = false;
-                });
-            });
+            event.preventDefault();
+            this.swiped = false;
         },
     }));
 });
