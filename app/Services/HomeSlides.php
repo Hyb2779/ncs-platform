@@ -2,32 +2,33 @@
 
 namespace App\Services;
 
-use App\Enums\Currency;
 use App\Models\CasinoGame;
 use App\Models\HomeSlide;
 use App\Models\User;
 use App\Services\Casino\GameAvailability;
-use App\Services\Casino\HomeCasinoRails;
-use App\Support\Money;
 use App\Support\Vendors;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
-/** Ana sayfa slaytı: sabit oyunlar, son 24 saatin en yüksek kazancı, panel oyunları, popüler doldurma. Canlı ve mini slaytlar config/home.php slides listesinden gelir. */
+/** Ana sayfa slaytı: 2 sabit, 3 yeni, 3 popüler. Havuzlar saatte bir yenilenir; seçim önbellekten yapılır. */
 class HomeSlides
 {
     public const MIN = 6;
 
     public const MAX = 8;
 
-    private const CACHE = 'home:slides:rows';
+    private const ROWS = 'home:slides:rows:v2';
 
-    private Currency $currency = Currency::Try;
+    private const POOL_NEW = 'home:slider:pool:new';
+
+    private const POOL_POPULAR = 'home:slider:pool:popular';
+
+    private const POOL_TTL = 3600;
+
+    private const POOL_LIMIT = 80;
 
     public function __construct(
         private readonly GameAvailability $availability,
-        private readonly HomeCasinoRails $rails,
     ) {}
 
     /**
@@ -35,85 +36,82 @@ class HomeSlides
      */
     public function forViewer(?User $user): array
     {
-        return $this->compose($user);
-    }
-
-    /**
-     * @return list<array<string, mixed>>
-     */
-    private function compose(?User $user): array
-    {
         $rows = $this->rows();
-        $games = $this->gamesFor($rows);
-        $suppressed = [];
-        $reserved = array_fill_keys(array_values(HomeSlide::PINNED), true);
+        $excluded = [];
+        $fixed = [];
         foreach ($rows as $row) {
-            if (! $row['is_active'] && $row['game_id'] !== null) {
-                $suppressed[(int) $row['game_id']] = true;
+            if ($row['excluded'] && $row['game_id'] !== null) {
+                $excluded[$row['game_id']] = true;
+            }
+            if ($row['is_active'] && $row['key'] !== null && array_key_exists($row['key'], HomeSlide::PINNED) && is_array($row['game'])) {
+                $fixed[] = $row;
             }
         }
+        shuffle($fixed);
 
-        $used = [];
-        $names = [];
+        $usedIds = [];
         $slides = [];
-        $this->currency = $user?->currency ?? Currency::Try;
-        $yesterday = $this->yesterdayTotals($user);
-        foreach ($this->ordered($rows) as $row) {
-            if (! $row['is_active']) {
+        $categories = [];
+        foreach ($fixed as $row) {
+            if (isset($excluded[$row['game']['id']]) || ! $this->allowed($row['game'], $user)) {
                 continue;
             }
-            $winner = $row['key'] === HomeSlide::TOP_WIN;
-            $game = $winner
-                ? $this->topWin($user, $games, $used, $names, $suppressed)
-                : $this->take($games->get($row['game_id']), $user, $used, $names, $suppressed);
-            if ($game instanceof CasinoGame) {
-                $slides[] = $this->gameSlide($game, $row['image_path'] ? route('site.home_slide.image', $row['id']) : null, $winner, $yesterday);
+            $slide = $this->slideFrom($row['game'], false, $row['image_path'] ? route('site.home_slide.image', $row['id']) : null);
+            if ($slide === null) {
+                continue;
+            }
+            $slides[] = $slide;
+            $usedIds[$slide['game_id']] = true;
+            $categories[$slide['category']] = true;
+            if (count($slides) >= 2) {
+                break;
             }
         }
 
-        if (count($slides) < self::MIN) {
-            foreach ($this->rails->popularSlots($user, self::MIN + count($used) + count($suppressed) + 12) as $game) {
-                if (isset($reserved[$game->name])) {
-                    continue;
+        $seen = $this->seen();
+        $usedProviders = [];
+        $open = self::MAX - count($slides);
+        $newCount = min(3, $open);
+        $popularCount = min(3, $open - $newCount);
+        $extra = $open - $newCount - $popularCount;
+        $pickedNew = $this->draw($this->pool(self::POOL_NEW, false), $newCount, $seen, $usedIds, $usedProviders, $categories, $excluded, $user);
+        foreach ($pickedNew as $game) {
+            $slide = $this->slideFrom($game, true, null);
+            if ($slide !== null) {
+                $slides[] = $slide;
+            }
+        }
+        $pickedPopular = $this->draw($this->pool(self::POOL_POPULAR, true), $popularCount + $extra, $seen, $usedIds, $usedProviders, $categories, $excluded, $user);
+        foreach ($pickedPopular as $game) {
+            $slide = $this->slideFrom($game, false, null);
+            if ($slide !== null) {
+                $slides[] = $slide;
+            }
+        }
+
+        if (count($slides) < self::MAX) {
+            foreach ($this->draw($this->pool(self::POOL_NEW, false), self::MAX - count($slides), $seen, $usedIds, $usedProviders, $categories, $excluded, $user) as $game) {
+                $slide = $this->slideFrom($game, true, null);
+                if ($slide !== null) {
+                    $slides[] = $slide;
                 }
-                $picked = $this->take($game, $user, $used, $names, $suppressed);
-                if (! $picked instanceof CasinoGame) {
-                    continue;
-                }
-                $slides[] = $this->gameSlide($picked, null, false, $yesterday);
-                if (count($slides) >= self::MIN) {
-                    break;
-                }
             }
         }
 
-        $buckets = ['slot' => [], 'live' => [], 'mini' => []];
-        $usedIds = [];
-        foreach ($slides as $slide) {
-            $category = $slide['category'] ?? 'slot';
-            if (! isset($buckets[$category])) {
-                $category = 'slot';
-            }
-            $buckets[$category][] = $slide;
-            if (isset($slide['game_id'])) {
-                $usedIds[(int) $slide['game_id']] = true;
-            }
+        shuffle($slides);
+        if ($slides !== []) {
+            $slides[0]['eager'] = true;
         }
-        foreach ($this->configured($user, $usedIds, $yesterday) as $slide) {
-            $buckets[$slide['category']][] = $slide;
-        }
+        session(['home.slider.last' => array_values(array_map(fn (array $slide) => (int) $slide['game_id'], $slides))]);
 
-        $woven = array_slice($this->weave($buckets), 0, self::MAX);
-        if ($woven !== []) {
-            $woven[0]['eager'] = true;
-        }
-
-        return $woven;
+        return $slides;
     }
 
     public function forget(): void
     {
-        Cache::forget(self::CACHE);
+        Cache::forget(self::ROWS);
+        Cache::forget(self::POOL_NEW);
+        Cache::forget(self::POOL_POPULAR);
         Cache::forever('home:slides:view-version', ((int) Cache::get('home:slides:view-version', 1)) + 1);
     }
 
@@ -129,10 +127,6 @@ class HomeSlides
                 ]);
                 $order += 10;
             }
-            HomeSlide::query()->firstOrCreate(['key' => HomeSlide::TOP_WIN], [
-                'sort_order' => $order,
-                'is_active' => true,
-            ]);
         }
 
         foreach (HomeSlide::PINNED as $key => $name) {
@@ -151,145 +145,40 @@ class HomeSlides
     }
 
     /**
-     * @param  list<array{id: int, key: ?string, game_id: ?int, is_active: bool, image_path: ?string}>  $rows
-     * @return list<array{id: int, key: ?string, game_id: ?int, is_active: bool, image_path: ?string}>
+     * @return list<array<string, mixed>>
      */
-    private function ordered(array $rows): array
+    private function rows(): array
     {
-        $pinned = [];
-        $rest = [];
-        foreach ($rows as $row) {
-            if ($row['key'] !== null && array_key_exists($row['key'], HomeSlide::PINNED)) {
-                $pinned[] = $row;
-            } else {
-                $rest[] = $row;
-            }
+        $rows = Cache::get(self::ROWS);
+        if (is_array($rows)) {
+            return $rows;
         }
 
-        return [...$pinned, ...$rest];
+        $this->ensureDefaults();
+
+        $loaded = HomeSlide::query()->with('game.provider')->orderBy('sort_order')->orderBy('id')->get();
+        $rows = [];
+        foreach ($loaded as $slide) {
+            $rows[] = [
+                'id' => (int) $slide->id,
+                'key' => $slide->key,
+                'game_id' => $slide->game_id === null ? null : (int) $slide->game_id,
+                'is_active' => (bool) $slide->is_active,
+                'excluded' => (bool) $slide->excluded,
+                'image_path' => $slide->image_path,
+                'game' => $this->snapshot($slide->game),
+            ];
+        }
+        Cache::put(self::ROWS, $rows, 600);
+
+        return $rows;
     }
 
     /**
-     * @param  list<array{id: int, key: ?string, game_id: ?int, is_active: bool, image_path: ?string}>  $rows
+     * @return list<array<string, mixed>>
      */
-    private function gamesFor(array $rows)
+    private function pool(string $key, bool $popular): array
     {
-        $ids = array_values(array_filter(array_map(fn ($row) => $row['game_id'], $rows)));
-        $ids = array_values(array_unique([...$ids, ...$this->topWinIds()]));
-
-        if ($ids === []) {
-            return collect();
-        }
-
-        return CasinoGame::query()->with('provider')->whereIn('id', $ids)->get()->keyBy('id');
-    }
-
-    /**
-     * @param  Collection<int, CasinoGame>  $games
-     * @param  array<int, true>  $used
-     * @param  array<string, true>  $names
-     * @param  array<int, true>  $suppressed
-     */
-    private function topWin(?User $user, $games, array &$used, array &$names, array $suppressed): ?CasinoGame
-    {
-        foreach ($this->topWinIds() as $id) {
-            $game = $this->take($games->get($id), $user, $used, $names, $suppressed);
-            if ($game instanceof CasinoGame) {
-                return $game;
-            }
-        }
-
-        return null;
-    }
-
-    /**
-     * @param  array<int, true>  $used
-     * @param  array<string, true>  $names
-     * @param  array<int, true>  $suppressed
-     */
-    private function take(mixed $game, ?User $user, array &$used, array &$names, array $suppressed): ?CasinoGame
-    {
-        if (! $game instanceof CasinoGame || isset($used[$game->id]) || isset($names[$game->name]) || isset($suppressed[$game->id]) || ! $this->showGame($game, $user)) {
-            return null;
-        }
-        $used[$game->id] = true;
-        $names[$game->name] = true;
-
-        return $game;
-    }
-
-    /**
-     * @return list<int>
-     */
-    private function topWinIds(): array
-    {
-        $ids = Cache::remember('home:top-wins:'.now()->toDateString(), 86400, function () {
-            return DB::table('game_rounds as r')
-                ->join('casino_games as g', 'g.id', '=', 'r.game_id')
-                ->where('r.status', 'win')
-                ->where('r.win', '>', 0)
-                ->where('r.created_at', '>=', now()->subDay())
-                ->where('g.is_active', true)
-                ->where(fn ($q) => $q->where('g.is_live', true)->orWhere('g.category', 'mini')->orWhere(fn ($slot) => $slot->where('g.is_live', false)->where(fn ($w) => $w->whereNull('g.category')->orWhere('g.category', '!=', 'virtual'))))
-                ->groupBy('r.game_id')
-                ->selectRaw('r.game_id as game_id, SUM(r.win) as payout')
-                ->orderByDesc('payout')
-                ->limit(30)
-                ->pluck('game_id')
-                ->map(fn ($id) => (int) $id)
-                ->all();
-        });
-
-        return is_array($ids) ? $ids : [];
-    }
-
-    private function showGame(CasinoGame $game, ?User $user): bool
-    {
-        if (! $game->is_active || $game->provider?->status !== 'active' || $game->category === 'virtual') {
-            return false;
-        }
-
-        return $this->availability->isPlayable($game, $user);
-    }
-
-    /**
-     * Özel banner varsa o kullanılır. Yoksa sağlayıcının 4:3 (800x600) görseli;
-     * kare 1000x1000 slaytta afişi daraltır.
-     *
-     * @return array{src: ?string, srcset: ?string}
-     */
-    private function slideArt(CasinoGame $game, ?string $customImage): array
-    {
-        if ($customImage !== null && $customImage !== '') {
-            return ['src' => $customImage, 'srcset' => null];
-        }
-
-        $url = $game->image_url;
-        if (! is_string($url) || $url === '' || ! preg_match('/_584x438_NB(\.[a-z0-9]+)$/i', $url, $match)) {
-            return ['src' => $url ?: null, 'srcset' => null];
-        }
-
-        $base = preg_replace('/_584x438_NB\.[a-z0-9]+$/i', '', $url);
-        $ext = $match[1];
-        $medium = $base.'_800x600_NB'.$ext;
-
-        return [
-            'src' => $medium,
-            'srcset' => null,
-        ];
-    }
-
-    /**
-     * Dünün oyun kazançları. Önbellek düz dizi: game_id => tutar. Collection yazılmaz.
-     *
-     * @return array<int, string>
-     */
-    private function yesterdayTotals(?User $user): array
-    {
-        $zone = $this->zone($user);
-        $now = now($zone);
-        $currency = $this->currency;
-        $key = 'home:yesterday-wins:'.$zone.':'.$now->toDateString().':'.$currency->value;
         $cached = Cache::get($key);
         if (is_array($cached)) {
             return $cached;
@@ -298,205 +187,279 @@ class HomeSlides
             Cache::forget($key);
         }
 
-        $rows = DB::table('game_rounds as r')
-            ->join('users as u', 'u.id', '=', 'r.user_id')
-            ->where('r.win', '>', 0)
-            ->where('u.currency', $currency->value)
-            ->where('r.created_at', '>=', $now->copy()->subDay()->startOfDay()->utc())
-            ->where('r.created_at', '<', $now->copy()->startOfDay()->utc())
-            ->groupBy('r.game_id')
-            ->selectRaw('r.game_id as game_id, SUM(r.win) as payout')
-            ->pluck('payout', 'game_id')
-            ->map(fn ($amount) => number_format((float) $amount, 2, '.', ''))
-            ->all();
-
-        Cache::put($key, $rows, 3600);
+        $rows = [];
+        foreach (['slot' => 40, 'live' => 25, 'mini' => 15] as $category => $limit) {
+            foreach ($this->poolQuery($category, $popular, $limit) as $row) {
+                $snap = $this->snapshotRow($row);
+                if ($snap !== null) {
+                    $rows[] = $snap;
+                }
+            }
+        }
+        $rows = array_slice($rows, 0, self::POOL_LIMIT);
+        Cache::put($key, $rows, self::POOL_TTL);
 
         return $rows;
     }
 
-    private function zone(?User $user): string
+    /**
+     * @return list<object>
+     */
+    private function poolQuery(string $category, bool $popular, int $limit): array
     {
-        $zone = $user?->timezone ?: 'Europe/Istanbul';
-        try {
-            now($zone);
-        } catch (\Throwable) {
-            return 'Europe/Istanbul';
+        $query = DB::table('casino_games as g')
+            ->join('casino_providers as p', 'p.id', '=', 'g.provider_id')
+            ->where('g.is_active', true)
+            ->where('p.status', 'active')
+            ->whereNotNull('g.image_url')
+            ->where('g.image_url', '!=', '')
+            ->where(function ($q) {
+                $q->whereNull('g.category')->orWhere('g.category', '!=', 'virtual');
+            });
+        match ($category) {
+            'live' => $query->where('g.is_live', true),
+            'mini' => $query->where('g.is_live', false)->where('g.category', 'mini'),
+            default => $query->where('g.is_live', false)->where(function ($q) {
+                $q->whereNull('g.category')->orWhere('g.category', '!=', 'mini');
+            }),
+        };
+        if ($popular) {
+            $query->where('g.is_popular', true);
         }
+        $query->orderByDesc('g.id')->limit($limit);
 
-        return $zone;
+        return $query->get([
+            'g.id', 'g.name', 'g.provider_id', 'g.vendor', 'g.category', 'g.is_live', 'g.is_active', 'g.image_url',
+            'p.code as provider_code', 'p.name as provider_name', 'p.status as provider_status',
+        ])->all();
     }
 
     /**
-     * @param  array<int, string>  $yesterday
-     * @return array<string, mixed>
+     * @param  list<array<string, mixed>>  $pool
+     * @param  array<int, true>  $seen
+     * @param  array<int, true>  $usedIds
+     * @param  array<string, true>  $usedProviders
+     * @param  array<string, true>  $categories
+     * @param  array<int, true>  $excluded
+     * @return list<array<string, mixed>>
      */
-    private function gameSlide(CasinoGame $game, ?string $customImage, bool $winner = false, array $yesterday = []): array
+    private function draw(array $pool, int $count, array $seen, array &$usedIds, array &$usedProviders, array &$categories, array $excluded, ?User $user): array
     {
-        $art = $this->slideArt($game, $customImage);
-        $category = GameAvailability::categoryOf($game);
-        $amount = $yesterday[$game->id] ?? $yesterday[(string) $game->id] ?? null;
-        $won = is_string($amount) && bccomp($amount, '0', 2) === 1
-            ? Money::format($amount, $this->currency)
-            : null;
+        if ($count < 1) {
+            return [];
+        }
+        $fresh = [];
+        $stale = [];
+        $providers = $usedProviders;
+        foreach ($pool as $game) {
+            if (! is_array($game) || isset($usedIds[$game['id']]) || isset($excluded[$game['id']]) || ! $this->allowed($game, $user)) {
+                continue;
+            }
+            $key = $this->providerKey($game);
+            if (isset($providers[$key])) {
+                continue;
+            }
+            $providers[$key] = true;
+            if (isset($seen[$game['id']])) {
+                $stale[] = $game;
+            } else {
+                $fresh[] = $game;
+            }
+        }
+        shuffle($fresh);
+        shuffle($stale);
+        $queue = [...$fresh, ...$stale];
+        $chosen = [];
+        $taken = [];
+        foreach (['slot', 'live', 'mini'] as $category) {
+            if (count($chosen) >= $count || isset($categories[$category])) {
+                continue;
+            }
+            foreach ($queue as $game) {
+                if (isset($taken[$game['id']]) || $game['category_key'] !== $category || isset($taken[$this->providerKey($game)])) {
+                    continue;
+                }
+                $chosen[] = $game;
+                $taken[$game['id']] = true;
+                $taken[$this->providerKey($game)] = true;
+                $usedProviders[$this->providerKey($game)] = true;
+                $categories[$category] = true;
+                break;
+            }
+        }
+        foreach ($queue as $game) {
+            if (count($chosen) >= $count) {
+                break;
+            }
+            $key = $this->providerKey($game);
+            if (isset($taken[$game['id']]) || isset($taken[$key]) || isset($usedProviders[$key])) {
+                continue;
+            }
+            $chosen[] = $game;
+            $taken[$game['id']] = true;
+            $taken[$key] = true;
+            $usedProviders[$key] = true;
+            $categories[$game['category_key']] = true;
+        }
+        foreach ($chosen as $game) {
+            $usedIds[$game['id']] = true;
+        }
+
+        return $chosen;
+    }
+
+    /**
+     * @return array<int, true>
+     */
+    private function seen(): array
+    {
+        $raw = session('home.slider.last', []);
+        if (! is_array($raw)) {
+            return [];
+        }
+        $ids = [];
+        foreach ($raw as $id) {
+            $ids[(int) $id] = true;
+        }
+
+        return $ids;
+    }
+
+    /**
+     * @param  array<string, mixed>  $game
+     */
+    private function allowed(array $game, ?User $user): bool
+    {
+        if (! ($game['is_active'] ?? false) || ($game['provider_status'] ?? '') !== 'active' || ($game['category'] ?? '') === 'virtual') {
+            return false;
+        }
+        if ($this->artUrl(isset($game['image_url']) ? (string) $game['image_url'] : null) === null) {
+            return false;
+        }
+
+        return $this->availability->visible([
+            'id' => (int) $game['id'],
+            'provider' => (string) ($game['provider_code'] ?? ''),
+            'vendor' => $game['vendor'] ?? null,
+            'category' => $game['category'] ?? null,
+            'is_live' => (bool) ($game['is_live'] ?? false),
+        ], $user);
+    }
+
+    /**
+     * @param  array<string, mixed>  $game
+     * @return array<string, mixed>|null
+     */
+    private function slideFrom(array $game, bool $fresh, ?string $customImage): ?array
+    {
+        $image = $customImage !== null && $customImage !== '' ? $customImage : $this->artUrl((string) ($game['image_url'] ?? ''));
+        if ($image === null || $image === '') {
+            return null;
+        }
+        $category = (string) ($game['category_key'] ?? 'slot');
 
         return [
             'type' => 'game',
             'category' => $category,
-            'game_id' => $game->id,
-            'name' => $game->name,
-            'provider' => $this->providerLabel($game),
-            'image' => $art['src'],
-            'srcset' => $art['srcset'],
-            'href' => auth()->check() ? route('site.launch', $game) : route('login'),
+            'game_id' => (int) $game['id'],
+            'name' => (string) $game['name'],
+            'provider' => $this->labelFrom($game),
+            'provider_key' => $this->providerKey($game),
+            'image' => $image,
+            'href' => auth()->check() ? route('site.launch', $game['id']) : route('login'),
             'cta' => $category === 'live' ? 'home.sit_down' : 'home.play_now',
-            'winner' => $winner,
-            'yesterday' => $won,
+            'fresh' => $fresh,
             'eager' => false,
         ];
     }
 
-    /**
-     * @param  array<int, true>  $usedIds
-     * @param  array<int, string>  $yesterday
-     * @return list<array<string, mixed>>
-     */
-    private function configured(?User $user, array $usedIds, array $yesterday): array
+    private function snapshot(?CasinoGame $game): ?array
     {
-        $specs = config('home.slides');
-        if (! is_array($specs) || $specs === []) {
-            return [];
-        }
-
-        $ids = [];
-        foreach ($specs as $spec) {
-            if (is_array($spec) && isset($spec['game_id'])) {
-                $ids[] = (int) $spec['game_id'];
-            }
-        }
-        $games = $ids === []
-            ? collect()
-            : CasinoGame::query()->with('provider')->whereIn('id', $ids)->get()->keyBy('id');
-
-        $slides = [];
-        foreach ($specs as $spec) {
-            if (! is_array($spec)) {
-                continue;
-            }
-            $category = (string) ($spec['category'] ?? '');
-            if (! in_array($category, ['slot', 'live', 'mini'], true)) {
-                continue;
-            }
-            $game = $games->get((int) ($spec['game_id'] ?? 0));
-            if (! $game instanceof CasinoGame || isset($usedIds[$game->id]) || GameAvailability::categoryOf($game) !== $category || ! $this->showGame($game, $user)) {
-                continue;
-            }
-            $slide = $this->gameSlide($game, $this->banner(isset($spec['image']) ? (string) $spec['image'] : null), false, $yesterday);
-            if ($slide['image'] === null || $slide['image'] === '') {
-                continue;
-            }
-            $label = trim((string) ($spec['provider_label'] ?? ''));
-            if ($label !== '') {
-                $slide['provider'] = $label;
-            }
-            $usedIds[$game->id] = true;
-            $slides[] = $slide;
-        }
-
-        return $slides;
-    }
-
-    private function banner(?string $image): ?string
-    {
-        if ($image === null || $image === '') {
+        if ($game === null) {
             return null;
         }
-        if (str_starts_with($image, 'http://') || str_starts_with($image, 'https://')) {
-            return $image;
-        }
-        $relative = ltrim($image, '/');
 
-        return $relative !== '' && is_file(public_path($relative)) ? '/'.$relative : null;
+        return $this->snapshotRow((object) [
+            'id' => $game->id,
+            'name' => $game->name,
+            'provider_id' => $game->provider_id,
+            'vendor' => $game->vendor,
+            'category' => $game->category,
+            'is_live' => $game->is_live,
+            'is_active' => $game->is_active,
+            'image_url' => $game->image_url,
+            'provider_code' => $game->provider?->code,
+            'provider_name' => $game->provider?->name,
+            'provider_status' => $game->provider?->status,
+        ]);
     }
 
-    private function providerLabel(CasinoGame $game): ?string
+    private function snapshotRow(object $row): ?array
     {
-        $label = Vendors::name($game->vendor);
+        $url = isset($row->image_url) ? trim((string) $row->image_url) : '';
+        if ($url === '') {
+            return null;
+        }
+        $live = (bool) $row->is_live;
+        $category = $live ? 'live' : ($row->category === 'mini' ? 'mini' : 'slot');
+
+        return [
+            'id' => (int) $row->id,
+            'name' => (string) $row->name,
+            'provider_id' => (int) $row->provider_id,
+            'vendor' => $row->vendor !== null ? (string) $row->vendor : null,
+            'category' => $row->category !== null ? (string) $row->category : null,
+            'category_key' => $category,
+            'is_live' => $live,
+            'is_active' => (bool) $row->is_active,
+            'image_url' => $url,
+            'provider_code' => (string) ($row->provider_code ?? ''),
+            'provider_name' => (string) ($row->provider_name ?? ''),
+            'provider_status' => (string) ($row->provider_status ?? ''),
+        ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $game
+     */
+    private function providerKey(array $game): string
+    {
+        $label = $this->labelFrom($game);
+
+        return $label !== null ? 'l:'.mb_strtolower($label) : 'p:'.(int) $game['provider_id'];
+    }
+
+    /**
+     * @param  array<string, mixed>  $game
+     */
+    private function labelFrom(array $game): ?string
+    {
+        $label = Vendors::name(isset($game['vendor']) ? (string) $game['vendor'] : null);
         if ($label !== null && ! $this->aggregator($label)) {
             return $label;
         }
-        $name = $game->provider?->name;
+        $name = (string) ($game['provider_name'] ?? '');
 
-        return $name !== null && ! $this->aggregator($name) ? $name : null;
+        return $name !== '' && ! $this->aggregator($name) ? $name : null;
+    }
+
+    private function artUrl(?string $url): ?string
+    {
+        if (! is_string($url) || trim($url) === '') {
+            return null;
+        }
+        $url = trim($url);
+        if (! preg_match('/_584x438_NB(\.[a-z0-9]+)$/i', $url, $match)) {
+            return $url;
+        }
+        $base = preg_replace('/_584x438_NB\.[a-z0-9]+$/i', '', $url);
+
+        return $base.'_800x600_NB'.$match[1];
     }
 
     private function aggregator(string $name): bool
     {
         return in_array(mb_strtolower($name), ['romaspin', 'goldpalace', '1gamex', 'onegamex'], true);
-    }
-
-    /**
-     * Tek kategori varsa sırası korunur. Birden fazla kategori karışınca aynı kategori
-     * art arda gelmez ve toplam 12 slaytı geçmez.
-     *
-     * @param  array{slot: list<array<string, mixed>>, live: list<array<string, mixed>>, mini: list<array<string, mixed>>}  $buckets
-     * @return list<array<string, mixed>>
-     */
-    private function weave(array $buckets): array
-    {
-        $order = ['slot', 'live', 'mini'];
-        $active = array_values(array_filter($order, fn (string $key) => ($buckets[$key] ?? []) !== []));
-        if (count($active) < 2) {
-            $only = $active[0] ?? null;
-
-            return $only === null ? [] : array_slice($buckets[$only], 0, self::MAX);
-        }
-
-        $out = [];
-        $last = null;
-        while (count($out) < self::MAX) {
-            $best = null;
-            $bestCount = -1;
-            foreach ($order as $key) {
-                $count = count($buckets[$key] ?? []);
-                if ($key === $last || $count === 0 || $count <= $bestCount) {
-                    continue;
-                }
-                $best = $key;
-                $bestCount = $count;
-            }
-            if ($best === null) {
-                break;
-            }
-            $out[] = array_shift($buckets[$best]);
-            $last = $best;
-        }
-
-        return $out;
-    }
-
-    /**
-     * @return list<array{id: int, key: ?string, game_id: ?int, is_active: bool, image_path: ?string}>
-     */
-    private function rows(): array
-    {
-        $rows = Cache::get(self::CACHE);
-        if (is_array($rows)) {
-            return $rows;
-        }
-
-        $this->ensureDefaults();
-
-        $rows = HomeSlide::query()->orderBy('sort_order')->orderBy('id')->get()->map(fn (HomeSlide $slide) => [
-            'id' => (int) $slide->id,
-            'key' => $slide->key,
-            'game_id' => $slide->game_id === null ? null : (int) $slide->game_id,
-            'is_active' => (bool) $slide->is_active,
-            'image_path' => $slide->image_path,
-        ])->all();
-        Cache::put(self::CACHE, $rows, 600);
-
-        return $rows;
     }
 
     private function findNamed(string $name): ?CasinoGame

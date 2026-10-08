@@ -31,12 +31,13 @@ class HomeSlideController extends Controller
             ->limit(12)
             ->get();
 
-        $slides = HomeSlide::query()->with('game.provider')->orderBy('sort_order')->orderBy('id')->get()
-            ->sortBy(fn (HomeSlide $slide) => sprintf('%d-%08d-%08d', $slide->isPinned() ? 0 : 1, $slide->sort_order, $slide->id))
-            ->values();
+        $slides = HomeSlide::query()->with('game.provider')->orderBy('sort_order')->orderBy('id')->get();
+        $pinned = $slides->filter(fn (HomeSlide $slide) => $slide->isPinned())->values();
+        $excluded = $slides->filter(fn (HomeSlide $slide) => $slide->excluded)->values();
 
         return view('panel.home-slides.index', [
-            'slides' => $slides,
+            'pinned' => $pinned,
+            'excluded' => $excluded,
             'found' => $found,
             'q' => $q,
         ]);
@@ -45,19 +46,34 @@ class HomeSlideController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $this->owner($request);
-        $data = $request->validate(['game_id' => ['required', 'integer']]);
+        $data = $request->validate([
+            'game_id' => ['required', 'integer'],
+            'intent' => ['required', 'in:pin,exclude'],
+            'slot' => ['nullable', 'string'],
+        ]);
         $game = CasinoGame::query()->whereKey($data['game_id'])->where('is_active', true)->first();
         abort_unless($game !== null && $game->category !== 'virtual', 422);
 
-        if (HomeSlide::query()->where('game_id', $game->id)->whereNull('key')->exists()) {
-            return back()->withErrors(['game_id' => __('panel.home_slides_duplicate')]);
+        if ($data['intent'] === 'pin') {
+            $slot = HomeSlide::query()->where('key', (string) ($data['slot'] ?? ''))->first();
+            abort_unless($slot !== null && $slot->isPinned(), 422);
+            HomeSlide::query()->where('game_id', $game->id)->where('excluded', true)->delete();
+            $slot->game_id = $game->id;
+            $slot->is_active = true;
+            $slot->save();
+            $this->slides->forget();
+
+            return back()->with('status', __('panel.home_slides_saved'));
         }
 
-        $max = (int) HomeSlide::query()->max('sort_order');
+        if (HomeSlide::query()->where('game_id', $game->id)->where('excluded', true)->exists()) {
+            return back()->withErrors(['game_id' => __('panel.home_slides_duplicate')]);
+        }
         HomeSlide::query()->create([
             'game_id' => $game->id,
-            'sort_order' => $max + 10,
+            'sort_order' => 0,
             'is_active' => true,
+            'excluded' => true,
         ]);
         $this->slides->forget();
 

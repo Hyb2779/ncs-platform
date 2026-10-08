@@ -15,11 +15,14 @@ class HomeSlide extends Model
         'sweet-bonanza-super-scatter' => 'Sweet Bonanza Super Scatter',
     ];
 
-    protected $fillable = ['key', 'game_id', 'sort_order', 'is_active', 'image_path'];
+    protected $fillable = ['key', 'game_id', 'sort_order', 'is_active', 'excluded', 'image_path'];
 
     protected function casts(): array
     {
-        return ['is_active' => 'boolean'];
+        return [
+            'is_active' => 'boolean',
+            'excluded' => 'boolean',
+        ];
     }
 
     public function game(): BelongsTo

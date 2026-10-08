@@ -9,17 +9,14 @@
                 @endif
                 <div class="lobby-hero-copy">
                     <div class="kicker-wrap">
-                        @if ($slide['winner'] ?? false)
-                            <span class="kicker kicker-winner">{{ __('home.day_winner') }}</span>
+                        @if ($slide['fresh'] ?? false)
+                            <span class="kicker kicker-new">{{ __('home.badge_new') }}</span>
                         @endif
                         @if ($slide['provider'])
                             <span class="kicker">{{ $slide['provider'] }}</span>
                         @endif
                     </div>
                     <strong>{{ $slide['name'] }}</strong>
-                    @if (! empty($slide['yesterday']))
-                        <span class="hero-win-line">{{ __('home.yesterday_won', ['amount' => $slide['yesterday']]) }}</span>
-                    @endif
                     <span class="lobby-hero-cta">{{ __($slide['cta'] ?? 'home.play_now') }}</span>
                 </div>
             </a>

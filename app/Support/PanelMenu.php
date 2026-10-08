@@ -52,6 +52,9 @@ class PanelMenu
             $betting[] = self::item(__('panel.games_title'), 'panel.games.index', ['panel.games.index', 'panel.casino.games']);
         }
         if ($owner) {
+            $betting[] = self::item(__('panel.home_slides_title'), 'panel.home-slides.index', ['panel.home-slides.index']);
+        }
+        if ($owner) {
             $betting[] = self::item(__('sport.panel.status'), 'panel.sport.status', ['panel.sport.status']);
             $betting[] = self::item(__('sport.panel.leagues'), 'panel.sport.leagues', ['panel.sport.leagues']);
             $betting[] = self::item(__('sport.panel.translations'), 'panel.sport.translations', ['panel.sport.translations']);
@@ -66,7 +69,6 @@ class PanelMenu
             $settings[] = self::item(__('panel.theme_title'), 'panel.theme', ['panel.theme']);
         }
         if ($owner) {
-            $settings[] = self::item(__('panel.home_slides_title'), 'panel.home-slides.index', ['panel.home-slides.index']);
             $settings[] = self::item(__('site.panel_providers'), 'panel.casino.providers', ['panel.casino.providers']);
         }
 
