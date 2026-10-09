@@ -57,6 +57,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/account/coupons/{coupon}/cancel', [CouponController::class, 'cancel'])->name('site.coupons.cancel');
     Route::post('/sport/coupon/place', [SportController::class, 'place'])->name('site.sport.coupon.place');
     Route::post('/account/password', [SiteController::class, 'password'])->name('site.password');
+    Route::post('/locale', [SiteController::class, 'locale'])->name('site.locale');
     Route::post('/account/theme', [SiteController::class, 'theme'])->name('site.theme');
     Route::get('/wegas-spor', [\App\Http\Controllers\Site\WegasSportController::class, 'show'])->name('site.wegas_sport');
     Route::get('/wegas-spor/kuponlarim', [\App\Http\Controllers\Site\WegasCouponController::class, 'index'])->name('site.wegas_coupons');

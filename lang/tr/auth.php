@@ -7,6 +7,7 @@ return [
     'submit' => 'Giriş yap',
     'failed' => 'Kullanıcı adı veya şifre hatalı.',
     'blocked' => 'Hesabınız veya üst hesabınız aktif değil.',
+    'session_replaced' => 'Başka bir cihazdan oturum açıldığı için oturumunuz kapatıldı.',
     'throttle' => 'Çok fazla hatalı deneme. Bir dakika sonra tekrar deneyin.',
     'username_required' => 'Kullanıcı adı gerekli.',
     'password_required' => 'Şifre gerekli.',

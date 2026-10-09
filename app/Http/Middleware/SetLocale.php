@@ -16,7 +16,8 @@ class SetLocale
         $user = $request->user();
 
         if ($user !== null) {
-            // Panel kullanicilari (uye disi) arayuz dilini cerezle secer; hesabin kayitli dili (ve uyelere miras) degismez.
+            // Panel arayüz dili çerezdedir; hesaptaki dil üyeye açılış dili olarak kalır.
+            // Üye arayüzü hesaptaki dili kullanır. Sol menü bu kaydı günceller.
             $picked = $request->cookie('panel_locale');
             $locale = $user->role !== \App\Enums\UserRole::Uye && is_string($picked) && in_array($picked, self::LOCALES, true)
                 ? $picked

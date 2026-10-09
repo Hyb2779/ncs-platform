@@ -11,6 +11,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class LoginController extends Controller
@@ -70,11 +71,15 @@ class LoginController extends Controller
         RateLimiter::clear($key);
         $request->session()->regenerate();
 
+        $session = Str::random(40);
         $user->forceFill([
             'last_login_at' => now(),
             'last_login_ip' => $request->ip(),
+            'auth_session' => $session,
         ])->save();
+        Auth::setUser($user);
 
+        $request->session()->put('auth_session', $session);
         $request->session()->put('locale', $user->language->value);
         $activity->write($user, 'auth.login', $user);
 

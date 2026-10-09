@@ -35,19 +35,25 @@
                 @endforeach
             </nav>
             <div class="ms-auto flex items-center gap-2 md:gap-3">
-                @guest
-                    <div class="relative" x-data="{ open: false }">
-                        <button class="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--site-line-strong)] px-2.5 text-xs font-bold md:h-10 md:px-3 md:text-[13px] md:font-semibold" type="button" aria-label="{{ __('site.language') }}" @click="open = !open">
-                            <img src="/images/flags/{{ ['tr' => 'tr', 'en' => 'gb', 'de' => 'de', 'ar' => 'sa'][app()->getLocale()] ?? 'tr' }}.svg" alt="" width="20" height="15" style="width:20px;height:15px" class="shrink-0 rounded-sm object-cover">
-                            <span class="hidden md:inline">{{ __('panel.languages.'.app()->getLocale()) }}</span>
-                        </button>
-                        <div class="absolute end-0 z-30 mt-2 min-w-36 rounded-lg border border-[var(--site-line)] bg-[var(--site-panel)] py-1 text-sm" x-show="open" x-cloak @click.outside="open = false" style="display: none;">
-                            @foreach (['tr', 'en', 'de', 'ar'] as $locale)
-                                <a class="flex items-center gap-2.5 px-3 py-2 {{ app()->getLocale() === $locale ? 'text-white' : 'text-[var(--site-text-2)]' }}" href="{{ request()->fullUrlWithQuery(['lang' => $locale]) }}" lang="{{ $locale }}"><img src="/images/flags/{{ ['tr' => 'tr', 'en' => 'gb', 'de' => 'de', 'ar' => 'sa'][$locale] ?? 'tr' }}.svg" alt="" width="20" height="15" style="width:20px;height:15px" class="shrink-0 rounded-sm object-cover">{{ __('panel.languages.'.$locale) }}</a>
-                            @endforeach
-                        </div>
+                <div class="relative" x-data="{ open: false }">
+                    <button class="inline-flex h-9 items-center gap-2 rounded-lg border border-[var(--site-line-strong)] px-2.5 text-xs font-bold md:h-10 md:px-3 md:text-[13px] md:font-semibold" type="button" aria-label="{{ __('site.language') }}" @click="open = !open">
+                        <img src="/images/flags/{{ ['tr' => 'tr', 'en' => 'gb', 'de' => 'de', 'ar' => 'sa'][app()->getLocale()] ?? 'tr' }}.svg" alt="" width="20" height="15" style="width:20px;height:15px" class="shrink-0 rounded-sm object-cover">
+                        <span class="hidden md:inline">{{ __('panel.languages.'.app()->getLocale()) }}</span>
+                    </button>
+                    <div class="absolute end-0 z-30 mt-2 min-w-36 rounded-lg border border-[var(--site-line)] bg-[var(--site-panel)] py-1 text-sm" x-show="open" x-cloak @click.outside="open = false" style="display: none;">
+                        @foreach (['tr', 'en', 'de', 'ar'] as $locale)
+                            @auth
+                                <form method="POST" action="{{ route('site.locale') }}">
+                                    @csrf
+                                    <input type="hidden" name="language" value="{{ $locale }}">
+                                    <button class="flex w-full items-center gap-2.5 px-3 py-2 text-start {{ app()->getLocale() === $locale ? 'text-white' : 'text-[var(--site-text-2)]' }}" type="submit"><img src="/images/flags/{{ ['tr' => 'tr', 'en' => 'gb', 'de' => 'de', 'ar' => 'sa'][$locale] ?? 'tr' }}.svg" alt="" width="20" height="15" style="width:20px;height:15px" class="shrink-0 rounded-sm object-cover">{{ __('panel.languages.'.$locale) }}</button>
+                                </form>
+                            @else
+                                <a class="flex items-center gap-2.5 px-3 py-2 {{ app()->getLocale() === $locale ? 'text-white' : 'text-[var(--site-text-2)]' }}" href="{{ request()->fullUrlWithQuery(['lang' => $locale]) }}"><img src="/images/flags/{{ ['tr' => 'tr', 'en' => 'gb', 'de' => 'de', 'ar' => 'sa'][$locale] ?? 'tr' }}.svg" alt="" width="20" height="15" style="width:20px;height:15px" class="shrink-0 rounded-sm object-cover">{{ __('panel.languages.'.$locale) }}</a>
+                            @endauth
+                        @endforeach
                     </div>
-                @endguest
+                </div>
                 @auth
                     <div class="flex items-center rounded-lg bg-[var(--site-panel-2)] px-3 py-1.5 md:bg-transparent md:px-1">
                         <div class="flex flex-col items-end">

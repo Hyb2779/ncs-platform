@@ -7,6 +7,8 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\MessageBag;
+use Illuminate\Support\ViewErrorBag;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
@@ -23,6 +25,15 @@ class EnsureAccountActive
 
         if ($user !== null && $this->passwordChanged($request, $user)) {
             return $this->end($request, null);
+        }
+
+        if ($user !== null && $this->sessionReplaced($request, $user)) {
+            $locale = $user->language->value;
+            if (in_array($locale, SetLocale::LOCALES, true)) {
+                app()->setLocale($locale);
+            }
+
+            return $this->end($request, __('auth.session_replaced'));
         }
 
         if ($user !== null && $this->hierarchy->loginBlocked($user)) {
@@ -58,18 +69,39 @@ class EnsureAccountActive
         return ! hash_equals($stored, $hash);
     }
 
+    /** Başka bir giriş bu hesabın işaretini değiştirdiyse bu oturum düşer. İşaret yoksa eski oturumlar açık kalır. */
+    private function sessionReplaced(Request $request, $user): bool
+    {
+        $stored = $user->auth_session;
+
+        if (! is_string($stored) || $stored === '') {
+            return false;
+        }
+
+        $mine = $request->session()->get('auth_session');
+
+        return ! is_string($mine) || ! hash_equals($stored, $mine);
+    }
+
     private function end(Request $request, ?string $message): Response
     {
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        if ($request->expectsJson()) {
-            return response()->json(['message' => $message ?? ''], 401);
+        if ($message !== null) {
+            $errors = new ViewErrorBag;
+            $errors->put('default', new MessageBag(['username' => $message]));
+            $request->session()->flash('errors', $errors);
         }
 
-        $redirect = redirect(Route::has('login') ? route('login') : '/');
+        if ($request->expectsJson()) {
+            return response()->json([
+                'message' => $message ?? '',
+                'redirect' => $message !== null && Route::has('login') ? route('login') : null,
+            ], 401);
+        }
 
-        return $message === null ? $redirect : $redirect->withErrors(['username' => $message]);
+        return redirect(Route::has('login') ? route('login') : '/');
     }
 }

@@ -35,7 +35,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
     'last_login_at',
     'last_login_ip',
 ])]
-#[Hidden(['password', 'remember_token'])]
+#[Hidden(['password', 'remember_token', 'auth_session'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */

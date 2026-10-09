@@ -246,6 +246,15 @@ async function refreshBalance() {
 
     const response = await fetch(balanceUrl, { headers: { Accept: 'application/json' } });
 
+    if (response.status === 401) {
+        const payload = await response.json().catch(() => ({}));
+        if (payload.redirect) {
+            window.location.assign(payload.redirect);
+        }
+
+        return;
+    }
+
     if (!response.ok) {
         return;
     }

@@ -2,7 +2,10 @@
 
 namespace App\Http\Controllers\Site;
 
+use App\Enums\Language;
+use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\SetLocale;
 use App\Models\CasinoGame;
 use App\Models\CasinoProvider;
 use App\Models\GameSession;
@@ -338,6 +341,18 @@ class SiteController extends Controller
             'mini' => $query->where('category', 'mini'),
             default => $query->where('is_live', false)->where(fn ($q) => $q->whereNull('category')->orWhereNotIn('category', ['virtual', 'mini'])),
         };
+    }
+
+    public function locale(Request $request): RedirectResponse
+    {
+        $language = (string) $request->input('language');
+        abort_unless(in_array($language, SetLocale::LOCALES, true), 422);
+        abort_unless($request->user()?->role === UserRole::Uye, 403);
+
+        $request->user()->forceFill(['language' => Language::from($language)])->save();
+        $request->session()->put('locale', $language);
+
+        return back();
     }
 
     public function theme(\Illuminate\Http\Request $request): \Illuminate\Http\RedirectResponse
