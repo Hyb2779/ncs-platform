@@ -149,9 +149,9 @@ class SportTranslator
     private function catalog(): array
     {
         return [
-            'team' => SportTeam::query()->pluck('name', 'id'),
             'league' => SportLeague::query()->pluck('name', 'id'),
             'country' => SportCountry::query()->pluck('name', 'id'),
+            'team' => SportTeam::query()->pluck('name', 'id'),
         ];
     }
 }

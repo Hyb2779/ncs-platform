@@ -94,6 +94,9 @@ class SuperadminDashboardTest extends TestCase
         $page->assertOk();
         $page->assertSee(__('panel.period_turnover'));
         $page->assertDontSee(__('panel.chart_ggr_rank'));
+        $page->assertDontSee(__('panel.chart_turnover_ggr'));
+        $page->assertDontSee(__('panel.chart_products'));
+        $page->assertDontSee('data-chart', false);
     }
 
     private function owner(): User

@@ -16,11 +16,23 @@
             @include('sport._coupon_metrics')
             @include('sport._coupon_facts', ['compact' => true])
             @if ($coupon->status === 'pending')
-                <form class="grid gap-2 border-t border-[var(--site-line)] pt-3" method="POST" action="{{ route('site.coupons.cancel', $coupon) }}">
+                <div class="grid gap-3 border-t border-[var(--site-line)] pt-3">
+                    @if ($errors->has('coupon'))
+                        <p class="text-sm font-semibold text-rose-300">{{ $errors->first('coupon') }}</p>
+                    @endif
+                    @if ($cashout !== null)
+                        <form id="coupon-cashout" method="POST" action="{{ route('site.coupons.cashout', $coupon) }}">
+                            @csrf
+                            <input type="hidden" name="amount" value="{{ $cashout }}">
+                            <button class="inline-flex h-11 w-full items-center justify-center rounded-xl bg-[var(--accent)] text-sm font-bold text-white" type="submit">{{ __('sport.coupon.cashout', ['amount' => \App\Http\Controllers\Site\CouponController::money($cashout)]) }}</button>
+                        </form>
+                    @endif
+                <form class="grid gap-2" method="POST" action="{{ route('site.coupons.cancel', $coupon) }}">
                     @csrf
                     <input class="h-11 rounded-xl border border-[var(--site-line)] bg-[var(--site-bg)] px-3 text-sm text-[var(--site-text)]" name="reason" placeholder="{{ __('sport.coupon.cancel_reason') }}" required>
                     <button class="inline-flex h-11 items-center justify-center rounded-xl border border-[var(--site-line)] text-sm font-bold text-[var(--site-text)]" type="submit">{{ __('sport.coupon.cancel') }}</button>
                 </form>
+                </div>
             @endif
         </section>
         <section class="divide-y divide-[var(--site-line)] rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] px-4">

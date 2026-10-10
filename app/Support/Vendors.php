@@ -55,9 +55,25 @@ class Vendors
         return strtolower($m[1]);
     }
 
+    public static function canonical(?string $slug): string
+    {
+        if ($slug === null) {
+            return '';
+        }
+
+        return self::NAMES[$slug] ?? strtoupper($slug);
+    }
+
     public static function name(?string $slug): ?string
     {
-        return $slug === null ? null : (self::NAMES[$slug] ?? strtoupper($slug));
+        if ($slug === null) {
+            return null;
+        }
+
+        $key = 'vendors.'.$slug;
+        $translated = __($key);
+
+        return $translated === $key ? self::canonical($slug) : $translated;
     }
 
     public static function priority(?string $slug): int

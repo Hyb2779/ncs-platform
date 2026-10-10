@@ -100,8 +100,69 @@ class CouponCanceller
             return;
         }
 
-        if (in_array($actor->role, [UserRole::Uye, UserRole::Bayi], true) || ! $coupon->user->isInSubtreeOf($actor) || $actor->id === $coupon->user_id) {
+        if ($actor->role === UserRole::Uye || ! $coupon->user->isInSubtreeOf($actor)) {
             throw new CouponException('sport.errors.cancel_forbidden');
+        }
+    }
+
+    /** Sonuçlanmış kuponu iade eder: kazanç geri alınır, tutar üyeye döner. */
+    public function refund(User $actor, Coupon $coupon, string $reason, ?string $ip): Coupon
+    {
+        $reason = trim($reason);
+        if ($reason === '') {
+            throw new CouponException('sport.errors.cancel_reason');
+        }
+
+        $coupon->loadMissing('user');
+        if ($actor->id === $coupon->user_id || $actor->role === UserRole::Uye || ! $coupon->user->isInSubtreeOf($actor)) {
+            throw new CouponException('sport.errors.cancel_forbidden');
+        }
+        if (! in_array($coupon->status, ['won', 'lost'], true)) {
+            throw new CouponException('sport.errors.not_refundable');
+        }
+
+        try {
+            return DB::transaction(function () use ($actor, $coupon, $reason, $ip) {
+                $locked = Coupon::query()->whereKey($coupon->id)->lockForUpdate()->firstOrFail();
+                if (! in_array($locked->status, ['won', 'lost'], true)) {
+                    throw new CouponException('sport.errors.not_refundable');
+                }
+
+                if ($locked->status === 'won') {
+                    app(CouponSettler::class)->unwind($locked, $actor);
+                }
+
+                $wallet = $locked->user->wallet()->firstOrFail();
+                $this->wallets->credit(
+                    $wallet,
+                    (string) $locked->stake,
+                    WalletTransactionType::Refund,
+                    WalletProduct::Sport,
+                    'coupon-return:'.$locked->id,
+                    $locked->coupon_no,
+                    null,
+                    $reason,
+                    $actor,
+                    $ip,
+                    null,
+                    $this->ledgerAt($wallet->id),
+                );
+
+                $locked->status = 'refunded';
+                $locked->cancelled_by = $actor->id;
+                $locked->cancel_reason = $reason;
+                $locked->settled_at = now();
+                $locked->save();
+                $this->activity->write($actor, 'coupon.refunded', $locked->user, [
+                    'coupon_no' => $locked->coupon_no,
+                    'reason' => $reason,
+                    'stake' => (string) $locked->stake,
+                ]);
+
+                return $locked;
+            });
+        } catch (WalletException $exception) {
+            throw new CouponException($exception->translationKey, $exception->replace);
         }
     }
 }

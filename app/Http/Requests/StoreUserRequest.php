@@ -37,7 +37,7 @@ class StoreUserRequest extends FormRequest
         // Süperadmin ve bayi açılırken dil/para birimi seçilir; üye bayiden miras alır.
         if (in_array($role, ['superadmin', 'bayi'], true)) {
             $rules['language'] = ['required', Rule::in(['tr', 'en', 'de', 'ar'])];
-            $rules['currency'] = ['required', Rule::in(['TRY', 'USD', 'EUR'])];
+            $rules['currency'] = ['required', Rule::in(\App\Enums\Currency::values())];
         } else {
             $rules['language'] = ['exclude'];
             $rules['currency'] = ['exclude'];

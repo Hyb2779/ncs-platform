@@ -66,7 +66,10 @@ class PanelShellTest extends TestCase
             ->get(route('panel.dashboard'))
             ->assertOk()
             ->assertDontSee(route('panel.sport.margins'), false)
-            ->assertSee(route('panel.transactions'), false);
+            ->assertDontSee(__('wallet.menu_bayi'), false)
+            ->assertDontSee(route('panel.transactions'), false)
+            ->assertSee(__('panel.member_movements'), false)
+            ->assertSee(route('panel.member-movements'), false);
     }
 
     public function test_stat_table_filter_and_chart_components_render(): void

@@ -9,11 +9,11 @@ class FenixPrematch extends Command
 {
     protected $signature = 'sport:fenix-prematch';
 
-    protected $description = 'Fenix maç önü beslemesinden bülteni günceller (futbol).';
+    protected $description = 'Fenix maç önü beslemesinden bütün sporları ve marketleri günceller.';
 
     public function handle(FenixSync $sync): int
     {
-        ini_set('memory_limit', '1024M');
+        ini_set('memory_limit', '2048M');
         $started = microtime(true);
         $stats = $sync->prematch();
         $this->info(sprintf('etkinlik %d | maç %d | oran %d | hata %d | %.1f sn | bellek %d MB',

@@ -6,7 +6,9 @@ use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Services\Stats\PeriodReport;
+use App\Support\GgrPayload;
 use App\Support\ReportPeriod;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
 
@@ -18,7 +20,7 @@ class ReportController extends Controller
 {
     public const PERIODS = ReportPeriod::PERIODS;
 
-    public function index(Request $request, PeriodReport $reports): View
+    public function index(Request $request, PeriodReport $reports): View|JsonResponse
     {
         $actor = $request->user();
         // Bayi de gorur (04.10, Blackeagle): sadece kendi agaci, kirilim oyuncu bazinda.
@@ -32,13 +34,32 @@ class ReportController extends Controller
         $focus = $actor;
         if ($request->filled('user')) {
             $candidate = User::withTrashed()->find((int) $request->query('user'));
-            abort_unless($candidate !== null && $candidate->role !== UserRole::Uye && $candidate->isInSubtreeOf($actor), 404);
+            abort_if($candidate === null, 404);
+            abort_unless($candidate->isInSubtreeOf($actor), 404);
+            abort_unless($candidate->role !== UserRole::Uye, 404);
             $focus = $candidate;
         }
 
         // 04.10: Rapor Detay = haftalik tahsilat (verilen/cekilen kredi, yatirilan/kazanan/bekleyen, genel, komisyon, net).
         $currency = $focus->currency instanceof \BackedEnum ? $focus->currency->value : (string) $focus->currency;
         $report = app(\App\Services\Stats\SettlementReport::class)->build($focus, $fromUtc, $toUtc, $currency);
+
+        if ($request->wantsJson() || $request->boolean('export')) {
+            $payload = [
+                'period' => $period,
+                'from' => $fromLocal->toDateString(),
+                'to' => $toLocal->toDateString(),
+                'currency' => $currency,
+                'rows' => array_map(fn (array $row): array => $this->publicRow($actor, $row), $report['rows']),
+                'totals' => $this->publicTotals($actor, $report['totals']),
+            ];
+            $response = response()->json(GgrPayload::present($actor, $payload));
+            if ($request->boolean('export')) {
+                $response->header('Content-Disposition', 'attachment; filename="report.json"');
+            }
+
+            return $response;
+        }
 
         return view('panel.reports.index', [
             'period' => $period,
@@ -52,6 +73,41 @@ class ReportController extends Controller
             'showCommission' => $report['show_commission'],
             'showCredit' => $report['show_credit'],
         ]);
+    }
+
+    /** @param  array<string, mixed>  $row */
+    private function publicRow(User $actor, array $row): array
+    {
+        $public = [
+            'username' => $row['user']->username,
+            'role' => $row['user']->role instanceof \BackedEnum ? $row['user']->role->value : (string) $row['user']->role,
+            'given' => $row['given'],
+            'withdrawn' => $row['withdrawn'],
+            'staked' => $row['staked'],
+            'staked_n' => $row['staked_n'],
+            'won' => $row['won'],
+            'won_n' => $row['won_n'],
+            'pending' => $row['pending'],
+            'pending_n' => $row['pending_n'],
+        ];
+        if (GgrPayload::visible($actor)) {
+            $public['general'] = $row['general'];
+            $public['commission'] = $row['commission'];
+            $public['net'] = $row['net'];
+        }
+
+        return $public;
+    }
+
+    /** @param  array<string, mixed>  $totals */
+    private function publicTotals(User $actor, array $totals): array
+    {
+        if (GgrPayload::visible($actor)) {
+            return $totals;
+        }
+        unset($totals['general'], $totals['commission'], $totals['net']);
+
+        return $totals;
     }
 
     /** @return array{0: string, 1: Carbon, 2: Carbon} yerel gun baslangici, yerel son gun (dahil) */

@@ -12,6 +12,7 @@ class SportFixture extends Model
     protected $fillable = [
         'mbs',
         'betradar_id',
+        'sport', 'live_meta', 'offer_count',
         'api_id', 'league_id', 'home_team_id', 'away_team_id', 'starts_at', 'status', 'elapsed',
         'score_home', 'score_away', 'ht_home', 'ht_away', 'ft_home', 'ft_away',
         'settled_at', 'score_source', 'bulletin_code', 'played_at',
@@ -26,6 +27,8 @@ class SportFixture extends Model
             'ft_home' => 'integer',
             'ft_away' => 'integer',
             'elapsed' => 'integer',
+            'live_meta' => 'array',
+            'offer_count' => 'integer',
         ];
     }
 

@@ -3,34 +3,41 @@
 namespace App\Http\Controllers\Site;
 
 use App\Enums\Language;
+use App\Enums\Theme;
 use App\Enums\UserRole;
 use App\Http\Controllers\Controller;
+use App\Http\Middleware\EnsureAccountActive;
 use App\Http\Middleware\SetLocale;
 use App\Models\CasinoGame;
 use App\Models\CasinoProvider;
 use App\Models\GameSession;
-use App\Models\User;
-use App\Models\WalletTransaction;
+use App\Services\Casino\CatalogCache;
 use App\Services\Casino\DemoProvider;
+use App\Services\Casino\GameAvailability;
 use App\Services\Casino\GameCatalog;
 use App\Services\Casino\GameLauncher;
 use App\Services\Casino\GameSuggest;
 use App\Services\Casino\HomeCasinoRails;
+use App\Services\HomeCategoryImages;
+use App\Services\HomeFeed;
 use App\Services\HomeSlides;
+use App\Services\Sport\HomeMatches;
 use App\Services\WalletException;
 use App\Support\GameSearch;
 use App\Support\Money;
-use Carbon\Carbon;
+use App\Support\Vendors;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class SiteController extends Controller
 {
-    public function home(\App\Services\HomeFeed $feed, HomeCasinoRails $rails, HomeSlides $slides, \App\Services\HomeCategoryImages $images): View
+    public function home(HomeFeed $feed, HomeCasinoRails $rails, HomeSlides $slides, HomeCategoryImages $images, HomeMatches $matches): View
     {
         $user = auth()->user();
         $data = $feed->build($user);
@@ -40,14 +47,29 @@ class SiteController extends Controller
             'liveTables' => $rails->liveTables($user),
             'slides' => $slides->forViewer($user),
             'categoryImages' => $images->urls($user),
+            'homeMatches' => site_sport_link($user) !== null ? $matches->present($user) : null,
         ]);
+    }
+
+    public function homeMatches(HomeMatches $matches): JsonResponse
+    {
+        $user = auth()->user();
+        if (site_sport_link($user) === null) {
+            return response()->json(['live' => [], 'upcoming' => []])->header('Cache-Control', 'no-store');
+        }
+
+        $data = $matches->present($user);
+
+        return response()->json([
+            'live' => $data['live'],
+            'upcoming' => $data['upcoming'],
+        ])->header('Cache-Control', 'no-store');
     }
 
     public function slots(Request $request): View
     {
         return view('site.lobby', $this->lobby($request, 'slot'));
     }
-
 
     public function suggest(Request $request, GameSuggest $suggest): JsonResponse
     {
@@ -58,7 +80,6 @@ class SiteController extends Controller
             $suggest->search($request->user(), $mode, $term, (string) $request->query('vendor', ''))
         )->header('Cache-Control', 'no-store');
     }
-
 
     public function live(Request $request): View
     {
@@ -83,28 +104,10 @@ class SiteController extends Controller
     {
         $user = $request->user();
         abort_if($user === null, 403);
-        $query = WalletTransaction::query()->with(['wallet', 'counterparty'])->where('user_id', $user->id)->orderByDesc('created_at');
-
-        if ($request->filled('from')) {
-            $query->where('created_at', '>=', Carbon::parse($request->query('from'), $user->timezone)->startOfDay()->utc());
-        }
-
-        if ($request->filled('to')) {
-            $query->where('created_at', '<=', Carbon::parse($request->query('to'), $user->timezone)->endOfDay()->utc());
-        }
-
         $wallet = $user->wallet()->first();
 
         return view('site.account', [
             'headerBalance' => $wallet === null ? '' : Money::format((string) $wallet->balance, $wallet->currency),
-            'rows' => $query->limit(50)->get()->map(fn (WalletTransaction $row) => [
-                'when' => $row->created_at->timezone($user->timezone)->locale(app()->getLocale())->translatedFormat('d.m.Y H:i'),
-                'party' => $this->party($row, $user),
-                'before' => Money::format((string) $row->balance_before, $row->wallet->currency),
-                'amount' => Money::formatSigned((string) $row->amount, $row->wallet->currency),
-                'after' => Money::format((string) $row->balance_after, $row->wallet->currency),
-                'note' => $row->note ?: __('panel.empty_value'),
-            ]),
         ]);
     }
 
@@ -120,9 +123,14 @@ class SiteController extends Controller
             return back()->withErrors(['current_password' => __('site.password_wrong')]);
         }
 
+        if (Hash::check($data['password'], $user->password)) {
+            return back()->withErrors(['password' => __('site.password_same')]);
+        }
+
         $user->password = $data['password'];
+        $user->must_change_password = false;
         $user->save();
-        \App\Http\Middleware\EnsureAccountActive::remember($request, $user);
+        EnsureAccountActive::remember($request, $user);
 
         return back()->with('status', __('site.password_updated'));
     }
@@ -183,7 +191,6 @@ class SiteController extends Controller
         return $scheme.'://'.$host.(isset($parts['port']) ? ':'.$parts['port'] : '').($path === '' ? '/' : $path).$query;
     }
 
-
     public function favorite(Request $request, CasinoGame $game): RedirectResponse
     {
         $exists = DB::table('casino_favorites')->where('user_id', $request->user()->id)->where('game_id', $game->id)->exists();
@@ -232,21 +239,6 @@ class SiteController extends Controller
         return back();
     }
 
-    private function party(WalletTransaction $row, User $viewer): string
-    {
-        $other = $row->counterparty;
-
-        if ($other === null) {
-            return __('panel.empty_value');
-        }
-
-        if ($other->id !== $viewer->id && str_starts_with($viewer->path, $other->path)) {
-            return __('wallet.upper_account');
-        }
-
-        return $other->username;
-    }
-
     /**
      * @return array<string, mixed>
      */
@@ -283,27 +275,29 @@ class SiteController extends Controller
             $query->whereIn('id', $ids);
         }
 
-        $plays = DB::table('game_rounds as r')
-            ->join('casino_games as g', 'g.id', '=', 'r.game_id')
-            ->where('r.created_at', '>=', now()->subDays(30))
-            ->whereIn('r.game_id', $this->games($mode)->select('casino_games.id'))
-            ->groupBy('g.vendor')
-            ->selectRaw('g.vendor AS vendor, COUNT(*) AS c')
-            ->pluck('c', 'vendor');
+        $plays = $this->lobbyPlays($mode);
 
-        $vendors = $this->games($mode)
-            ->whereNotNull('vendor')
-            ->groupBy('vendor')
-            ->selectRaw('vendor, COUNT(*) AS c, SUM(CASE WHEN is_popular THEN 1 ELSE 0 END) AS p')
-            ->get()
-            ->map(fn ($row) => [
-                'slug' => $row->vendor,
-                'name' => \App\Support\Vendors::name($row->vendor),
-                'count' => (int) $row->c,
-                'plays' => (int) ($plays[$row->vendor] ?? 0),
-                'popular' => (int) $row->p,
-            ])
-            ->sort(fn ($a, $b) => [$b['plays'], $b['popular'], \App\Support\Vendors::priority($a['slug'])] <=> [$a['plays'], $a['popular'], \App\Support\Vendors::priority($b['slug'])])
+        $availability = app(GameAvailability::class);
+        $viewer = $request->user();
+        $counts = [];
+        foreach (app(CatalogCache::class)->rows() as $row) {
+            if (! $this->inLobbyMode($row, $mode) || ! $availability->visible($row, $viewer) || $row['vendor'] === null) {
+                continue;
+            }
+            $slug = $row['vendor'];
+            $counts[$slug] ??= ['slug' => $slug, 'name' => Vendors::name($slug), 'count' => 0, 'popular' => 0];
+            $counts[$slug]['count']++;
+            if ($row['is_popular']) {
+                $counts[$slug]['popular']++;
+            }
+        }
+        $vendors = collect($counts)
+            ->map(function (array $row) use ($plays) {
+                $row['plays'] = (int) ($plays[$row['slug']] ?? 0);
+
+                return $row;
+            })
+            ->sort(fn ($a, $b) => [$b['plays'], $b['popular'], Vendors::priority($a['slug'])] <=> [$a['plays'], $a['popular'], Vendors::priority($b['slug'])])
             ->values();
 
         $limit = $vendor !== '' ? 200 : 90;
@@ -324,22 +318,70 @@ class SiteController extends Controller
         ];
     }
 
+    /**
+     * Sağlayıcı oynanma sayıları. Önbellek düz dizi tutar: Collection, serializable_classes
+     * kapalıyken __PHP_Incomplete_Class olup lobiyi 500'e düşürür.
+     *
+     * @return array<string, int>
+     */
+    private function lobbyPlays(string $mode): array
+    {
+        $key = 'casino:lobby-plays:'.$mode;
+        $cached = Cache::get($key);
+        if (is_array($cached)) {
+            return $cached;
+        }
+        if ($cached !== null) {
+            Cache::forget($key);
+        }
+
+        $plays = DB::table('game_rounds as r')
+            ->join('casino_games as g', 'g.id', '=', 'r.game_id')
+            ->where('r.created_at', '>=', now()->subDays(30))
+            ->whereIn('r.game_id', $this->games($mode, false)->select('casino_games.id'))
+            ->groupBy('g.vendor')
+            ->selectRaw('g.vendor AS vendor, COUNT(*) AS c')
+            ->pluck('c', 'vendor')
+            ->map(fn ($count) => (int) $count)
+            ->all();
+
+        Cache::put($key, $plays, CatalogCache::TTL);
+
+        return $plays;
+    }
+
     /** slot | live | virtual | mini — virtual ve mini (RomaSpin tip 3) slot listesine karışmaz. */
-    private function games(string $mode)
+    private function games(string $mode, bool $blocks = true)
     {
         $query = CasinoGame::query()
             ->with('provider')
             ->where('is_active', true)
             ->whereHas('provider', fn ($query) => $query->where('status', 'active'));
 
-        // Admin engelleri (genel + uyenin superadmini) — oyun ac/kapat
-        app(\App\Services\Casino\GameAvailability::class)->apply($query, auth()->user());
+        if ($blocks) {
+            app(GameAvailability::class)->apply($query, auth()->user());
+        }
 
         return match ($mode) {
             'live' => $query->where('is_live', true),
             'virtual' => $query->where('category', 'virtual'),
             'mini' => $query->where('category', 'mini'),
             default => $query->where('is_live', false)->where(fn ($q) => $q->whereNull('category')->orWhereNotIn('category', ['virtual', 'mini'])),
+        };
+    }
+
+    /**
+     * @param  array{category: ?string, is_live: bool}  $row
+     */
+    private function inLobbyMode(array $row, string $mode): bool
+    {
+        $category = $row['category'] ?? null;
+
+        return match ($mode) {
+            'live' => $row['is_live'],
+            'virtual' => $category === 'virtual',
+            'mini' => $category === 'mini',
+            default => ! $row['is_live'] && ! in_array($category, ['virtual', 'mini'], true),
         };
     }
 
@@ -355,9 +397,9 @@ class SiteController extends Controller
         return back();
     }
 
-    public function theme(\Illuminate\Http\Request $request): \Illuminate\Http\RedirectResponse
+    public function theme(Request $request): RedirectResponse
     {
-        $data = $request->validate(['theme' => ['nullable', \Illuminate\Validation\Rule::in(\App\Enums\Theme::values())]]);
+        $data = $request->validate(['theme' => ['nullable', Rule::in(Theme::values())]]);
         $request->user()->forceFill(['theme' => $data['theme'] ?? null])->save();
 
         return back()->with('status', __('site.theme_saved'));

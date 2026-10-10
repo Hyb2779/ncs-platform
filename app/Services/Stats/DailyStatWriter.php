@@ -259,7 +259,7 @@ class DailyStatWriter
             $row['players'][$transaction->user_id] = true;
         } elseif ($type === WalletTransactionType::Refund) {
             $row['turnover'] = bcsub($row['turnover'], $amount, 2);
-        } elseif ($type === WalletTransactionType::Win) {
+        } elseif ($type === WalletTransactionType::Win || $type === WalletTransactionType::Cashout) {
             $row['payout'] = bcadd($row['payout'], $amount, 2);
         } elseif ($type === WalletTransactionType::Adjustment && in_array($product, StatRules::PAYOUT_ADJUSTMENT_PRODUCTS, true)) {
             $row['payout'] = bcadd($row['payout'], $amount, 2);
@@ -294,6 +294,7 @@ class DailyStatWriter
             WalletTransactionType::Bet,
             WalletTransactionType::Win,
             WalletTransactionType::Refund,
+            WalletTransactionType::Cashout,
             WalletTransactionType::Adjustment,
         ], true);
     }

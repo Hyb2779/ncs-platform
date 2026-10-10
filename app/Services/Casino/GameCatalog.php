@@ -31,7 +31,7 @@ class GameCatalog
     public function footer(?User $user): array
     {
         $ids = GameAvailability::scopeIdsFor($user);
-        $key = 'site:footer:'.GameAvailability::cacheVersion().':'.($ids === [] ? 'g' : implode('-', $ids));
+        $key = 'site:footer:v2:'.app()->getLocale().':'.GameAvailability::cacheVersion().':'.($ids === [] ? 'g' : implode('-', $ids));
 
         return Cache::remember($key, 3600, fn () => $this->build($user));
     }
@@ -98,7 +98,7 @@ class GameCatalog
             ->get();
 
         $buckets = ['slot' => [], 'live' => [], 'mini' => []];
-        $providers = 0;
+        $brands = [];
 
         foreach ($rows as $row) {
             $slot = (int) $row->slot_count;
@@ -107,8 +107,9 @@ class GameCatalog
             if ($slot + $live + $mini === 0) {
                 continue;
             }
-            $providers++;
-            $item = ['slug' => (string) $row->vendor, 'name' => (string) Vendors::name($row->vendor)];
+            $slug = (string) $row->vendor;
+            $item = ['slug' => $slug, 'name' => (string) Vendors::name($slug)];
+            $brands[$this->brandKey(Vendors::canonical($slug))] = true;
             if ($slot > 0) {
                 $buckets['slot'][] = $item;
             }
@@ -121,13 +122,14 @@ class GameCatalog
         }
 
         foreach ($buckets as &$items) {
+            $items = $this->collapse($items);
             usort($items, fn (array $a, array $b) => [Vendors::priority($a['slug']), $a['name']] <=> [Vendors::priority($b['slug']), $b['name']]);
         }
         unset($items);
 
         $groups = [];
         foreach ([
-            'slot' => ['site.slots', 'site.slots'],
+            'slot' => ['site.footer_slots', 'site.slots'],
             'live' => ['site.live_casino', 'site.live_casino'],
             'mini' => ['site.footer_quick', 'site.mini'],
         ] as $key => [$title, $route]) {
@@ -140,10 +142,45 @@ class GameCatalog
         return [
             'slots' => (int) ($totals->slot_count ?? 0),
             'live' => (int) ($totals->live_count ?? 0),
-            'providers' => $providers,
+            'providers' => count($brands),
             'groups' => $groups,
             'license_no' => self::LICENSE_NO,
             'company_no' => self::COMPANY_NO,
         ];
+    }
+
+    /**
+     * Aynı yazılan sağlayıcı bir kez kalır. Tanımlı ad, büyük harfe çevrilmiş kodun önüne geçer.
+     *
+     * @param  list<array{slug: string, name: string}>  $items
+     * @return list<array{slug: string, name: string}>
+     */
+    private function collapse(array $items): array
+    {
+        $groups = [];
+        foreach ($items as $item) {
+            $groups[$this->brandKey(Vendors::canonical($item['slug']))][] = $item;
+        }
+
+        $out = [];
+        foreach ($groups as $group) {
+            $best = $group[0];
+            foreach ($group as $item) {
+                $named = array_key_exists($item['slug'], Vendors::NAMES);
+                $bestNamed = array_key_exists($best['slug'], Vendors::NAMES);
+                if ($named && (! $bestNamed || Vendors::priority($item['slug']) < Vendors::priority($best['slug']))) {
+                    $best = $item;
+                }
+            }
+            $best['name'] = (string) Vendors::name($best['slug']);
+            $out[] = $best;
+        }
+
+        return $out;
+    }
+
+    private function brandKey(string $name): string
+    {
+        return (string) preg_replace('/[\s\-]+/u', '', mb_strtolower($name));
     }
 }

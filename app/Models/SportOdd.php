@@ -9,6 +9,7 @@ class SportOdd extends Model
 {
     protected $fillable = [
         'market_uid',
+        'type_id', 'group_name', 'selection_name', 'handicap',
         'fixture_id', 'market_id', 'outcome', 'raw_odd', 'shown_odd', 'direction', 'suspended', 'quoted_at',
     ];
 
@@ -19,6 +20,7 @@ class SportOdd extends Model
             'shown_odd' => 'decimal:2',
             'suspended' => 'boolean',
             'quoted_at' => 'datetime',
+            'handicap' => 'decimal:2',
         ];
     }
 

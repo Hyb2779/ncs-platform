@@ -10,6 +10,7 @@
     $link = fn (array $extra) => route('panel.reports.index', array_filter(array_merge($base, $extra), fn ($v) => $v !== null));
     $tone = fn ($v) => (float) $v < 0 ? 'text-rose-600' : ((float) $v > 0 ? 'text-emerald-700' : '');
     $role = fn ($u) => __('panel.reports_role_'.($u->role instanceof \BackedEnum ? $u->role->value : $u->role));
+    $showGgr = auth()->user()?->role === \App\Enums\UserRole::Owner;
     $cols = [
         ...($showCredit ? [
             ['given', __('panel.rep_given'), null],
@@ -59,9 +60,11 @@
                     @foreach ($cols as [$k, $label, $n])
                         <th class="whitespace-nowrap px-3 py-2 text-end">{{ $label }}</th>
                     @endforeach
-                    <th class="px-3 py-2 text-end">{{ __('panel.rep_general') }}</th>
-                    @if ($showCommission)<th class="px-3 py-2 text-end">{{ __('panel.rep_commission') }}</th>@endif
-                    <th class="px-3 py-2 text-end">{{ __('panel.rep_net') }}</th>
+                    @if ($showGgr)
+                        <th class="px-3 py-2 text-end">{{ __('panel.rep_general') }}</th>
+                        @if ($showCommission)<th class="px-3 py-2 text-end">{{ __('panel.rep_commission') }}</th>@endif
+                        <th class="px-3 py-2 text-end">{{ __('panel.rep_net') }}</th>
+                    @endif
                 </tr>
             </thead>
             <tbody>
@@ -81,15 +84,17 @@
                                 @endif
                             </td>
                         @endforeach
-                        <td class="whitespace-nowrap px-3 py-2 text-end font-numeric font-semibold {{ $tone($r['general']) }}">{{ $mm($r['general']) }}</td>
-                        @if ($showCommission)
-                            <td class="rep-commission whitespace-nowrap px-3 py-2 text-end font-numeric">
-                                @if ($r['show_commission'])
-                                    @if ($r['rate'])<span class="me-1 rounded bg-[#161A22] px-1.5 py-0.5 text-xs text-white">%{{ $r['rate'] }}</span>{{ $mm($r['commission']) }}@else - @endif
-                                @endif
-                            </td>
+                        @if ($showGgr)
+                            <td class="whitespace-nowrap px-3 py-2 text-end font-numeric font-semibold {{ $tone($r['general']) }}">{{ $mm($r['general']) }}</td>
+                            @if ($showCommission)
+                                <td class="rep-commission whitespace-nowrap px-3 py-2 text-end font-numeric">
+                                    @if ($r['show_commission'])
+                                        @if ($r['rate'])<span class="me-1 rounded bg-[#161A22] px-1.5 py-0.5 text-xs text-white">%{{ $r['rate'] }}</span>{{ $mm($r['commission']) }}@else - @endif
+                                    @endif
+                                </td>
+                            @endif
+                            <td class="whitespace-nowrap px-3 py-2 text-end font-numeric font-bold {{ $tone($r['net']) }}">{{ $mm($r['net']) }}</td>
                         @endif
-                        <td class="whitespace-nowrap px-3 py-2 text-end font-numeric font-bold {{ $tone($r['net']) }}">{{ $mm($r['net']) }}</td>
                     </tr>
                 @endforeach
             </tbody>
@@ -99,9 +104,11 @@
                     @foreach ($cols as [$k, $label, $n])
                         <td class="whitespace-nowrap px-3 py-2 text-end font-numeric">{{ $mm($totals[$k]) }}@if ($n)<span class="text-xs text-slate-500"> ({{ $totals[$n] }})</span>@endif</td>
                     @endforeach
-                    <td class="whitespace-nowrap px-3 py-2 text-end font-numeric {{ $tone($totals['general']) }}">{{ $mm($totals['general']) }}</td>
-                    @if ($showCommission)<td class="rep-commission whitespace-nowrap px-3 py-2 text-end font-numeric">{{ $mm($totals['commission']) }}</td>@endif
-                    <td class="whitespace-nowrap px-3 py-2 text-end font-numeric {{ $tone($totals['net']) }}">{{ $mm($totals['net']) }}</td>
+                    @if ($showGgr)
+                        <td class="whitespace-nowrap px-3 py-2 text-end font-numeric {{ $tone($totals['general']) }}">{{ $mm($totals['general']) }}</td>
+                        @if ($showCommission)<td class="rep-commission whitespace-nowrap px-3 py-2 text-end font-numeric">{{ $mm($totals['commission']) }}</td>@endif
+                        <td class="whitespace-nowrap px-3 py-2 text-end font-numeric {{ $tone($totals['net']) }}">{{ $mm($totals['net']) }}</td>
+                    @endif
                 </tr>
             </tfoot>
         </table>
@@ -129,24 +136,26 @@
                             <p class="font-numeric">{{ $mm($r[$k]) }}@if ($n)<span class="text-xs text-slate-500"> ({{ $r[$n] }})</span>@endif</p>
                         </div>
                     @endforeach
-                    <div>
-                        <p class="text-xs text-slate-500">{{ __('panel.rep_general') }}</p>
-                        <p class="font-numeric font-semibold {{ $tone($r['general']) }}">{{ $mm($r['general']) }}</p>
-                    </div>
-                    @if ($isTotal ? $showCommission : $r['show_commission'])
-                        <div class="rep-commission">
-                            <p class="text-xs text-slate-500">{{ __('panel.rep_commission') }}@if ($r['rate']) %{{ $r['rate'] }}@endif</p>
-                            <p class="font-numeric">{{ $mm($r['commission']) }}</p>
+                    @if ($showGgr)
+                        <div>
+                            <p class="text-xs text-slate-500">{{ __('panel.rep_general') }}</p>
+                            <p class="font-numeric font-semibold {{ $tone($r['general']) }}">{{ $mm($r['general']) }}</p>
+                        </div>
+                        @if ($isTotal ? $showCommission : $r['show_commission'])
+                            <div class="rep-commission">
+                                <p class="text-xs text-slate-500">{{ __('panel.rep_commission') }}@if ($r['rate']) %{{ $r['rate'] }}@endif</p>
+                                <p class="font-numeric">{{ $mm($r['commission']) }}</p>
+                            </div>
+                        @endif
+                        <div>
+                            <p class="text-xs text-slate-500">{{ __('panel.rep_net') }}</p>
+                            <p class="font-numeric font-bold {{ $tone($r['net']) }}">{{ $mm($r['net']) }}</p>
                         </div>
                     @endif
-                    <div>
-                        <p class="text-xs text-slate-500">{{ __('panel.rep_net') }}</p>
-                        <p class="font-numeric font-bold {{ $tone($r['net']) }}">{{ $mm($r['net']) }}</p>
-                    </div>
                 </div>
             </div>
         @endforeach
     </div>
 @endif
-<p class="mt-3 text-xs text-slate-500">{{ __('panel.rep_hint') }}</p>
+<p class="mt-3 text-xs text-slate-500">{{ $showGgr ? __('panel.rep_hint') : __('panel.rep_credit_hint') }}</p>
 @endsection

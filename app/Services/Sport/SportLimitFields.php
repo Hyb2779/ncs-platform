@@ -143,11 +143,7 @@ class SportLimitFields
     public static function display(string $field, mixed $value, \App\Enums\Currency $currency, ?string $locale = null): string
     {
         $separators = self::separators($locale ?? app()->getLocale());
-        $symbol = match ($currency->value) {
-            'USD' => '$',
-            'EUR' => '€',
-            default => '₺',
-        };
+        $symbol = $currency->symbol();
 
         return self::formatHint($field, self::canonical($field, $value), $separators['decimal'], $separators['thousands'], $symbol);
     }

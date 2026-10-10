@@ -45,7 +45,7 @@ class TodaySummary
         $top = $nets[0] ?? null;
         $bottom = $nets === [] ? null : $nets[array_key_last($nets)];
 
-        return [
+        $payload = [
             'currency' => $currency,
             'today_ggr' => $pick($today, 'all', 'ggr'),
             'week_ggr' => $pick($week, 'all', 'ggr'),
@@ -62,5 +62,9 @@ class TodaySummary
             'top_winner' => $top !== null && bccomp($top['net'], '0', 2) > 0 ? ['name' => $names[$top['user_id']] ?? '#'.$top['user_id'], 'net' => $top['net']] : null,
             'top_loser' => $bottom !== null && bccomp($bottom['net'], '0', 2) < 0 ? ['name' => $names[$bottom['user_id']] ?? '#'.$bottom['user_id'], 'net' => bcsub('0', $bottom['net'], 2)] : null,
         ];
+
+        return $viewer->role === \App\Enums\UserRole::Owner
+            ? $payload
+            : \App\Support\GgrPayload::strip($payload);
     }
 }

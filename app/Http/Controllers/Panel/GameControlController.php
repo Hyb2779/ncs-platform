@@ -34,6 +34,15 @@ class GameControlController extends Controller
         return $user;
     }
 
+    /** Branş kapatma: owner, süperadmin ve bayi, yalnız kendi ağacı. */
+    private function sportActor(Request $request): User
+    {
+        $user = $request->user();
+        abort_unless(in_array($user->role, [UserRole::Owner, UserRole::Superadmin, UserRole::Bayi], true), 404);
+
+        return $user;
+    }
+
     /** Ayar yapilabilecek hedefler: aktorun agacindaki alt owner / superadmin / bayi (kendisi haric). */
     private function targets(User $actor)
     {
@@ -42,13 +51,14 @@ class GameControlController extends Controller
             ->orderBy('path')->get(['id', 'username', 'role', 'path', 'parent_id']);
     }
 
-    /** Istekteki hedef (bos/kendisi = aktor). Agac disi 404. */
+    /** Istekteki hedef (bos/kendisi = aktor). Kayit yoksa ve agac disi ayni 404. */
     private function target(Request $request, User $actor): User
     {
         $id = (int) $request->input('target', 0);
         if ($id <= 0 || $id === (int) $actor->id) {
             return $actor;
         }
+        abort_unless(User::query()->whereKey($id)->exists(), 404);
         abort_if($this->targets($actor)->firstWhere('id', $id) === null, 404);
 
         return User::query()->findOrFail($id);
@@ -74,8 +84,8 @@ class GameControlController extends Controller
     {
         $user = $this->actor($request);
         $target = $this->target($request, $user);
-        // Hedef kok owner ise engeller NULL (genel). Diger hedefler kendi id'si; ustlerin engelleri 'global' (kilitli) gorunur.
-        $sid = $target->isRootOwner() ? null : (int) $target->id;
+        // Kök owner kendi adına genel (NULL) yazar. Alt owner ve süperadmin kendi id'sine yazar.
+        $sid = $this->blockScopeId($user, $target);
         $scopeIds = GameAvailability::scopeIdsFor($target);
 
         // durum[scope][value] = 'global' (Owner kapatti) | 'own' (bu superadmin kapatti)
@@ -134,13 +144,12 @@ class GameControlController extends Controller
         }
 
         return view('panel.games.index', [
-            'isOwner' => $target->isRootOwner(), // hedef genel kapsam: her engeli acip kapatabilir
-            // 04.10 (Volkan/Blackeagle): kok owner disinda sadece kategori + urun (toptan ac/kapat); saglayici/marka/oyun yok.
-            'limited' => ! $user->isRootOwner(),
+            'isOwner' => $sid === null,
+            'limited' => $user->role !== UserRole::Owner,
             'targets' => $this->targets($user),
             'target' => $target,
             'targetParam' => $target->id === $user->id ? '' : (string) $target->id,
-            'actorIsRoot' => $user->isRootOwner(),
+            'actorIsRoot' => $user->role === UserRole::Owner,
             'actorId' => (int) $user->id,
             'canCurate' => $user->role === UserRole::Owner, // populer/sira (sistem ayari; alt owner da)
             'state' => $state,
@@ -152,9 +161,43 @@ class GameControlController extends Controller
         ]);
     }
 
+    public function branches(Request $request): View
+    {
+        $user = $this->sportActor($request);
+        $target = $this->target($request, $user);
+        $sid = $this->blockScopeId($user, $target);
+        $scopeIds = GameAvailability::scopeIdsFor($target);
+        $state = [];
+        GameBlock::query()
+            ->where('scope', 'sport')
+            ->where(function ($q) use ($scopeIds) {
+                $q->whereNull('superadmin_id');
+                if ($scopeIds !== []) {
+                    $q->orWhereIn('superadmin_id', $scopeIds);
+                }
+            })
+            ->get(['superadmin_id', 'value'])
+            ->each(function ($block) use (&$state, $sid) {
+                $kind = $sid !== null && $block->superadmin_id !== null && (int) $block->superadmin_id === $sid ? 'own' : 'global';
+                if (($state[$block->value] ?? null) !== 'global') {
+                    $state[$block->value] = $kind;
+                }
+            });
+
+        return view('panel.sport.branches', [
+            'isOwner' => $sid === null,
+            'targets' => $user->role === UserRole::Bayi ? collect() : $this->targets($user),
+            'target' => $target,
+            'targetParam' => $target->id === $user->id ? '' : (string) $target->id,
+            'actorIsRoot' => $user->isRootOwner(),
+            'state' => $state,
+            'sports' => GameAvailability::SPORTS,
+        ]);
+    }
+
     public function toggle(Request $request): RedirectResponse
     {
-        $user = $this->actor($request);
+        $user = $request->input('scope') === 'sport' ? $this->sportActor($request) : $this->actor($request);
         $target = $this->target($request, $user);
         $data = $request->validate([
             'scope' => ['required', Rule::in(GameAvailability::SCOPES)],
@@ -162,7 +205,8 @@ class GameControlController extends Controller
             'value.*' => ['required', 'string', 'max:64', 'distinct'],
             'blocked' => ['required', 'boolean'],
         ]);
-        abort_if(! $user->isRootOwner() && ! in_array($data['scope'], ['category', 'product'], true), 403);
+        abort_if($user->role === UserRole::Bayi && $data['scope'] !== 'sport', 404);
+        abort_if($user->role !== UserRole::Owner && ! in_array($data['scope'], ['category', 'product', 'sport'], true), 403);
         $values = array_values($data['value']);
 
         $valid = match ($data['scope']) {
@@ -170,11 +214,12 @@ class GameControlController extends Controller
             'vendor' => CasinoGame::query()->whereIn('vendor', $values)->distinct()->count('vendor'),
             'category' => count(array_intersect($values, GameAvailability::CATEGORIES)),
             'product' => count(array_intersect($values, GameAvailability::PRODUCTS)),
+            'sport' => count(array_intersect($values, GameAvailability::SPORTS)),
             'game' => CasinoGame::query()->whereIn('id', array_map('intval', $values))->count(),
         };
         abort_unless($valid === count($values), 422);
 
-        $sid = $target->isRootOwner() ? null : (int) $target->id;
+        $sid = $this->blockScopeId($user, $target);
         $blocked = (bool) $data['blocked'];
 
         DB::transaction(function () use ($user, $sid, $data, $values, $blocked) {
@@ -211,5 +256,15 @@ class GameControlController extends Controller
         ]);
 
         return back()->with('status', __('panel.games_saved'));
+    }
+
+    /** Kök owner genel engel yazar (NULL). Alt owner kendi id'sine yazar, sadece kendi ağacı kapanır. */
+    private function blockScopeId(User $actor, User $target): ?int
+    {
+        if ($actor->isRootOwner() && ($target->id === $actor->id || $target->isRootOwner())) {
+            return null;
+        }
+
+        return (int) $target->id;
     }
 }

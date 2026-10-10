@@ -32,13 +32,13 @@ class VolkanCreditTest extends TestCase
 
         $this->actingAs($root)->get(self::BASE)->assertOk()->assertSee(__('panel.volkan_credit'), false);
         $this->actingAs($root)->get(self::BASE.'/volkan-credit')->assertOk()
-            ->assertSee(__('panel.volkan_credit_produced'), false)
-            ->assertSee(__('panel.volkan_credit_distributed'), false);
+            ->assertSee(__('panel.volkan_credit_distributed'), false)
+            ->assertDontSee('Ürettiği kredi', false);
 
         foreach ([$sub, $sa, $bayi] as $user) {
             $this->actingAs($user)->get(self::BASE)->assertOk()->assertDontSee(__('panel.volkan_credit'), false);
             $this->actingAs($user)->get(self::BASE.'/volkan-credit')->assertForbidden();
-            $this->actingAs($user)->get(self::BASE.'/reports')->assertOk()->assertDontSee(__('panel.volkan_credit_produced'), false);
+            $this->actingAs($user)->get(self::BASE.'/reports')->assertOk()->assertDontSee(__('panel.volkan_credit_distributed'), false);
             $this->actingAs($user)->get(self::BASE.'/transactions')->assertOk()->assertDontSee(__('panel.volkan_credit_distributed'), false);
         }
     }
@@ -47,10 +47,39 @@ class VolkanCreditTest extends TestCase
     {
         [$root] = $this->world();
 
-        foreach (['tr' => 'Ürettiği kredi', 'en' => 'Credit he produced', 'de' => 'Von ihm erzeugtes Guthaben', 'ar' => 'الائتمان الذي أنتجه'] as $locale => $label) {
+        foreach ([
+            'tr' => ['Alt Owner Takip', 'Dağıttığı kredi'],
+            'en' => ['Sub-owner tracking', 'Credit distributed'],
+            'de' => ['Sub-Owner-Übersicht', 'Verteiltes Guthaben'],
+            'ar' => ['متابعة المالكين الفرعيين', 'الائتمان الموزَّع'],
+        ] as $locale => [$title, $distributed]) {
             $root->forceFill(['language' => $locale])->save();
-            $this->actingAs($root->fresh())->get(self::BASE.'/volkan-credit')->assertOk()->assertSee($label, false);
+            $this->actingAs($root->fresh())->get(self::BASE.'/volkan-credit')->assertOk()
+                ->assertSee($title, false)
+                ->assertSee($distributed, false)
+                ->assertDontSee('Ürettiği kredi', false);
         }
+    }
+
+    public function test_lists_every_sub_owner(): void
+    {
+        [$root, $volkan, , , $member] = $this->world();
+        $robin = $this->raw('Robin', UserRole::Owner, $root);
+        $robinMember = $this->raw('robin_uye', UserRole::Uye, $robin);
+        app(\App\Services\WalletProvisioner::class)->openFor($volkan);
+        app(\App\Services\WalletProvisioner::class)->openFor($robin);
+
+        $this->issue($volkan, '9000.00', '2026-10-08 09:00:00');
+        $this->load($volkan->wallets()->where('currency', Currency::Try)->firstOrFail(), $volkan, $member, '-4000.00', '2026-10-08 11:00:00', 'volkan-load');
+        $this->load($robin->wallets()->where('currency', Currency::Try)->firstOrFail(), $robin, $robinMember, '-3000.00', '2026-10-08 12:00:00', 'robin-load');
+        Carbon::setTestNow(Carbon::parse('2026-10-08 18:00:00', 'Europe/Istanbul'));
+
+        $page = $this->actingAs($root)->get(self::BASE.'/volkan-credit');
+        $page->assertOk();
+        $page->assertSeeInOrder(['Robin', 'Volkan'], false);
+        $page->assertSee(Money::format('3000.00', Currency::Try), false);
+        $page->assertSee(Money::format('4000.00', Currency::Try), false);
+        $page->assertDontSee(Money::format('9000.00', Currency::Try), false);
     }
 
     public function test_each_day_sums_recorded_issues_and_loads_newest_first(): void
@@ -69,32 +98,32 @@ class VolkanCreditTest extends TestCase
 
         $week = $this->actingAs($root)->get(self::BASE.'/volkan-credit');
         $week->assertOk();
+        $week->assertSee('Volkan', false);
         $week->assertSee('period=this_week', false);
         $week->assertSeeInOrder([
             '08.10.2026',
-            Money::format('10000.00', Currency::Try),
             Money::format('5000.00', Currency::Try),
             '07.10.2026',
-            Money::format('15000.00', Currency::Try),
             Money::format('7000.00', Currency::Try),
             __('panel.volkan_credit_total'),
-            Money::format('25000.00', Currency::Try),
             Money::format('12000.00', Currency::Try),
         ], false);
         $week->assertDontSee(Money::format('999.00', Currency::Try), false);
+        $week->assertDontSee(Money::format('15000.00', Currency::Try), false);
+        $week->assertDontSee(Money::format('10000.00', Currency::Try), false);
+        $week->assertDontSee(Money::format('25000.00', Currency::Try), false);
 
         $yesterday = $this->actingAs($root)->get(self::BASE.'/volkan-credit?period=custom&from=2026-10-07&to=2026-10-07');
         $yesterday->assertOk();
         $yesterday->assertSeeInOrder([
             '07.10.2026',
-            Money::format('15000.00', Currency::Try),
             Money::format('7000.00', Currency::Try),
             __('panel.volkan_credit_total'),
-            Money::format('15000.00', Currency::Try),
             Money::format('7000.00', Currency::Try),
         ], false);
         $yesterday->assertDontSee('08.10.2026', false);
-        $yesterday->assertDontSee(Money::format('10000.00', Currency::Try), false);
+        $yesterday->assertDontSee(Money::format('5000.00', Currency::Try), false);
+        $yesterday->assertDontSee(Money::format('15000.00', Currency::Try), false);
 
         $this->actingAs($sub)->get(self::BASE.'/volkan-credit')->assertForbidden();
     }

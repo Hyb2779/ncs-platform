@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
 use App\Models\Coupon;
+use App\Services\Sport\CashoutQuote;
 use App\Services\Sport\CouponCanceller;
+use App\Services\Sport\CouponCashout;
 use App\Services\Sport\CouponException;
 use App\Support\Money;
 use Illuminate\Http\JsonResponse;
@@ -17,7 +19,7 @@ class CouponController extends Controller
     public function index(Request $request): View
     {
         $status = (string) $request->query('status', 'pending');
-        if (! in_array($status, ['pending', 'won', 'lost', 'void', 'cancelled'], true)) {
+        if (! in_array($status, ['pending', 'won', 'lost', 'void', 'cancelled', 'cashed_out'], true)) {
             $status = 'pending';
         }
         $statuses = $status === 'cancelled' ? ['cancelled', 'refunded'] : [$status];
@@ -66,12 +68,15 @@ class CouponController extends Controller
         return response()->json(['selections' => $selections]);
     }
 
-    public function show(Request $request, Coupon $coupon): View
+    public function show(Request $request, Coupon $coupon, CashoutQuote $quotes): View
     {
         abort_unless($coupon->user_id === $request->user()->id, 404);
         $coupon->load(['selections.fixture.home', 'selections.fixture.away', 'selections.fixture.league', 'canceller']);
 
-        return view('site.coupons.show', ['coupon' => $coupon]);
+        return view('site.coupons.show', [
+            'coupon' => $coupon,
+            'cashout' => $coupon->status === 'pending' ? $quotes->quote($coupon) : null,
+        ]);
     }
 
     public function cancel(Request $request, Coupon $coupon, CouponCanceller $canceller): RedirectResponse
@@ -87,6 +92,25 @@ class CouponController extends Controller
         }
 
         return back()->with('status', __('sport.coupon.cancelled', ['no' => $coupon->coupon_no]));
+    }
+
+    public function cashout(Request $request, Coupon $coupon, CouponCashout $cashout): RedirectResponse
+    {
+        abort_unless($coupon->user_id === $request->user()->id, 404);
+
+        try {
+            $cashout->take($request->user(), $coupon, (string) $request->input('amount'), $request->ip());
+        } catch (CouponException $exception) {
+            abort_if($exception->translationKey === 'sport.errors.cancel_forbidden', 403);
+            $replace = $exception->replace;
+            if ($exception->translationKey === 'sport.errors.cashout_moved' && isset($replace['amount'])) {
+                $replace['amount'] = Money::format((string) $replace['amount'], $request->user()->currency);
+            }
+
+            return back()->withErrors(['coupon' => __($exception->translationKey, $replace)]);
+        }
+
+        return back()->with('status', __('sport.coupon.cashed_out', ['no' => $coupon->coupon_no]));
     }
 
     public static function money(string $amount): string

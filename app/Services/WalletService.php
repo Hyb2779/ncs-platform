@@ -307,6 +307,10 @@ class WalletService
         $after = bcadd($before, $amount, 2);
         $overdraft = $this->normalize((string) ($wallet->settlement_overdraft_amount ?? '0'));
 
+        if (bccomp($after, '0', 2) < 0 && $this->isSubOwnerWallet($wallet)) {
+            throw new WalletException('wallet.insufficient_balance');
+        }
+
         if (bccomp($after, '0', 2) < 0 && ! $wallet->allow_negative) {
             if (bccomp($before, '0', 2) < 0 && $type !== WalletTransactionType::Adjustment) {
                 throw new WalletException('wallet.insufficient_balance');
@@ -375,8 +379,49 @@ class WalletService
         ]);
 
         app(DailyStatWriter::class)->record($transaction);
+        $this->recordCreditIssue($wallet, $after, $occurredAt);
 
         return $transaction;
+    }
+
+    /** Alt owner cüzdanı 0'ın altına inemez. Bayrak açık kalsa da transfer reddedilir. */
+    private function isSubOwnerWallet(Wallet $wallet): bool
+    {
+        $user = $wallet->relationLoaded('user') ? $wallet->user : User::query()->find($wallet->user_id);
+
+        return $user !== null && $user->role === UserRole::Owner && ! $user->isRootOwner();
+    }
+
+    /**
+     * İkinci owner için para birimi bazında en yüksek eksi bakiye (high-water).
+     * credit_issues yalnızca bu seviye aşıldığında, aşan kısım kadar yazılır.
+     * Toplam üretim = kayıtların toplamı = ulaşılan en yüksek eksi bakiye. Kayıt append-only.
+     * Kök owner üretimi ücrete girmez.
+     */
+    private function recordCreditIssue(Wallet $wallet, string $after, ?Carbon $occurredAt): void
+    {
+        $user = User::query()->find($wallet->user_id);
+        if ($user === null || $user->role !== UserRole::Owner || $user->isRootOwner()) {
+            return;
+        }
+
+        $negative = bccomp($after, '0', 2) < 0 ? bcsub('0', $after, 2) : '0.00';
+        $peak = DB::table('credit_issues')
+            ->where('user_id', $user->id)
+            ->where('currency', $wallet->currency->value)
+            ->lockForUpdate()
+            ->sum('amount');
+        $excess = bcsub($negative, bcadd((string) ($peak ?? '0'), '0', 2), 2);
+        if (bccomp($excess, '0', 2) !== 1) {
+            return;
+        }
+
+        DB::table('credit_issues')->insert([
+            'user_id' => $user->id,
+            'currency' => $wallet->currency->value,
+            'amount' => $excess,
+            'created_at' => $occurredAt ?? now(),
+        ]);
     }
 
     private function assertOccurredAt(?Carbon $occurredAt): void

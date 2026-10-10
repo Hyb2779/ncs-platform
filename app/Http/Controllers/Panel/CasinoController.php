@@ -9,18 +9,21 @@ use App\Models\CasinoProvider;
 use App\Models\GameRound;
 use App\Models\GameSession;
 use App\Models\User;
+use App\Services\Casino\CatalogCache;
 use App\Services\Casino\ProviderRegistry;
 use App\Support\Money;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class CasinoController extends Controller
 {
     public function providers(): View
     {
-        abort_unless(auth()->user()->role === UserRole::Owner, 404);
+        abort_unless(auth()->user()?->role === UserRole::Owner, 404);
 
         return view('panel.casino.providers', ['providers' => CasinoProvider::query()->orderBy('name')->get()]);
     }
@@ -30,6 +33,7 @@ class CasinoController extends Controller
         abort_unless($request->user()->role === UserRole::Owner, 404);
         $provider->status = $request->string('status')->toString() === 'active' ? 'active' : 'passive';
         $provider->save();
+        app(CatalogCache::class)->forget();
 
         return back()->with('status', __('panel.user_updated'));
     }
@@ -38,13 +42,14 @@ class CasinoController extends Controller
     {
         abort_unless($request->user()->role === UserRole::Owner, 404);
         $count = $registry->get($provider->code)?->syncGames() ?? 0;
+        app(CatalogCache::class)->forget();
 
         return back()->with('status', __('site.synced', ['count' => $count]));
     }
 
     public function games(): RedirectResponse
     {
-        abort_unless(auth()->user()->role === UserRole::Owner, 404);
+        abort_unless(auth()->user()?->role === UserRole::Owner, 404);
 
         return redirect()->route('panel.games.index');
     }
@@ -55,6 +60,7 @@ class CasinoController extends Controller
         $game->is_popular = $request->boolean('is_popular');
         $game->sort_order = (int) $request->input('sort_order', $game->sort_order);
         $game->save();
+        app(CatalogCache::class)->forget();
 
         return back()->with('status', __('panel.user_updated'));
     }
@@ -90,8 +96,8 @@ class CasinoController extends Controller
     }
 
     /**
-     * @param  \Illuminate\Database\Eloquent\Builder<covariant \Illuminate\Database\Eloquent\Model>  $query
-     * @return array{0: \Illuminate\Support\Collection<int, int>, 1: \Illuminate\Database\Eloquent\Builder<covariant \Illuminate\Database\Eloquent\Model>}
+     * @param  Builder<covariant \Illuminate\Database\Eloquent\Model>  $query
+     * @return array{0: Collection<int, int>, 1: Builder<covariant \Illuminate\Database\Eloquent\Model>}
      */
     private function scoped(Request $request, $query): array
     {

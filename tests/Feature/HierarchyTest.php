@@ -10,6 +10,7 @@ use App\Models\ActivityLog;
 use App\Models\User;
 use App\Services\HierarchyException;
 use App\Services\HierarchyService;
+use App\Support\Money;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -57,6 +58,32 @@ class HierarchyTest extends TestCase
         $this->assertSame('/'.$owner->id.'/'.$superadmin->id.'/'.$bayi->id.'/'.$member->id.'/', $member->path);
         $this->assertSame(3, $member->depth);
         $this->assertSame($superadmin->id, $member->superadmin_id);
+    }
+
+    public function test_an_arabic_network_can_use_dirham(): void
+    {
+        $owner = $this->owner();
+        $hierarchy = app(HierarchyService::class);
+        $superadmin = $hierarchy->create($owner, $this->payload('sa-ar', [
+            'language' => 'ar',
+            'currency' => 'AED',
+            'timezone' => 'Asia/Dubai',
+        ]));
+        $member = $hierarchy->create(
+            $hierarchy->create($superadmin, $this->payload('bayi-ar')),
+            $this->payload('uye-ar'),
+        );
+
+        $this->assertSame(Language::Ar, $member->language);
+        $this->assertSame(Currency::Aed, $member->currency);
+        $this->assertSame(1, $member->wallets()->count());
+        $this->assertSame('0.00', number_format((float) $member->wallets()->where('currency', 'AED')->value('balance'), 2, '.', ''));
+        $this->assertSame(count(Currency::cases()), $superadmin->wallets()->count());
+
+        app()->setLocale('ar');
+        $this->assertSame('10.00 د.إ', Money::format('10.00', Currency::Aed));
+        app()->setLocale('tr');
+        $this->assertSame('10,00 د.إ', Money::format('10.00', Currency::Aed));
     }
 
     public function test_agent_cannot_see_another_agents_member(): void
@@ -124,13 +151,15 @@ class HierarchyTest extends TestCase
         $bayi = $hierarchy->create($superadmin, $this->payload('bayi-login'));
         $member = $hierarchy->create($bayi, $this->payload('uye-login', ['password' => 'password']));
 
+        $this->get('/account')->assertRedirect('/login');
+
         $this->post('/login', [
             'username' => $member->username,
             'password' => 'password',
         ])->assertRedirect('/');
 
-        $this->get('/')->assertOk()->assertSee('Willkommen', false);
-        $this->get('/?lang=ar')->assertSee('Willkommen', false);
+        $this->get('/')->assertOk()->assertSee('lang="de"', false);
+        $this->get('/?lang=ar')->assertSee('lang="de"', false)->assertDontSee('lang="ar"', false);
 
         $this->post('/logout');
 

@@ -8,11 +8,7 @@
         $separators = \App\Services\Sport\SportLimitFields::separators(app()->getLocale());
         $decimal = $separators['decimal'];
         $thousands = $separators['thousands'];
-        $symbol = match ($currency->value) {
-            'USD' => '$',
-            'EUR' => '€',
-            default => '₺',
-        };
+        $symbol = $currency->symbol();
         $fields = \App\Services\Sport\SportLimitFields::class;
     @endphp
     <div
@@ -21,7 +17,7 @@
     >
         @if (auth()->user()->role->value === 'owner')
             <div class="mb-4 flex gap-2">
-                @foreach (['TRY', 'USD', 'EUR'] as $code)
+                @foreach (\App\Enums\Currency::values() as $code)
                     <a class="inline-flex h-11 items-center rounded-lg border px-3 text-sm {{ $currency->value === $code ? 'bg-[#161A22] text-white' : '' }}" href="{{ route('panel.sport.limits', ['currency' => $code]) }}">{{ $code }}</a>
                 @endforeach
             </div>

@@ -10,6 +10,7 @@ enum WalletTransactionType: string
     case Bet = 'bet';
     case Win = 'win';
     case Refund = 'refund';
+    case Cashout = 'cashout';
     case Bonus = 'bonus';
     case Adjustment = 'adjustment';
 }

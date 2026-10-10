@@ -52,6 +52,7 @@ return [
         'bet' => 'Bahis',
         'win' => 'Kazanç',
         'refund' => 'İade',
+        'cashout' => 'Bozdurma',
         'bonus' => 'Bonus',
         'adjustment' => 'Düzeltme',
     ],

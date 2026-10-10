@@ -22,10 +22,9 @@ class SetLocale
             $locale = $user->role !== \App\Enums\UserRole::Uye && is_string($picked) && in_array($picked, self::LOCALES, true)
                 ? $picked
                 : $user->language->value;
-            app()->setLocale($locale);
-            Carbon::setLocale($locale);
+            $this->apply($locale);
 
-        return $next($request);
+            return $next($request);
         }
 
         $locale = $request->query('lang');
@@ -40,9 +39,14 @@ class SetLocale
             $locale = 'tr';
         }
 
-        app()->setLocale($locale);
-        Carbon::setLocale($locale);
+        $this->apply($locale);
 
         return $next($request);
+    }
+
+    private function apply(string $locale): void
+    {
+        app()->setLocale($locale);
+        Carbon::setLocale($locale);
     }
 }

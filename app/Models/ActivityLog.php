@@ -31,4 +31,14 @@ class ActivityLog extends Model
     {
         return $this->belongsTo(User::class, 'actor_id');
     }
+
+    protected static function booted(): void
+    {
+        static::updating(function (): void {
+            throw new \RuntimeException('activity_logs are immutable');
+        });
+        static::deleting(function (): void {
+            throw new \RuntimeException('activity_logs are immutable');
+        });
+    }
 }

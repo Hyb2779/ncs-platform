@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Services\Sport\SportTranslator;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\Cache;
 
 class SportTranslate extends Command
 {
@@ -13,21 +14,30 @@ class SportTranslate extends Command
 
     public function handle(SportTranslator $translator): int
     {
-        $pending = $translator->pendingCount();
-        $key = config('services.anthropic.key');
-
-        if (! is_string($key) || $key === '') {
-            $this->info(__('sport.translate.waiting', ['count' => $pending]));
-
+        $lock = Cache::lock('sport-translate', 60 * 180);
+        if (! $lock->get()) {
             return self::SUCCESS;
         }
 
-        $requests = $translator->translate();
-        $this->info(__('sport.translate.done', [
-            'requests' => $requests,
-            'waiting' => $translator->pendingCount(),
-        ]));
+        try {
+            $pending = $translator->pendingCount();
+            $key = config('services.anthropic.key');
 
-        return self::SUCCESS;
+            if (! is_string($key) || $key === '') {
+                $this->info(__('sport.translate.waiting', ['count' => $pending]));
+
+                return self::SUCCESS;
+            }
+
+            $requests = $translator->translate();
+            $this->info(__('sport.translate.done', [
+                'requests' => $requests,
+                'waiting' => $translator->pendingCount(),
+            ]));
+
+            return self::SUCCESS;
+        } finally {
+            $lock->release();
+        }
     }
 }

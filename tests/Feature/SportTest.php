@@ -101,7 +101,7 @@ class SportTest extends TestCase
         foreach (['tr', 'en', 'de'] as $locale) {
             $this->get('/sport?lang='.$locale)->assertOk()->assertSee('dir="ltr"', false);
         }
-        $this->get('/sport?lang=ar')->assertOk()->assertSee('dir="rtl"', false)->assertSee(__('sport.all', [], 'ar'), false);
+        $this->get('/sport?lang=ar')->assertOk()->assertSee('lang="ar"', false)->assertSee('dir="rtl"', false)->assertSee(__('sport.all', [], 'ar'), false);
     }
 
     public function test_bulletin_and_detail_show_the_same_outcome_price(): void
@@ -118,6 +118,7 @@ class SportTest extends TestCase
                 'fixture_id' => $fixture->id, 'market_id' => $markets['DC']->id, 'outcome' => $outcome, 'raw_odd' => $price, 'shown_odd' => $price,
             ]);
         }
+        $fixture->forceFill(['offer_count' => 2])->save();
 
         foreach (['/sport', '/sport/fixtures/'.$fixture->id] as $url) {
             $html = $this->get($url)->assertOk()->getContent();
@@ -160,6 +161,7 @@ class SportTest extends TestCase
         SportOdd::query()->create([
             'fixture_id' => $visible->id, 'market_id' => $market->id, 'outcome' => 'home', 'raw_odd' => '1.50', 'shown_odd' => '1.50',
         ]);
+        $visible->forceFill(['offer_count' => 1])->save();
         $empty = SportLeague::query()->create([
             'api_id' => random_int(1000, 9999), 'country_id' => $visible->league->country_id, 'name' => 'Empty League', 'season' => 2026, 'is_active' => true,
         ]);
@@ -191,7 +193,7 @@ class SportTest extends TestCase
             ->assertSee($live->home->name, false)
             ->assertSee(__('sport.statuses.2H'), false)
             ->assertDontSee('>2H<', false)
-            ->assertSee(__('sport.live_odds_soon'), false);
+            ->assertSee(__('sport.other', ['count' => 0]), false);
         $this->get('/sport/results')->assertOk()
             ->assertSee(__('site.results'), false)
             ->assertSee($done->home->name, false)
@@ -271,7 +273,7 @@ class SportTest extends TestCase
                 '2' => ['market_name' => 'Maç Sonucu', 'selection_name' => 'X', 'handicap' => '0', 'sport_id' => 1],
                 '3' => ['market_name' => 'Maç Sonucu', 'selection_name' => '2', 'handicap' => '0', 'sport_id' => 1],
                 '9' => ['market_name' => 'Toplam Alt/Üst', 'selection_name' => 'Üst', 'handicap' => '2.5', 'sport_id' => 1],
-                '999' => ['market_name' => 'Kornerler', 'selection_name' => 'Üst', 'handicap' => '9.5', 'sport_id' => 1],
+                '999' => ['market_name' => 'Kornerler Toplam Alt/Üst', 'selection_name' => 'Üst', 'handicap' => '9.5', 'sport_id' => 1],
             ],
             'events' => [[
                 'eventid' => 777001, 'sport' => 'football', 'live' => false, 'match_time' => $start,
@@ -290,7 +292,11 @@ class SportTest extends TestCase
         $fixture = \App\Models\SportFixture::query()->where('api_id', 777001)->firstOrFail();
         $this->assertSame(2, (int) $fixture->mbs);
         $this->assertSame('La Liga 2', $fixture->league->name);
-        $this->assertSame(4, \App\Models\SportOdd::query()->where('fixture_id', $fixture->id)->count());
+        $this->assertSame(5, \App\Models\SportOdd::query()->where('fixture_id', $fixture->id)->count());
+        $corner = \App\Models\SportOdd::query()->where('fixture_id', $fixture->id)->where('type_id', 999)->firstOrFail();
+        $this->assertSame('BOOK', $corner->market->code);
+        $this->assertSame('9.50', number_format((float) $corner->handicap, 2, '.', ''));
+        $this->get('/sport/fixtures/'.$fixture->id)->assertOk()->assertSee('Kornerler', false)->assertSee('1.80', false);
         $home = \App\Models\SportOdd::query()->where('fixture_id', $fixture->id)->where('outcome', 'home')->firstOrFail();
         $this->assertSame('u-1', $home->market_uid);
         $this->assertSame('2.40', number_format((float) $home->raw_odd, 2, '.', ''));

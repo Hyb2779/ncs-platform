@@ -7,6 +7,9 @@ use App\Models\SportMargin;
 
 class MarginEngine
 {
+    /** @var array<string, SportMargin|null> */
+    private array $rules = [];
+
     public function show(string $raw, SportFixture $fixture, string $marketCode, ?int $superadminId): string
     {
         $rule = $this->rule($fixture, $marketCode, $superadminId);
@@ -28,6 +31,11 @@ class MarginEngine
 
     private function rule(SportFixture $fixture, string $marketCode, ?int $superadminId): ?SportMargin
     {
+        $key = $fixture->id.'|'.$marketCode.'|'.($superadminId ?? '');
+        if (array_key_exists($key, $this->rules)) {
+            return $this->rules[$key];
+        }
+
         $layers = [
             ['market', fn ($q) => $q->where('fixture_id', $fixture->id)->where('market_code', $marketCode)],
             ['fixture', fn ($q) => $q->where('fixture_id', $fixture->id)->whereNull('market_code')],
@@ -41,10 +49,10 @@ class MarginEngine
             $rows = $query->get();
             $match = $rows->firstWhere('superadmin_id', $superadminId) ?? $rows->firstWhere('superadmin_id', null);
             if ($match !== null) {
-                return $match;
+                return $this->rules[$key] = $match;
             }
         }
 
-        return null;
+        return $this->rules[$key] = null;
     }
 }

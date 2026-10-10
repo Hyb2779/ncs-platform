@@ -2,10 +2,19 @@
 
 @section('heading', __('site.results'))
 
-@section('mainClass', 'mx-auto w-full max-w-4xl px-4 py-4 md:px-6')
+@section('mainClass', 'mx-auto w-full max-w-[90rem] px-4 py-4 md:px-6')
+
+@section('afterHeader')
+    @include('site.sport._live')
+@endsection
 
 @section('content')
-    <section class="flex min-w-0 flex-col gap-3">
+    <div class="lg:grid lg:grid-cols-[14.5rem_minmax(0,1fr)_21.25rem] lg:items-start lg:gap-4">
+        <aside class="sticky top-20 hidden self-start lg:flex lg:flex-col lg:gap-4">
+            @include('site.sport._sports', ['variant' => 'side'])
+        </aside>
+        <section class="flex min-w-0 flex-col gap-3">
+            @include('site.sport._sports', ['variant' => 'chips'])
         <h1 class="text-xl font-extrabold text-[var(--site-text)] md:text-2xl">{{ __('site.results') }}</h1>
 
         <details class="results-filters rounded-xl border border-[var(--site-line)] bg-[var(--site-panel)] md:border-0 md:bg-transparent" @if ($filtered) open @endif>
@@ -69,5 +78,11 @@
         @empty
             <p class="text-[var(--site-muted)]">{{ $filtered ? __('sport.results_none') : __('sport.empty_results') }}</p>
         @endforelse
-    </section>
+        </section>
+        <aside class="sticky top-20 hidden self-start lg:flex lg:flex-col lg:gap-3">
+            @include('site.sport._coupon')
+            @include('site.sport._lookup')
+        </aside>
+    </div>
+    @include('site.sport._sheet')
 @endsection

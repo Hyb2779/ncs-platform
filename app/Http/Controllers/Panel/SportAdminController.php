@@ -30,10 +30,29 @@ class SportAdminController extends Controller
 {
     public function status(FootballBudget $budget): View
     {
-        abort_unless(auth()->user()->role === UserRole::Owner, 404);
+        $actor = auth()->user();
+        abort_unless($actor->role === UserRole::Owner, 404);
 
         $voidStatuses = [...config('sport.void_statuses'), ...config('sport.wait_statuses')];
         $approachFrom = now()->subHours((int) config('sport.void_after_hours'))->addHours(6);
+        $pending = CouponSelection::query()
+            ->where('status', 'pending')
+            ->where('kickoff_at', '<=', now()->subMinutes((int) config('sport.settle_after_minutes')));
+        $approaching = CouponSelection::query()
+            ->with(['fixture.home', 'fixture.away'])
+            ->where('status', 'pending')
+            ->where('kickoff_at', '<=', $approachFrom)
+            ->whereHas('fixture', fn ($query) => $query->whereIn('status', $voidStatuses))
+            ->orderBy('kickoff_at')
+            ->limit(50);
+        $overdrafts = SportWarning::query()->open()->where('type', SportWarning::Overdraft)
+            ->with('user')
+            ->orderByDesc('id');
+        if (! $actor->isRootOwner()) {
+            $pending->whereHas('coupon.user', fn ($query) => $query->subtreeOf($actor));
+            $approaching->whereHas('coupon.user', fn ($query) => $query->subtreeOf($actor));
+            $overdrafts->whereHas('user', fn ($query) => $query->subtreeOf($actor));
+        }
 
         return view('panel.sport.status', [
             'used' => $budget->used(),
@@ -42,26 +61,13 @@ class SportAdminController extends Controller
             'liveSync' => SportSyncState::query()->where('code', 'live-sync')->first(),
             'states' => SportSyncState::query()->where('code', '!=', 'live-sync')->orderBy('code')->get(),
             'settleCheck' => SportSyncState::query()->where('code', 'settle-check')->first(),
-            'pendingSettlements' => CouponSelection::query()
-                ->where('status', 'pending')
-                ->where('kickoff_at', '<=', now()->subMinutes((int) config('sport.settle_after_minutes')))
-                ->count(),
-            'approaching' => CouponSelection::query()
-                ->with(['fixture.home', 'fixture.away'])
-                ->where('status', 'pending')
-                ->where('kickoff_at', '<=', $approachFrom)
-                ->whereHas('fixture', fn ($query) => $query->whereIn('status', $voidStatuses))
-                ->orderBy('kickoff_at')
-                ->limit(50)
-                ->get(),
+            'pendingSettlements' => $pending->count(),
+            'approaching' => $approaching->get(),
             'stale' => SportWarning::query()->open()->where('type', SportWarning::Stale)
                 ->with(['fixture.home', 'fixture.away'])
                 ->orderByDesc('id')
                 ->get(),
-            'overdrafts' => SportWarning::query()->open()->where('type', SportWarning::Overdraft)
-                ->with('user')
-                ->orderByDesc('id')
-                ->get(),
+            'overdrafts' => $overdrafts->get(),
         ]);
     }
 
@@ -87,11 +93,7 @@ class SportAdminController extends Controller
 
         return view('panel.sport.fixture', [
             'fixture' => $fixture,
-            'coupons' => Coupon::query()
-                ->whereHas('selections', fn ($query) => $query->where('fixture_id', $fixture->id))
-                ->with(['user', 'selections'])
-                ->orderByDesc('id')
-                ->get(),
+            'coupons' => $this->fixtureCoupons($fixture)->with(['user', 'selections'])->orderByDesc('id')->get(),
         ]);
     }
 
@@ -122,10 +124,7 @@ class SportAdminController extends Controller
             ->whereNull('resolved_at')
             ->update(['resolved_at' => now()]);
 
-        $coupons = Coupon::query()
-            ->whereNot('status', 'cancelled')
-            ->whereHas('selections', fn ($query) => $query->where('fixture_id', $fixture->id))
-            ->get();
+        $coupons = $this->fixtureCoupons($fixture, true)->whereNot('status', 'cancelled')->get();
         foreach ($coupons as $coupon) {
             $settler->correct($coupon, $request->user(), $fixture->id);
         }
@@ -294,6 +293,18 @@ class SportAdminController extends Controller
     private function authorizeLimitEditor(Request $request): void
     {
         abort_unless(in_array($request->user()->role, [UserRole::Owner, UserRole::Superadmin], true), 404);
+    }
+
+    /** Liste alt owner'da kendi ağacıdır. Skor kaydı ($allTrees) her ağacın kuponunu aynı sonuçla kapatır. */
+    private function fixtureCoupons(SportFixture $fixture, bool $allTrees = false)
+    {
+        $query = Coupon::query()->whereHas('selections', fn ($inner) => $inner->where('fixture_id', $fixture->id));
+        $actor = auth()->user();
+        if (! $allTrees && $actor !== null && ! $actor->isRootOwner()) {
+            $query->whereHas('user', fn ($users) => $users->subtreeOf($actor));
+        }
+
+        return $query;
     }
 
     private function limitCurrency(Request $request): Currency

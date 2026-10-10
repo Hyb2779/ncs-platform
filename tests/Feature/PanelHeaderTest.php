@@ -41,7 +41,10 @@ class PanelHeaderTest extends TestCase
 
         // Dil secimi Ayarlar > Dil secenegi sayfasinda; menude ogesi var.
         $this->actingAs($sa)->get('http://panel.test/panel/preferences/language')->assertOk()->assertSee('name="language" value="en"', false);
-        $this->actingAs($bayi)->get('http://panel.test/panel')->assertOk()->assertSee(__('panel.menu_language'));
+        $this->actingAs($bayi)->get('http://panel.test/panel')->assertOk()
+            ->assertSee(__('panel.menu_language'))
+            ->assertSee(__('panel.menu_app_download'))
+            ->assertSee('href="/downloads/wegas-panel.apk"', false);
         $this->actingAs($sa)->from('http://panel.test/panel')->post('http://panel.test/panel/preferences/language', ['language' => 'en'])
             ->assertRedirect()->assertCookie('panel_locale', 'en');
         $this->actingAs($sa)->withCookie('panel_locale', 'en')->get('http://panel.test/panel')->assertOk()

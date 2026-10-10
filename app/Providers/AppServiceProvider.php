@@ -48,8 +48,11 @@ class AppServiceProvider extends ServiceProvider
         Route::bind('user', function (string $value) {
             $actor = auth()->user();
             abort_if($actor === null, 403);
+            $user = ctype_digit($value) ? User::query()->whereKey($value)->first() : null;
+            abort_if($user === null, 404);
+            abort_unless($user->isInSubtreeOf($actor), 404);
 
-            return User::query()->subtreeOf($actor)->whereKey($value)->firstOrFail();
+            return $user;
         });
 
         User::created(function (User $user): void {

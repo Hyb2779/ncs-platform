@@ -13,6 +13,7 @@ use App\Services\Sport\CouponCalculator;
 use App\Services\Sport\CouponException;
 use App\Services\Sport\CouponPlacer;
 use App\Services\Sport\MarginEngine;
+use App\Services\Sport\LiveTicker;
 use App\Services\Sport\ResultBoard;
 use App\Support\Money;
 use Illuminate\Database\DeadlockException;
@@ -60,12 +61,21 @@ class SportController extends Controller
         }
 
         $market = $this->marketFilter($request);
+        $sport = $this->sportFilter($request);
+        if ($sport === '') {
+            $query->whereRaw('1 = 0');
+        } else {
+            $query->where('sport', $sport);
+        }
+        $page = $query->paginate(80)->withQueryString();
 
         return view('site.sport.index', [
-            'fixtures' => $query->limit(200)->get()->groupBy('league_id'),
-            ...$this->sportFrame($request),
+            'fixtures' => $page->getCollection()->groupBy('league_id'),
+            'pages' => $page,
+            ...$this->sportFrame($request, $sport),
             'market' => $market,
             'when' => $when,
+            'sport' => $sport,
             'columns' => $this->bulletinColumns($market),
             'cardColumns' => $this->cardColumns($market),
         ]);
@@ -73,14 +83,51 @@ class SportController extends Controller
 
     public function live(Request $request): View
     {
+        $sport = $this->sportFilter($request);
+        $market = $this->marketFilter($request);
+        $query = \App\Services\Sport\Bulletin::liveQuery();
+        if ($sport === '') {
+            $query->whereRaw('1 = 0');
+        } else {
+            $query->where('sport', $sport);
+        }
+
+        if ($request->filled('q')) {
+            $term = '%'.$request->string('q').'%';
+            $query->where(function ($inner) use ($term): void {
+                $inner->whereHas('home', fn ($q) => $q->where('name', 'like', $term))
+                    ->orWhereHas('away', fn ($q) => $q->where('name', 'like', $term))
+                    ->orWhereHas('league', fn ($q) => $q->where('name', 'like', $term));
+            });
+        }
+
+        if ($request->filled('league')) {
+            $query->where('league_id', $request->integer('league'));
+        }
+
+        $page = $query->paginate(80)->withQueryString();
+        $statuses = $this->liveStatuses();
+
         return view('site.sport.live', [
-            'fixtures' => SportFixture::query()
-                ->with(['league.country', 'home', 'away'])
-                ->inPlay()
-                ->orderBy('starts_at')
-                ->get()
-                ->groupBy('league_id'),
-            ...$this->sportFrame($request),
+            'fixtures' => $page->getCollection()->groupBy('league_id'),
+            'pages' => $page,
+            ...$this->sportFrame($request, $sport),
+            'leagues' => SportLeague::query()->with('country')->withCount(['fixtures as bulletin_count' => function ($query) use ($sport, $statuses): void {
+                $query->where('sport', $sport)->whereIn('status', $statuses);
+            }])->where('is_active', true)->whereHas('fixtures', function ($query) use ($sport, $statuses): void {
+                $query->where('sport', $sport)->whereIn('status', $statuses);
+            })->orderByDesc('bulletin_count')->limit(40)->get(),
+            'sportCounts' => SportFixture::query()
+                ->whereIn('status', $statuses)
+                ->whereHas('league', fn ($q) => $q->where('is_active', true))
+                ->selectRaw('sport, count(*) as total')
+                ->groupBy('sport')
+                ->pluck('total', 'sport'),
+            'market' => $market,
+            'sport' => $sport,
+            'columns' => $this->bulletinColumns($market),
+            'cardColumns' => $this->cardColumns($market),
+            'liveBoard' => true,
         ]);
     }
 
@@ -107,16 +154,38 @@ class SportController extends Controller
 
     public function results(Request $request, ResultBoard $board): View
     {
-        return view('site.sport.results', $board->present($request));
+        $sport = $this->sportFilter($request);
+
+        return view('site.sport.results', [
+            ...$board->present($request),
+            ...$this->sportFrame($request, $sport),
+            'sport' => $sport,
+        ]);
     }
 
     public function show(Request $request, SportFixture $fixture): View
     {
-        $fixture->load(['league.country', 'home', 'away', 'odds.market']);
+        abort_if(in_array((string) $fixture->sport, sport_closed($request->user()), true), 404);
+        $fixture->load([
+            'league.country', 'home', 'away',
+            'odds' => fn ($query) => $query->where('suspended', false),
+            'odds.market',
+        ]);
+        $open = $fixture->odds->filter(fn (SportOdd $odd) => ! $odd->suspended && ! sport_offer_closed($fixture, $odd))->values();
+        $board = $open->groupBy(fn (SportOdd $odd) => $odd->group_name ?: ('code:'.$odd->market->code));
+        $rank = ['home' => 1, 'draw' => 2, 'away' => 3, 'home_draw' => 1, 'home_away' => 2, 'draw_away' => 3, 'under' => 1, 'over' => 2, 'yes' => 1, 'no' => 2];
+        $order = array_flip([
+            'Maç Sonucu', 'Maç Kazananı', 'Çifte Şans', 'Beraberlikte İade', 'Toplam Alt/Üst', 'Handikaplı',
+            'Karşılıklı Gol', 'Maç Skoru', 'İlk Yarı Sonucu', 'İlk Yarı Alt/Üst', 'İkinci Yarı Sonucu',
+        ]);
+        $board = $board
+            ->map(fn ($rows) => $rows->sortBy(fn (SportOdd $odd) => sprintf('%08.2f-%02d-%s', (float) $odd->handicap, $rank[$odd->outcome] ?? 50, (string) $odd->selection_name))->values())
+            ->sortBy(fn ($rows, $name) => sprintf('%04d-%s', $order[$name] ?? 500, $name));
 
         return view('site.sport.show', [
             'fixture' => $fixture,
-            ...$this->sportFrame($request),
+            'board' => $board,
+            ...$this->sportFrame($request, (string) ($fixture->sport ?: 'football')),
             'detailTab' => $this->detailTab($request),
         ]);
     }
@@ -126,7 +195,7 @@ class SportController extends Controller
         $ids = collect((array) $request->input('odds', []))->map(fn ($id) => (int) $id)->filter()->unique()->take(20);
         $odds = SportOdd::query()->with('fixture')->whereIn('id', $ids)->get();
         foreach ($odds as $odd) {
-            if ($odd->suspended || ! sport_price_open($odd->fixture, (string) $odd->shown_odd)) {
+            if ($odd->suspended || sport_offer_closed($odd->fixture, $odd) || ! sport_price_open($odd->fixture, (string) $odd->shown_odd)) {
                 continue;
             }
             $coupon->add($odd);
@@ -137,8 +206,9 @@ class SportController extends Controller
 
     public function add(Request $request, SportOdd $odd, CouponBook $coupon): RedirectResponse
     {
-        abort_if($odd->suspended, 422);
         $odd->loadMissing('fixture');
+        abort_if($odd->suspended || sport_offer_closed($odd->fixture, $odd), 422);
+        abort_if(in_array((string) $odd->fixture->sport, sport_closed($request->user()), true), 422);
         abort_unless(sport_price_open($odd->fixture, (string) $odd->shown_odd), 422);
         $coupon->add($odd);
 
@@ -258,35 +328,55 @@ class SportController extends Controller
     /**
      * @return array<string, mixed>
      */
-    private function sportFrame(Request $request): array
+    private function sportFrame(Request $request, string $sport): array
     {
-        [$from, $until] = display_span_utc(0, 3);
-
         return [
             'coupon' => $this->couponView($request),
-            'liveFixtures' => SportFixture::query()
-                ->with(['home', 'away'])
-                ->inPlay()
-                ->orderBy('starts_at')
-                ->limit(16)
-                ->get(),
-            'leagues' => SportLeague::query()->with('country')->withCount(['fixtures as bulletin_count' => function ($query) use ($from, $until): void {
-                $query->where('starts_at', '>=', $from)
-                    ->where('starts_at', '<', $until)
-                    ->whereHas('odds');
-            }])->where('is_active', true)->whereHas('fixtures', function ($query) use ($from, $until): void {
-                $query->where('starts_at', '>=', $from)
-                    ->where('starts_at', '<', $until)
-                    ->whereHas('odds');
-            })->orderByDesc('is_featured')->orderBy('sort_order')->get(),
+            'liveFixtures' => LiveTicker::fixtures($sport),
+            'leagues' => SportLeague::query()->with('country')->withCount(['fixtures as bulletin_count' => function ($query) use ($sport): void {
+                $query->where('sport', $sport)
+                    ->where('starts_at', '>=', now())
+                    ->where('offer_count', '>', 0);
+            }])->where('is_active', true)->whereHas('fixtures', function ($query) use ($sport): void {
+                $query->where('sport', $sport)
+                    ->where('starts_at', '>=', now())
+                    ->where('offer_count', '>', 0);
+            })->orderByDesc('is_featured')->orderBy('sort_order')->limit(40)->get(),
             'lookupCoupon' => $this->lookupCoupon($request),
-            'footballCount' => SportFixture::query()
+            'sport' => $sport,
+            'sportCounts' => SportFixture::query()
+                ->where('starts_at', '>=', now())
+                ->where('offer_count', '>', 0)
                 ->whereHas('league', fn ($q) => $q->where('is_active', true))
-                ->whereHas('odds')
-                ->where('starts_at', '>=', $from)
-                ->where('starts_at', '<', $until)
-                ->count(),
+                ->when(sport_closed($request->user()) !== [], fn ($query) => $query->whereNotIn('sport', sport_closed($request->user())))
+                ->selectRaw('sport, count(*) as total')
+                ->groupBy('sport')
+                ->pluck('total', 'sport'),
         ];
+    }
+
+    /** @return list<string> */
+    private function liveStatuses(): array
+    {
+        return [...config('sport.live_statuses'), 'HT'];
+    }
+
+    private function sportFilter(Request $request): string
+    {
+        $open = array_values(array_diff(
+            ['football', 'basketball', 'tennis', 'volleyball'],
+            sport_closed($request->user()),
+        ));
+        $sport = (string) $request->query('sport', 'football');
+        if (! in_array($sport, ['football', 'basketball', 'tennis', 'volleyball'], true)) {
+            $sport = 'football';
+        }
+
+        if (in_array($sport, $open, true)) {
+            return $sport;
+        }
+
+        return $open[0] ?? '';
     }
 
     private function lookupCoupon(Request $request): ?Coupon

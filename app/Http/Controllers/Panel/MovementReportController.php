@@ -114,7 +114,9 @@ class MovementReportController extends Controller
             return null;
         }
         $id = (int) $request->query('member');
-        abort_unless($members->contains(fn (User $member) => (int) $member->id === $id), 404);
+        $member = User::query()->whereKey($id)->first();
+        abort_if($member === null, 404);
+        abort_unless($members->contains(fn (User $row) => (int) $row->id === $id), 404);
 
         return $id;
     }
@@ -168,7 +170,7 @@ class MovementReportController extends Controller
             ->orderByDesc('id');
 
         if ($type === 'all') {
-            $query->whereIn('type', [WalletTransactionType::Bet, WalletTransactionType::Win, WalletTransactionType::Refund]);
+            $query->whereIn('type', [WalletTransactionType::Bet, WalletTransactionType::Win, WalletTransactionType::Refund, WalletTransactionType::Cashout]);
         } else {
             $query->where('type', $type);
         }

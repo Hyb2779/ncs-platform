@@ -28,7 +28,15 @@
         ]"
         :rows="$rows"
     />
-    @if ($coupon->status === 'pending' && auth()->user()->role !== \App\Enums\UserRole::Bayi)
+    @if (in_array($coupon->status, ['won', 'lost'], true))
+        <form id="coupon-refund" class="mt-4 grid max-w-md gap-2 pb-24" method="POST" action="{{ route('panel.coupons.refund', $coupon) }}">
+            @csrf
+            <input class="h-11 rounded-md border px-3" name="reason" placeholder="{{ __('sport.coupon.refund_reason') }}" required>
+        </form>
+        <x-panel.sticky-actions>
+            <button class="inline-flex h-11 items-center rounded-lg border px-3 text-sm" type="submit" form="coupon-refund">{{ __('sport.coupon.refund') }}</button>
+        </x-panel.sticky-actions>
+    @elseif ($coupon->status === 'pending')
         <form id="coupon-cancel" class="mt-4 grid max-w-md gap-2 pb-24" method="POST" action="{{ route('panel.coupons.cancel', $coupon) }}">
             @csrf
             <input class="h-11 rounded-md border px-3" name="reason" placeholder="{{ __('sport.coupon.cancel_reason') }}" required>

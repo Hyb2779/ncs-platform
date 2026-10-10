@@ -56,7 +56,7 @@ return new class extends Migration
             $table->decimal('stake', 18, 2);
             $table->decimal('total_odds', 8, 2);
             $table->decimal('potential_win', 18, 2);
-            $table->enum('status', ['pending', 'won', 'lost', 'refunded', 'cancelled']);
+            $table->enum('status', ['pending', 'won', 'lost', 'refunded', 'cancelled', 'cashed_out']);
             $table->boolean('accept_odds_change')->default(false);
             $table->text('note')->nullable();
             $table->string('ip', 45)->nullable();

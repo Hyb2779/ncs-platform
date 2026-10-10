@@ -175,6 +175,60 @@ class ReportTest extends TestCase
         $this->actingAs($this->sa1)->get('http://panel.test/panel')->assertOk()->assertSee(__('panel.week_top_winner'))->assertSee('oyuncu_one');
     }
 
+    public function test_json_and_export_omit_ggr_for_superadmin_and_bayi(): void
+    {
+        $this->play($this->m1, T::Bet, WalletProduct::Slot, '100.00');
+        $this->play($this->m1, T::Win, WalletProduct::Slot, '40.00');
+        $urls = [
+            'http://panel.test/panel',
+            'http://panel.test/panel?export=1',
+            'http://panel.test/panel/reports?period=custom&from=2020-01-01&to=2026-10-03',
+            'http://panel.test/panel/reports?export=1&period=custom&from=2020-01-01&to=2026-10-03',
+            'http://panel.test/panel/users/'.$this->m1->id,
+            'http://panel.test/panel/users/'.$this->m1->id.'?export=1',
+        ];
+
+        foreach ([$this->sa1, $this->bayi1] as $actor) {
+            foreach ($urls as $url) {
+                $response = $this->actingAs($actor)->getJson($url);
+                $response->assertOk();
+                $this->assertSame([], $this->ggrKeys($response->getContent(), str_contains($url, '/reports')), $actor->username.' '.$url);
+            }
+        }
+
+        $ownerReport = $this->actingAs($this->owner)->getJson('http://panel.test/panel/reports?period=custom&from=2020-01-01&to=2026-10-03');
+        $ownerReport->assertOk();
+        $this->assertNotNull($ownerReport->json('rows.0.general'));
+        $this->assertNotNull($ownerReport->json('totals.commission'));
+        $this->assertNotSame([], $this->ggrKeys($ownerReport->getContent(), true));
+        $this->actingAs($this->owner)->getJson('http://panel.test/panel')->assertOk();
+        $this->assertNotSame([], $this->ggrKeys($this->actingAs($this->owner)->getJson('http://panel.test/panel')->getContent(), false));
+    }
+
+    /** @return list<string> */
+    private function ggrKeys(string $json, bool $houseNet): array
+    {
+        $found = [];
+        $walk = function (mixed $node) use (&$walk, &$found, $houseNet): void {
+            if (! is_array($node)) {
+                return;
+            }
+            foreach ($node as $key => $value) {
+                $name = strtolower((string) $key);
+                $house = in_array($name, ['general', 'commission'], true) || ($houseNet && $name === 'net');
+                if ($house || str_contains($name, 'ggr') || str_contains($name, 'net_gaming') || str_contains($name, 'house_edge')) {
+                    $found[] = $name;
+                }
+                if (is_array($value)) {
+                    $walk($value);
+                }
+            }
+        };
+        $walk(json_decode($json, true));
+
+        return $found;
+    }
+
     /** @return array{0: Carbon, 1: Carbon} */
     private function day(string $date): array
     {
@@ -277,14 +331,20 @@ class ReportTest extends TestCase
         $this->actingAs($this->sa1)->get('http://panel.test/panel/reports?user='.$this->bayi1->id.'&period=custom&from=2020-01-01&to=2026-10-03')
             ->assertOk()
             ->assertDontSee('rep-commission', false)
+            ->assertDontSee(__('panel.rep_hint'), false)
             ->assertDontSee('%1', false)
             ->assertSee(\App\Support\Money::format('1140.05', Currency::Try), false);
         $this->actingAs($this->sa1)->get('http://panel.test/panel/reports?period=custom&from=2020-01-01&to=2026-10-03')
             ->assertOk()
+            ->assertDontSee('rep-commission', false)
+            ->assertDontSee(__('panel.rep_hint'), false)
+            ->assertDontSee(\App\Support\Money::format('342.02', Currency::Try), false)
+            ->assertDontSee(\App\Support\Money::format('798.03', Currency::Try), false);
+        $this->actingAs($this->owner)->get('http://panel.test/panel/reports?user='.$this->sa1->id.'&period=custom&from=2020-01-01&to=2026-10-03')
+            ->assertOk()
             ->assertSee('rep-commission', false)
             ->assertSee('%30', false)
-            ->assertSee(\App\Support\Money::format('342.02', Currency::Try), false)
-            ->assertSee(\App\Support\Money::format('798.03', Currency::Try), false);
+            ->assertSee(\App\Support\Money::format('342.02', Currency::Try), false);
     }
 
     public function test_credit_lines_show_on_player_cards_only(): void

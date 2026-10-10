@@ -8,11 +8,14 @@ use App\Http\Controllers\Panel\DashboardController;
 use App\Http\Controllers\Panel\SportAdminController;
 use App\Http\Controllers\Panel\UserController;
 use App\Http\Controllers\Panel\WalletController;
+use App\Http\Controllers\Site\AccountMovementsController;
 use App\Http\Controllers\Site\CouponController;
 use App\Http\Controllers\Site\SiteController;
 use App\Http\Controllers\Site\SportController;
 use App\Http\Middleware\EnsurePanelUser;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/home/matches', [SiteController::class, 'homeMatches'])->name('site.home.matches');
 
 Route::get('/', function () {
     $user = auth()->user();
@@ -51,10 +54,12 @@ Route::post('/logout', [LoginController::class, 'destroy'])->middleware('auth')-
 
 Route::middleware('auth')->group(function () {
     Route::get('/account', [SiteController::class, 'account'])->name('site.account');
+    Route::get('/account/movements', [AccountMovementsController::class, 'index'])->name('site.account.movements');
     Route::get('/account/coupons', [CouponController::class, 'index'])->name('site.coupons');
     Route::get('/account/coupons/live', [CouponController::class, 'live'])->name('site.coupons.live');
     Route::get('/account/coupons/{coupon}', [CouponController::class, 'show'])->name('site.coupons.show');
     Route::post('/account/coupons/{coupon}/cancel', [CouponController::class, 'cancel'])->name('site.coupons.cancel');
+    Route::post('/account/coupons/{coupon}/cashout', [CouponController::class, 'cashout'])->name('site.coupons.cashout');
     Route::post('/sport/coupon/place', [SportController::class, 'place'])->name('site.sport.coupon.place');
     Route::post('/account/password', [SiteController::class, 'password'])->name('site.password');
     Route::post('/locale', [SiteController::class, 'locale'])->name('site.locale');
@@ -75,6 +80,8 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::get('/users', [UserController::class, 'index'])->name('users.index');
     Route::get('/users/create', [UserController::class, 'create'])->name('users.create');
     Route::post('/users', [UserController::class, 'store'])->name('users.store');
+    Route::get('/credit-fees', [\App\Http\Controllers\Panel\CreditFeeController::class, 'index'])->name('credit-fees.index');
+    Route::post('/credit-fees/rate', [\App\Http\Controllers\Panel\CreditFeeController::class, 'updateRate'])->name('credit-fees.rate');
     Route::post('/credit-fees/payments', [\App\Http\Controllers\Panel\CreditFeeController::class, 'store'])->name('credit-fees.payments.store');
     Route::get('/reports', [\App\Http\Controllers\Panel\ReportController::class, 'index'])->name('reports.index');
     Route::get('/volkan-credit', [\App\Http\Controllers\Panel\VolkanCreditController::class, 'index'])->name('volkan-credit.index');
@@ -103,6 +110,7 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::put('/casino/games/{game}', [CasinoController::class, 'updateGame'])->name('casino.games.update');
     Route::get('/casino/rounds', [CasinoController::class, 'rounds'])->name('casino.rounds');
     Route::get('/casino/sessions', [CasinoController::class, 'sessions'])->name('casino.sessions');
+    Route::get('/sport/branches', [\App\Http\Controllers\Panel\GameControlController::class, 'branches'])->name('sport.branches');
     Route::get('/games', [\App\Http\Controllers\Panel\GameControlController::class, 'index'])->name('games.index');
     Route::post('/games/block', [\App\Http\Controllers\Panel\GameControlController::class, 'toggle'])->name('games.block');
     Route::get('/coupons', [PanelCouponController::class, 'index'])->name('coupons.index');
@@ -112,6 +120,7 @@ Route::middleware(['auth', EnsurePanelUser::class])->prefix('panel')->name('pane
     Route::get('/coupons/{coupon}', [PanelCouponController::class, 'show'])->name('coupons.show');
     Route::get('/coupons/tipo/{tipoCoupon}', [\App\Http\Controllers\Panel\TipoCouponController::class, 'show'])->name('coupons.tipo');
     Route::post('/coupons/{coupon}/cancel', [PanelCouponController::class, 'cancel'])->name('coupons.cancel');
+    Route::post('/coupons/{coupon}/refund', [PanelCouponController::class, 'refund'])->name('coupons.refund');
     Route::get('/sport/limits', [SportAdminController::class, 'limits'])->name('sport.limits');
     Route::get('/home-slides', [\App\Http\Controllers\Panel\HomeSlideController::class, 'index'])->name('home-slides.index');
     Route::post('/home-slides', [\App\Http\Controllers\Panel\HomeSlideController::class, 'store'])->name('home-slides.store');

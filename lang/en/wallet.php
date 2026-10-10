@@ -52,6 +52,7 @@ return [
         'bet' => 'Bet',
         'win' => 'Win',
         'refund' => 'Refund',
+        'cashout' => 'Cash out',
         'bonus' => 'Bonus',
         'adjustment' => 'Adjustment',
     ],

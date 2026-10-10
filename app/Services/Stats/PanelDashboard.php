@@ -41,7 +41,15 @@ class PanelDashboard
         $data['currencies'] = array_map(fn (Currency $item): string => $item->value, Currency::cases());
         $data['currency'] = $currency->value;
         $data['ops'] = $this->operations($owner, $budget);
-        $data['creditFees'] = $owner->isRootOwner() ? app(CreditFees::class)->summary() : []; // sadece kök owner görür
+        $feeFrom = $this->date(request('fee_from'));
+        $feeTo = $this->date(request('fee_to'));
+        $data['creditFees'] = $owner->isRootOwner()
+            ? app(CreditFees::class)->summary(
+                $feeFrom !== null ? Carbon::parse($feeFrom, $owner->timezone ?: 'Europe/Istanbul')->startOfDay()->utc() : null,
+                $feeTo !== null ? Carbon::parse($feeTo, $owner->timezone ?: 'Europe/Istanbul')->addDay()->startOfDay()->utc() : null,
+            )
+            : [];
+        $data['creditFeeRates'] = \App\Support\PlatformSetting::creditFeeRates();
         $data['columns'] = [
             ['key' => 'username', 'label' => __('panel.fields.username'), 'priority' => 'primary'],
             ['key' => 'balance', 'label' => __('wallet.balance'), 'priority' => 'primary'],
@@ -79,7 +87,6 @@ class PanelDashboard
         $data['columns'] = [
             ['key' => 'username', 'label' => __('panel.fields.username'), 'priority' => 'primary'],
             ['key' => 'balance', 'label' => __('wallet.balance'), 'priority' => 'primary'],
-            ['key' => 'ggr', 'label' => __('panel.period_ggr'), 'priority' => 'primary'],
             ['key' => 'members', 'label' => __('panel.member_count'), 'priority' => 'detail'],
             ['key' => 'risk', 'label' => __('panel.open_risk'), 'priority' => 'detail'],
         ];
@@ -90,7 +97,6 @@ class PanelDashboard
             return [
                 'username' => new HtmlString('<a class="font-medium" href="'.e(route('panel.network.show', $bayi)).'">'.e($bayi->username).'</a>'),
                 'balance' => $bayi->wallet()->first()?->formattedBalance() ?? Money::format('0', $bayi->currency),
-                'ggr' => Money::format($this->sum($this->rows([$bayi->id], $range['from'], $range['to'], 'all', $bayi->currency), 'ggr'), $bayi->currency),
                 'members' => (string) $members->count(),
                 'risk' => Money::format($open['risk'], $bayi->currency),
             ];
@@ -196,8 +202,8 @@ class PanelDashboard
 
         if ($rankSuperadmins) {
             array_unshift($cards, $this->card(
-                $viewer->isRootOwner() ? __('wallet.distributed_credit') : __('wallet.balance'),
-                $viewer->isRootOwner()
+                $viewer->role === UserRole::Owner ? __('wallet.distributed_credit') : __('wallet.balance'),
+                $viewer->role === UserRole::Owner
                     ? ($viewer->wallets()->where('currency', $currency)->first()?->formattedDistributedBalance() ?? Money::format('0', $currency))
                     : ($viewer->wallets()->where('currency', $currency)->first()?->formattedBalance() ?? Money::format('0', $currency)),
                 null,
@@ -211,12 +217,25 @@ class PanelDashboard
             ));
         }
 
+        $showGgr = $viewer->role === UserRole::Owner;
+        if (! $showGgr) {
+            $cards = array_values(array_filter($cards, fn (array $card): bool => ! str_contains($card['label'], 'GGR')));
+        }
+        $line = $this->series($accountIds, $range['from'], $range['to'], $currency);
+        if (! $showGgr) {
+            $line['datasets'] = array_values(array_filter(
+                $line['datasets'],
+                fn (array $set): bool => ! str_contains(strtolower((string) $set['label']), 'ggr'),
+            ));
+        }
+
         return [
             'range' => $range,
+            'showGgr' => $showGgr,
             'cards' => $cards,
-            'line' => $this->series($accountIds, $range['from'], $range['to'], $currency),
+            'line' => $line,
             'products' => $this->products($accountIds, $range['from'], $range['to'], $currency),
-            'rank' => $rankSuperadmins ? $this->ranking($accountIds, $range['from'], $range['to']) : null,
+            'rank' => $showGgr && $rankSuperadmins ? $this->ranking($accountIds, $range['from'], $range['to']) : null,
             'players' => $this->players($accountIds, $range['from'], $range['to'], false, $currency),
         ];
     }

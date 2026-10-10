@@ -27,7 +27,7 @@
             </select>
             <select class="h-11 rounded-md border px-2" name="status">
                 <option value="">{{ __('sport.panel.status_filter') }}</option>
-                @foreach (['pending', 'won', 'lost', 'void', 'refunded', 'cancelled'] as $status)
+                @foreach (['pending', 'won', 'lost', 'void', 'refunded', 'cancelled', 'cashed_out'] as $status)
                     <option value="{{ $status }}" @selected(request('status') === $status)>{{ __('sport.coupon.statuses.'.$status) }}</option>
                 @endforeach
             </select>

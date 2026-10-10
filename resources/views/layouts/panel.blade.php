@@ -26,17 +26,22 @@
     </style>
     <script>try{if(localStorage.getItem('panel_theme')==='dark'){var d=document.documentElement;d.dataset.theme='dark';d.dataset.panelTheme='dark'}}catch(e){}</script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
+    <link rel="icon" href="/img/brand/favicon.ico?v=4" sizes="48x48">
+    <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/favicon-32.png?v=4">
+    <link rel="icon" type="image/png" sizes="192x192" href="/img/brand/icon-192.png?v=4">
+    <link rel="icon" type="image/png" sizes="512x512" href="/img/brand/icon-512.png?v=4">
+    <link rel="apple-touch-icon" href="/img/brand/apple-touch-icon.png?v=4">
 </head>
 <body class="min-h-screen bg-[#F3F4F6] font-sans text-slate-900" x-data="{ open: false }">
     <div class="fixed inset-0 z-30 bg-slate-900/40 md:hidden" x-show="open" x-cloak @click="open = false"></div>
     <aside class="fixed inset-y-0 start-0 z-40 flex w-64 flex-col border-e border-[#E3E6EB] bg-white" :class="open ? 'flex' : 'hidden md:flex'" data-nav="drawer">
         <div class="flex items-center justify-between px-4 py-5">
-            <p class="text-base font-semibold">{{ brand()->name() }}</p>
+            <span class="panel-brand">@include('brand.logo')</span>
             <span class="rounded-lg bg-[#F3F4F6] px-2 py-1 text-[11px] font-semibold tracking-wide text-slate-500">{{ __('panel.badge') }}</span>
         </div>
         @php
             $pcUser = auth()->user();
-            $pcRoot = $pcUser->isRootOwner();
+            $pcRoot = $pcUser->role === \App\Enums\UserRole::Owner;
             $pcWallets = $headerWallets->keyBy(fn ($w) => $w->currency instanceof \BackedEnum ? $w->currency->value : (string) $w->currency);
             $pcCurrency = $pcUser->currency->value ?? $pcWallets->keys()->first();
         @endphp
@@ -54,10 +59,11 @@
                 </div>
             @endif
         </div>
+        @unless ($pcUser->must_change_password)
         <nav class="mt-6 grid min-h-0 flex-1 content-start gap-4 overflow-y-auto px-3 pb-6">
             @foreach ($panelSections as $section)
                 @php
-                    $sectionOpen = $loop->first || collect($section['items'])->contains(fn ($i) => request()->routeIs(...$i['active']));
+                    $sectionOpen = $loop->first || collect($section['items'])->contains(fn ($i) => filled($i['route'] ?? null) && request()->routeIs(...$i['active']));
                 @endphp
                 <div x-data="{ expanded: {{ $sectionOpen ? 'true' : 'false' }} }">
                     <button class="flex w-full items-center justify-between rounded-lg px-3 py-1 text-[11px] font-semibold tracking-wide text-slate-400" type="button" @click="expanded = !expanded" :aria-expanded="expanded.toString()">
@@ -66,10 +72,12 @@
                     </button>
                     <div x-show="expanded" @if (! $sectionOpen) style="display: none" @endif>
                     @foreach ($section['items'] as $item)
+                        @php $current = filled($item['route'] ?? null) && request()->routeIs(...$item['active']); @endphp
                         <a
-                            class="mt-1 flex h-11 items-center rounded-lg px-3 text-sm {{ request()->routeIs(...$item['active']) ? 'bg-[#161A22] text-white' : 'text-slate-700' }}"
-                            href="{{ route($item['route']) }}"
-                            @if (request()->routeIs(...$item['active'])) aria-current="page" @endif
+                            class="mt-1 flex h-11 items-center rounded-lg px-3 text-sm {{ $current ? 'bg-[#161A22] text-white' : 'text-slate-700' }}"
+                            href="{{ $item['url'] ?? route($item['route']) }}"
+                            @if ($current) aria-current="page" @endif
+                            @if (! empty($item['url'])) download @endif
                             @click="open = false"
                         >{{ $item['label'] }}</a>
                     @endforeach
@@ -77,6 +85,7 @@
                 </div>
             @endforeach
         </nav>
+        @endunless
     </aside>
     <div class="md:ps-64">
         <header class="flex min-h-14 items-center justify-between gap-2 border-b border-[#E3E6EB] bg-white px-3 md:h-[68px] md:px-6">
@@ -112,7 +121,7 @@
             @yield('content')
         </main>
     </div>
-    @if (config('panel.bottom_nav'))
+    @if (config('panel.bottom_nav') && ! $pcUser->must_change_password)
         <nav class="fixed inset-x-0 bottom-0 z-20 flex border-t border-[#E3E6EB] bg-white pb-[env(safe-area-inset-bottom)] md:hidden" data-nav="bottom">
             @foreach ($panelBottom as $item)
                 <a

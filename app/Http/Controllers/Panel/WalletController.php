@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Panel;
 
+use App\Enums\Currency;
 use App\Enums\UserRole;
 use App\Enums\WalletProduct;
 use App\Enums\WalletTransactionType;
@@ -32,7 +33,7 @@ class WalletController extends Controller
                 || $user->parent_id === $actor->id
                 || ($actor->role === \App\Enums\UserRole::Superadmin && $user->role === \App\Enums\UserRole::Uye && $user->isInSubtreeOf($actor))
             ),
-            404,
+            403,
         );
 
         $amount = $request->string('amount')->toString();
@@ -79,7 +80,7 @@ class WalletController extends Controller
             $types[] = 'owner';
         }
 
-        $symbols = ['USD' => '$', 'EUR' => "\u{20AC}", 'TRY' => "\u{20BA}"];
+        $symbols = collect(Currency::cases())->mapWithKeys(fn (Currency $currency) => [$currency->value => $currency->symbol()])->all();
         $users = User::query()->subtreeOf($actor)->whereKeyNot($actor->id)->whereIn('role', $types)
             ->with('wallets')->orderBy('username')->get();
         $parents = User::query()->whereIn('id', $users->pluck('parent_id')->filter()->unique())->pluck('username', 'id');
@@ -121,8 +122,9 @@ class WalletController extends Controller
         $subject = $actor;
 
         if ($request->filled('user') && ! $ownAccount) {
-            $subject = User::query()->subtreeOf($actor)->whereKey((int) $request->query('user'))->first();
+            $subject = User::query()->whereKey((int) $request->query('user'))->first();
             abort_if($subject === null, 404);
+            abort_unless($subject->isInSubtreeOf($actor), 404);
             abort_if($actor->role === UserRole::Superadmin && $subject->role !== UserRole::Bayi, 404);
         }
 

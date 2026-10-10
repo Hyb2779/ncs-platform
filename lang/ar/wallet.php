@@ -52,6 +52,7 @@ return [
         'bet' => 'رهان',
         'win' => 'ربح',
         'refund' => 'استرداد',
+        'cashout' => 'صرف',
         'bonus' => 'مكافأة',
         'adjustment' => 'تصحيح',
     ],

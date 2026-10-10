@@ -163,7 +163,10 @@ class CouponPlacer
 
         foreach ($selections as $selection) {
             $odd = $odds->get($selection['odd_id']);
-            if ($odd === null || $odd->suspended || ! $odd->fixture->isOpen() || ! $odd->fixture->league->is_active) {
+            if ($odd !== null && in_array((string) $odd->fixture->sport, sport_closed($user), true)) {
+                throw new CouponException('sport.errors.branch_closed');
+            }
+            if ($odd === null || $odd->suspended || sport_offer_closed($odd->fixture, $odd) || ! $odd->fixture->isOpen() || ! $odd->fixture->league->is_active) {
                 $key = $odd === null || $odd->suspended ? 'sport.errors.suspended' : ($odd->fixture->isOpen() ? 'sport.errors.inactive' : 'sport.errors.started');
                 throw new CouponException($key);
             }

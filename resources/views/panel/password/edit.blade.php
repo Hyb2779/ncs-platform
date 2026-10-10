@@ -8,6 +8,9 @@
     @if (session('status'))
         <p class="mb-3 rounded-lg border border-[#E3E6EB] bg-white px-3 py-2 text-sm font-medium" role="status">{{ session('status') }}</p>
     @endif
+    @if (auth()->user()->must_change_password)
+        <p class="mb-3 rounded-lg border border-[#E3E6EB] bg-white px-3 py-2 text-sm">{{ __('panel.password_must_change') }}</p>
+    @endif
     <form class="grid gap-3 rounded-lg border border-[#E3E6EB] bg-white p-4" method="POST" action="{{ route('panel.password.update') }}">
         @csrf
         @foreach (['current_password' => 'password_current', 'password' => 'password_new', 'password_confirmation' => 'password_confirm'] as $field => $label)

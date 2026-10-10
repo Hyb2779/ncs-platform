@@ -19,6 +19,7 @@ class HomeFeed
         'TRY' => '50.00',
         'USD' => '2.00',
         'EUR' => '2.00',
+        'AED' => '10.00',
     ];
 
     public function __construct(

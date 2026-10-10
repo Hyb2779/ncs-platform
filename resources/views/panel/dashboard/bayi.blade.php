@@ -3,5 +3,5 @@
 @section('heading', $heading)
 
 @section('content')
-    @include('panel.dashboard._body')
+    @include('panel.dashboard._body', ['charts' => false])
 @endsection

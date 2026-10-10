@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Enums\Currency;
-use App\Enums\UserRole;
 use App\Models\User;
 use App\Models\Wallet;
 
@@ -26,7 +25,7 @@ class WalletProvisioner
                 ],
             );
 
-            // Kredi üretme (eksiye düşme) sadece kök owner'da; alt owner kök owner'dan kredi alır.
+            // Kredi üretme (eksiye düşme) yalnız kök owner'da. Alt owner, süperadmin ve bayi eksiye düşemez.
             if ($user->isRootOwner() && ! $wallet->allow_negative) {
                 $wallet->forceFill(['allow_negative' => true])->save();
             }

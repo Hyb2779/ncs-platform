@@ -15,6 +15,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->web(append: [
             \App\Http\Middleware\EnsureAccountActive::class,
+            \App\Http\Middleware\EnsurePasswordChanged::class,
             \App\Http\Middleware\TrackPresence::class,
             \App\Http\Middleware\SetLocale::class,
             \App\Http\Middleware\EnsureOwnSportEnabled::class,

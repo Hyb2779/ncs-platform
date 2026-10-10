@@ -7,6 +7,8 @@ use App\Models\TipoCoupon;
 use App\Models\User;
 use App\Services\HierarchyService;
 use App\Services\Stats\PeriodReport;
+use App\Support\GgrPayload;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Cache;
@@ -15,7 +17,7 @@ use Illuminate\View\View;
 /** Hesap ozeti: bakiye, donem spor/casino, acik (riskli) ve son Wegas Spor kuponlari. Agac disi ve kendisi 404. */
 class MemberProfileController extends Controller
 {
-    public function show(Request $request, User $user, HierarchyService $hierarchy, PeriodReport $report): View
+    public function show(Request $request, User $user, HierarchyService $hierarchy, PeriodReport $report): View|JsonResponse
     {
         $actor = $request->user();
         $member = $hierarchy->findInSubtree($actor, $user->id);
@@ -41,7 +43,7 @@ class MemberProfileController extends Controller
         $lost = (clone $coupons)->whereIn('status_label', TipoCoupon::LABELS['lost'])
             ->where('placed_at', '>=', $fromUtc)->where('placed_at', '<', $toUtc);
 
-        return view('panel.users.show', [
+        $viewData = [
             'member' => $member->loadMissing('parent'),
             'range' => $range,
             'currency' => $member->currency,
@@ -56,11 +58,33 @@ class MemberProfileController extends Controller
                 'lost_count' => (clone $lost)->count(),
                 'pending' => bcadd((string) (clone $open)->sum('stake'), '0', 2),
                 'pending_count' => (clone $open)->count(),
-                'ggr' => $get('sport', 'ggr'),
+                ...($actor->role === \App\Enums\UserRole::Owner ? ['ggr' => $get('sport', 'ggr')] : []),
             ],
-            'casino' => ['turnover' => $casino('turnover'), 'payout' => $casino('payout'), 'ggr' => $casino('ggr')],
+            'casino' => [
+                'turnover' => $casino('turnover'),
+                'payout' => $casino('payout'),
+                ...($actor->role === \App\Enums\UserRole::Owner ? ['ggr' => $casino('ggr')] : []),
+            ],
             'openCoupons' => (clone $open)->orderByDesc('potential_win')->limit(20)->get(),
             'recentCoupons' => (clone $coupons)->orderByDesc('placed_at')->limit(20)->get(),
-        ]);
+        ];
+
+        if ($request->wantsJson() || $request->boolean('export')) {
+            $response = response()->json(GgrPayload::present($actor, [
+                'username' => $member->username,
+                'range' => $range,
+                'currency' => $currency,
+                'balance' => $viewData['balance'],
+                'sport' => $viewData['sport'],
+                'casino' => $viewData['casino'],
+            ]));
+            if ($request->boolean('export')) {
+                $response->header('Content-Disposition', 'attachment; filename="member.json"');
+            }
+
+            return $response;
+        }
+
+        return view('panel.users.show', $viewData);
     }
 }

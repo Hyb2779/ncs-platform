@@ -177,11 +177,8 @@ class CouponPlaceTest extends TestCase
         SportLimit::query()->whereNull('user_id')->where('currency', 'TRY')->update(['cancel_minutes' => 10]);
         $this->actingAs($right->parent)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'other branch'])->assertNotFound();
         $this->actingAs($right->parent->parent)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'other branch'])->assertNotFound();
-        $this->actingAs($bayiLeft)->get('/panel/coupons/'.$coupon->id)->assertOk()->assertDontSee('coupon-cancel', false);
-        $this->actingAs($bayiLeft)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'bayi cannot'])->assertForbidden();
-        $this->assertSame('pending', $coupon->fresh()->status);
-
-        $this->actingAs($bayiLeft->parent)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'customer request'])->assertRedirect();
+        $this->actingAs($bayiLeft)->get('/panel/coupons/'.$coupon->id)->assertOk()->assertSee('coupon-cancel', false);
+        $this->actingAs($bayiLeft)->post('/panel/coupons/'.$coupon->id.'/cancel', ['reason' => 'customer request'])->assertRedirect();
         $this->assertSame('cancelled', $coupon->fresh()->status);
         $this->assertSame('10.00', WalletTransaction::query()->where('type', 'refund')->first()->amount);
 
@@ -306,17 +303,29 @@ class CouponPlaceTest extends TestCase
     public function test_wegas_sport_page_opens_the_bridge_iframe(): void
     {
         [$member] = $this->player('10.00');
-        config(['services.ncs_bridge.secret' => 'test-secret', 'services.ncs_bridge.url' => 'https://ncs.test']);
+        config(['services.ncs_bridge.secret' => 'test-secret', 'services.ncs_bridge.url' => 'https://ncs.test', 'sport.own_book_enabled' => false]);
         \Illuminate\Support\Facades\Http::fake(['https://ncs.test/callback/wegas-session' => \Illuminate\Support\Facades\Http::response(['success' => true, 'url' => 'https://sports.test/play?t=1'])]);
 
         $this->actingAs($member)->get('/wegas-spor')->assertOk()->assertSee('https://sports.test/play?t=1', false);
         \Illuminate\Support\Facades\Http::assertSent(fn ($request) => $request->url() === 'https://ncs.test/callback/wegas-session'
             && $request->hasHeader('X-Bridge-Signature')
             && json_decode($request->body(), true)['user_id'] === $member->id);
-        $this->actingAs($member)->get('/sport')->assertSee(route('site.wegas_sport'), false);
+        config(['sport.own_book_enabled' => true]);
+        $this->actingAs($member)->get('/wegas-spor')->assertNotFound();
+        $this->actingAs($member)->get('/sport')->assertOk()->assertSee(route('site.sport'), false);
 
         $member->forceFill(['language' => 'ar'])->save();
         $this->actingAs($member->fresh())->get('/wegas-spor')->assertNotFound();
+        $this->actingAs($member->fresh())->get('/sport')
+            ->assertOk()
+            ->assertSee('lang="ar"', false)
+            ->assertSee('dir="rtl"', false)
+            ->assertSee(__('sport.today', [], 'ar'), false)
+            ->assertDontSee(__('sport.today', [], 'en'), false);
+        $this->actingAs($member->fresh())->get('/')
+            ->assertSee('dir="rtl"', false)
+            ->assertSee('data-home-cat="sport"', false)
+            ->assertSee('href="'.route('site.sport').'"', false);
     }
 
     public function test_onegamex_sync_and_wallet_callbacks(): void
@@ -631,6 +640,41 @@ class CouponPlaceTest extends TestCase
     /**
      * @return array{0: User, 1: User}
      */
+    public function test_admin_closes_a_branch_for_their_members_and_refunds_a_lost_coupon(): void
+    {
+        [$member, $bayi] = $this->player('40.00');
+        $basket = $this->odd('1.50');
+        $basket->fixture->forceFill(['sport' => 'basketball', 'offer_count' => 1])->save();
+        $name = $basket->fixture->home->name;
+
+        $this->actingAs($member)->get('/sport?sport=basketball')->assertOk()->assertSee($name, false);
+        $this->actingAs($bayi)->get('/panel/sport/branches')->assertOk()->assertSee('Basketbol', false);
+        $this->actingAs($bayi)->post('/panel/games/block', [
+            'scope' => 'sport', 'value' => ['basketball'], 'blocked' => 1,
+        ])->assertRedirect();
+
+        $this->actingAs($member)->get('/sport?sport=basketball')->assertOk()->assertDontSee($name, false);
+        $this->actingAs($member)->get('/sport/fixtures/'.$basket->fixture_id)->assertNotFound();
+
+        [$other] = $this->player('40.00');
+        $this->actingAs($other)->get('/sport?sport=basketball')->assertOk()->assertSee($name, false);
+
+        $football = $this->odd('1.50');
+        $football->fixture->forceFill(['sport' => 'football', 'offer_count' => 1])->save();
+        $this->actingAs($member)->post('/sport/odds/'.$football->id);
+        $this->post('/sport/coupon/place', [
+            'stake' => '10', 'mode' => 'single', 'idempotency_key' => (string) Str::uuid(),
+        ])->assertRedirect();
+        $coupon = Coupon::query()->where('user_id', $member->id)->first();
+        $coupon->forceFill(['status' => 'lost', 'settled_at' => now()])->save();
+
+        $this->actingAs($other->parent)->post('/panel/coupons/'.$coupon->id.'/refund', ['reason' => 'other'])->assertNotFound();
+        $this->actingAs($bayi)->post('/panel/coupons/'.$coupon->id.'/refund', ['reason' => 'iade'])->assertRedirect();
+        $this->assertSame('refunded', $coupon->fresh()->status);
+        $this->assertSame('40.00', number_format((float) \DB::table('wallets')->where('user_id', $member->id)->where('currency', 'TRY')->value('balance'), 2, '.', ''));
+        $this->artisan('wallet:verify')->assertOk();
+    }
+
     private function player(string $amount): array
     {
         $owner = User::query()->create([

@@ -10,23 +10,25 @@ use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Kök owner'ın Volkan ekranı.
- * Üretim = credit_issues tutarları (WalletService, eksi dip yeniden hesaplanmaz).
- * Dağıtım = Volkan'ın kendi altındaki hesaplara yüklediği transfer_out; geri alış düşülmez.
+ * Kök owner'ın alt owner ekranı.
+ * Dağıtım = alt owner'ın kendi altındaki hesaplara yüklediği transfer_out; geri alış düşülmez.
  */
 class VolkanCredit
 {
-    public function subject(): ?User
+    /** @return \Illuminate\Database\Eloquent\Collection<int, User> */
+    public function subjects(): \Illuminate\Database\Eloquent\Collection
     {
         return User::query()
             ->where('role', UserRole::Owner)
             ->whereNotNull('parent_id')
-            ->whereRaw('LOWER(username) = ?', ['volkan'])
-            ->first();
+            ->orderBy('username')
+            ->get();
     }
 
     /**
-     * @return list<array{currency: Currency, days: list<array{date: string, produced: string, distributed: string}>, produced: string, distributed: string}>
+     * Sıfır günler dönmez. En yeni gün başta.
+     *
+     * @return list<array{currency: Currency, days: list<array{date: string, distributed: string}>, distributed: string}>
      */
     public function tables(User $sub, Carbon $fromLocal, Carbon $toLocal, string $zone): array
     {
@@ -40,50 +42,32 @@ class VolkanCredit
         $tables = [];
         foreach ($currencies as $currency) {
             $currency = $currency instanceof Currency ? $currency : Currency::from((string) $currency);
-            $produced = $this->producedByDay($sub, $currency, $fromUtc, $toUtc, $zone);
             $distributed = $this->distributedByDay($sub, $currency, $fromUtc, $toUtc, $zone);
             $days = [];
-            $producedTotal = '0.00';
             $distributedTotal = '0.00';
             for ($day = $toLocal->copy()->startOfDay(); $day->greaterThanOrEqualTo($fromLocal->copy()->startOfDay()); $day->subDay()) {
                 $key = $day->toDateString();
-                $producedDay = $produced[$key] ?? '0.00';
                 $distributedDay = $distributed[$key] ?? '0.00';
-                $producedTotal = bcadd($producedTotal, $producedDay, 2);
                 $distributedTotal = bcadd($distributedTotal, $distributedDay, 2);
+                if (bccomp($distributedDay, '0', 2) === 0) {
+                    continue;
+                }
                 $days[] = [
                     'date' => $key,
-                    'produced' => $producedDay,
                     'distributed' => $distributedDay,
                 ];
             }
-            if ($currency !== $sub->currency && bccomp($producedTotal, '0', 2) === 0 && bccomp($distributedTotal, '0', 2) === 0) {
+            if ($currency !== $sub->currency && bccomp($distributedTotal, '0', 2) === 0) {
                 continue;
             }
             $tables[] = [
                 'currency' => $currency,
                 'days' => $days,
-                'produced' => $producedTotal,
                 'distributed' => $distributedTotal,
             ];
         }
 
         return $tables;
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    private function producedByDay(User $sub, Currency $currency, Carbon $fromUtc, Carbon $toUtc, string $zone): array
-    {
-        $rows = DB::table('credit_issues')
-            ->where('user_id', $sub->id)
-            ->where('currency', $currency->value)
-            ->where('created_at', '>=', $fromUtc)
-            ->where('created_at', '<=', $toUtc)
-            ->get(['amount', 'created_at']);
-
-        return $this->bucket($rows, 'amount', $zone);
     }
 
     /**

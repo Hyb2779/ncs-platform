@@ -68,6 +68,19 @@ class PanelUserFormTest extends TestCase
         $this->assertDatabaseMissing('users', ['username' => 'kisa_sifre']);
     }
 
+    public function test_password_fields_allow_four_characters_in_the_browser(): void
+    {
+        $owner = $this->owner();
+        $this->actingAs($owner)->get(self::URL)->assertOk()
+            ->assertSee('minlength="4"', false)
+            ->assertDontSee('minlength="8"', false);
+
+        $this->actingAs($owner)->get(self::URL.'/create')->assertOk()
+            ->assertSee('name="password"', false)
+            ->assertSee('minlength="4"', false)
+            ->assertDontSee('minlength="8"', false);
+    }
+
     private function owner(): User
     {
         $owner = User::query()->create([

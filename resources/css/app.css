@@ -664,6 +664,13 @@ html[data-panel-theme='dark'] .bg-rose-50 { background-color: rgb(244 63 94 / 0.
 html[data-panel-theme='dark'] .bg-amber-50 { background-color: rgb(245 158 11 / 0.12) !important; }
 html[data-panel-theme='dark'] .bg-slate-50,
 html[data-panel-theme='dark'] .bg-slate-100 { background-color: #1A1F29 !important; }
+html[data-panel-theme='dark'] .hover\:bg-slate-50:hover,
+html[data-panel-theme='dark'] .hover\:bg-slate-100:hover,
+html[data-panel-theme='dark'] .hover\:bg-white:hover,
+html[data-panel-theme='dark'] .hover\:bg-\[\#F3F4F6\]:hover {
+    background-color: #2A3140 !important;
+    color: #E5E7EB !important;
+}
 html[data-panel-theme='dark'] .border-sky-200 { border-color: rgb(14 165 233 / 0.35) !important; }
 html[data-panel-theme='dark'] .border-emerald-200 { border-color: rgb(16 185 129 / 0.35) !important; }
 html[data-panel-theme='dark'] .border-red-200,

@@ -315,3 +315,162 @@ document.querySelectorAll('[data-home-cat] img').forEach((img) => {
         markPlain();
     }
 });
+
+const homeMatches = document.querySelector('[data-home-matches]');
+
+function splitWhen(clock) {
+    const text = String(clock || '').trim();
+    const space = text.lastIndexOf(' ');
+    if (space <= 0) {
+        return { day: text, time: '' };
+    }
+
+    return { day: text.slice(0, space), time: text.slice(space + 1) };
+}
+
+function splitScore(score) {
+    const parts = String(score || '').trim().split(' - ');
+    if (parts.length !== 2 || parts[0] === '' || parts[1] === '') {
+        return null;
+    }
+
+    return { home: parts[0], away: parts[1] };
+}
+
+function leagueLabel(row) {
+    const league = row.league || '';
+    const country = row.country || '';
+    if (league && country) {
+        return `${league} · ${country}`;
+    }
+
+    return league || country;
+}
+
+function paintMatchList(list, rows, href, live) {
+    if (!list || !homeMatches) {
+        return;
+    }
+    const template = homeMatches.querySelector('[data-match-template]');
+    const card = list.closest('[data-match-card]');
+    list.replaceChildren();
+    rows.slice(0, 5).forEach((row) => {
+        const node = template.content.firstElementChild.cloneNode(true);
+        node.href = row.url || href;
+        const badge = node.querySelector('[data-side="badge"]');
+        const day = node.querySelector('[data-side="day"]');
+        const clock = node.querySelector('[data-side="clock"]');
+        const scores = node.querySelector('[data-side="scores"]');
+        if (live && row.badge) {
+            badge.hidden = false;
+            badge.textContent = row.badge;
+            day.hidden = true;
+            day.textContent = '';
+            clock.textContent = row.clock || '';
+        } else {
+            badge.hidden = true;
+            badge.textContent = '';
+            const when = splitWhen(row.clock || '');
+            day.hidden = when.day === '';
+            day.textContent = when.day;
+            clock.textContent = when.time;
+        }
+        node.querySelector('[data-side="home"]').textContent = row.home || '';
+        node.querySelector('[data-side="away"]').textContent = row.away || '';
+        node.querySelector('[data-side="league"]').textContent = leagueLabel(row);
+        const score = live ? splitScore(row.score) : null;
+        node.querySelector('[data-side="score-home"]').textContent = score ? score.home : '';
+        node.querySelector('[data-side="score-away"]').textContent = score ? score.away : '';
+        scores.hidden = !score;
+        list.appendChild(node);
+    });
+    if (card) {
+        card.hidden = rows.length === 0;
+    }
+}
+
+async function refreshHomeMatches() {
+    if (!homeMatches || document.hidden) {
+        return;
+    }
+
+    try {
+        const response = await fetch(homeMatches.dataset.refreshUrl, { headers: { Accept: 'application/json' } });
+        if (!response.ok) {
+            return;
+        }
+        const payload = await response.json();
+        const live = Array.isArray(payload.live) ? payload.live : [];
+        const upcoming = Array.isArray(payload.upcoming) ? payload.upcoming : [];
+        if (live.length === 0 && upcoming.length === 0) {
+            homeMatches.hidden = true;
+            return;
+        }
+        homeMatches.hidden = false;
+        paintMatchList(homeMatches.querySelector('[data-match-list="live"]'), live, homeMatches.dataset.liveUrl, true);
+        paintMatchList(homeMatches.querySelector('[data-match-list="upcoming"]'), upcoming, homeMatches.dataset.sportUrl, false);
+    } catch (error) {
+        // Sessiz: önceki satırlar ekranda kalır.
+    }
+}
+
+if (homeMatches) {
+    const refreshMs = Number(homeMatches.dataset.refreshMs || 30000);
+    let matchTimer = null;
+
+    const armMatchRefresh = () => {
+        if (matchTimer) {
+            window.clearInterval(matchTimer);
+            matchTimer = null;
+        }
+        if (document.hidden) {
+            return;
+        }
+        matchTimer = window.setInterval(refreshHomeMatches, refreshMs);
+    };
+
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden) {
+            if (matchTimer) {
+                window.clearInterval(matchTimer);
+                matchTimer = null;
+            }
+            return;
+        }
+        refreshHomeMatches();
+        armMatchRefresh();
+    });
+
+    armMatchRefresh();
+}
+
+document.querySelectorAll('[data-load-more]').forEach((button) => {
+    button.addEventListener('click', async (event) => {
+        event.preventDefault();
+        if (button.dataset.busy === '1') {
+            return;
+        }
+        button.dataset.busy = '1';
+        try {
+            const response = await fetch(button.href, {
+                headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            });
+            const type = response.headers.get('content-type') || '';
+            if (!response.ok || !type.includes('application/json')) {
+                button.dataset.busy = '0';
+                return;
+            }
+            const payload = await response.json();
+            document.querySelector('[data-movements-cards]')?.insertAdjacentHTML('beforeend', payload.cards || '');
+            document.querySelector('[data-movements-rows]')?.insertAdjacentHTML('beforeend', payload.rows || '');
+            if (payload.next) {
+                button.href = payload.next;
+                button.dataset.busy = '0';
+            } else {
+                button.remove();
+            }
+        } catch (error) {
+            button.dataset.busy = '0';
+        }
+    });
+});

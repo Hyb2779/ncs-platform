@@ -3,8 +3,8 @@
 @section('heading', __('sport.my_coupons'))
 
 @section('content')
-    <div class="mb-4 flex gap-4 border-b border-[var(--site-line)]">
-        @foreach (['pending', 'won', 'lost', 'void', 'cancelled'] as $tab)
+    <div class="mb-4 flex flex-wrap gap-4 border-b border-[var(--site-line)]">
+        @foreach (['pending', 'won', 'lost', 'void', 'cancelled', 'cashed_out'] as $tab)
             <a class="py-2.5 text-sm {{ $status === $tab ? 'sport-tab-on font-bold text-white' : 'font-semibold text-[var(--site-muted)]' }}" href="{{ route('site.coupons', ['status' => $tab]) }}">{{ __('sport.coupon.statuses.'.$tab) }}</a>
         @endforeach
     </div>

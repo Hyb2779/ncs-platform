@@ -14,6 +14,7 @@
             'when' => $extra['when'] ?? ($when ?? 'today'),
             'q' => $extra['q'] ?? request('q'),
             'league' => $extra['league'] ?? request('league'),
+            'sport' => $extra['sport'] ?? ($sport ?? request('sport', 'football')),
             'market' => $extra['market'] ?? request('market', 'result'),
         ], fn ($value) => $value !== null && $value !== '');
     @endphp
@@ -23,9 +24,11 @@
         </aside>
         <section class="flex min-w-0 flex-col gap-3">
             @include('site.sport._sports', ['variant' => 'chips'])
+            @include('site.sport._pages')
             <form class="flex flex-col gap-3" method="GET">
                 <input type="hidden" name="market" value="{{ $market }}">
                 <input type="hidden" name="when" value="{{ $when }}">
+                <input type="hidden" name="sport" value="{{ $sport }}">
                 @if (request()->filled('league'))
                     <input type="hidden" name="league" value="{{ request('league') }}">
                 @endif
@@ -76,6 +79,19 @@
             @empty
                 <p class="text-[var(--site-muted)]">{{ __('sport.empty') }}</p>
             @endforelse
+            @if ($pages->hasPages())
+                <div class="flex items-center justify-between gap-3">
+                    @if ($pages->previousPageUrl())
+                        <a class="inline-flex h-10 items-center rounded-lg border border-[var(--site-line)] px-4 text-sm font-semibold" href="{{ $pages->previousPageUrl() }}">{{ __('sport.page_prev') }}</a>
+                    @else
+                        <span></span>
+                    @endif
+                    <span class="font-numeric text-sm text-[var(--site-muted)]">{{ $pages->currentPage() }} / {{ $pages->lastPage() }}</span>
+                    @if ($pages->nextPageUrl())
+                        <a class="inline-flex h-10 items-center rounded-lg border border-[var(--site-line)] px-4 text-sm font-semibold" href="{{ $pages->nextPageUrl() }}">{{ __('sport.page_next') }}</a>
+                    @endif
+                </div>
+            @endif
         </section>
         <aside class="sticky top-20 hidden self-start lg:flex lg:flex-col lg:gap-3">
             @include('site.sport._coupon')

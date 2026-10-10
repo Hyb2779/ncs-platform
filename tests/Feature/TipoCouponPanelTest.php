@@ -78,8 +78,9 @@ class TipoCouponPanelTest extends TestCase
 
         $this->actingAs($bayi)->get(self::BASE.'/lookup?q=900006')->assertRedirect(route('panel.coupons.tipo', $mine));
         $this->actingAs($bayi)->get(self::BASE.'/lookup?q='.$uye->username)->assertRedirect(route('panel.coupons.index', ['user' => $uye->username]));
-        $this->actingAs($bayi)->get(self::BASE.'/lookup?q=900007')->assertOk()->assertSee(__('panel.tipo_lookup_not_found'));
-        $this->actingAs($bayi)->get(self::BASE.'/lookup?q='.$otherUye->username)->assertOk()->assertSee(__('panel.tipo_lookup_not_found'));
+        $this->actingAs($bayi)->get(self::BASE.'/lookup?q=900007')->assertNotFound();
+        $this->actingAs($bayi)->get(self::BASE.'/lookup?q='.$otherUye->username)->assertNotFound();
+        $this->actingAs($bayi)->get(self::BASE.'/lookup?q=999999')->assertOk()->assertSee(__('panel.tipo_lookup_not_found'));
     }
 
     public function test_dashboard_counts_lost_today_and_open_coupons_in_tree(): void

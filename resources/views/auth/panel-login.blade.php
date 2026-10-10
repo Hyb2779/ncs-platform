@@ -9,18 +9,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=Cairo:wght@400;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <link rel="icon" type="image/png" sizes="32x32" href="/images/brand/favicon-32.png">
-    <link rel="apple-touch-icon" href="/images/brand/apple-touch-icon.png">
+    <link rel="icon" href="/img/brand/favicon.ico?v=4" sizes="48x48">
+    <link rel="icon" type="image/png" sizes="32x32" href="/img/brand/favicon-32.png?v=4">
+    <link rel="apple-touch-icon" href="/img/brand/apple-touch-icon.png?v=4">
     <meta name="theme-color" content="#0B0D22">
 </head>
 <body class="min-h-dvh bg-[var(--site-bg)] text-[var(--site-text)] antialiased">
     <main class="flex min-h-dvh items-center justify-center px-4 py-8">
         <div class="w-full max-w-[400px] rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] p-6 md:p-8">
-            <div class="flex items-center justify-between gap-3">
-                <img src="/images/brand/wegas-header.png" alt="{{ brand()->name() }}" width="618" height="200" style="height:36px;width:auto">
-                <nav class="flex items-center gap-1" aria-label="{{ __('site.language') }}">
+            <div class="flex flex-nowrap items-center justify-between gap-2">
+                <span class="shrink-0">@include('brand.logo')</span>
+                <nav class="flex shrink-0 flex-nowrap items-center gap-0.5" aria-label="{{ __('site.language') }}">
                     @foreach (['tr' => 'tr', 'en' => 'gb', 'de' => 'de', 'ar' => 'sa'] as $locale => $flag)
-                        <a class="inline-flex h-8 w-9 items-center justify-center rounded-lg border {{ app()->getLocale() === $locale ? 'border-[var(--accent)]' : 'border-transparent opacity-60 hover:opacity-100' }}" href="{{ route('login', ['lang' => $locale]) }}" lang="{{ $locale }}" title="{{ __('panel.languages.'.$locale) }}">
+                        <a class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border {{ app()->getLocale() === $locale ? 'border-[var(--accent)]' : 'border-transparent opacity-60 hover:opacity-100' }}" href="{{ route('login', ['lang' => $locale]) }}" lang="{{ $locale }}" title="{{ __('panel.languages.'.$locale) }}">
                             <img src="/images/flags/{{ $flag }}.svg" alt="{{ __('panel.languages.'.$locale) }}" width="20" height="15" style="width:20px;height:15px" class="rounded-sm object-cover">
                         </a>
                     @endforeach

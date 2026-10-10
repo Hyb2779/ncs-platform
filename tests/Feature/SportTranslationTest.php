@@ -36,6 +36,8 @@ class SportTranslationTest extends TestCase
 
         $this->get('/sport/fixtures/'.$fixture->id.'?lang=ar')
             ->assertOk()
+            ->assertSee('lang="ar"', false)
+            ->assertSee('dir="rtl"', false)
             ->assertSee('بولندا', false)
             ->assertSee('Away', false);
     }
@@ -94,6 +96,7 @@ class SportTranslationTest extends TestCase
         $page->assertSee('1.85', false);
         $page->assertDontSee('١٫٨٥', false);
         $page->assertSee('سبتمبر', false);
+        $page->assertDontSee('September', false);
     }
 
     private function fixture(): SportFixture

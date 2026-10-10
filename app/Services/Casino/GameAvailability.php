@@ -14,7 +14,9 @@ use Illuminate\Support\Facades\Cache;
  */
 class GameAvailability
 {
-    public const SCOPES = ['provider', 'vendor', 'category', 'game', 'product'];
+    public const SCOPES = ['provider', 'vendor', 'category', 'game', 'product', 'sport'];
+
+    public const SPORTS = ['football', 'basketball', 'tennis', 'volleyball'];
 
     public const CATEGORIES = ['slot', 'live', 'mini'];
 
@@ -134,6 +136,40 @@ class GameAvailability
         return ! in_array(self::categoryOf($game), $b['category'], true);
     }
 
+    /**
+     * Ham katalog satırı bu izleyiciye açık mı? Önbellekteki listeye bayi engeli yazılmaz; her istekte burada elenir.
+     *
+     * @param  array{id: int, provider?: ?string, vendor?: ?string, category?: ?string, is_live?: bool}  $game
+     */
+    public function visible(array $game, ?User $user): bool
+    {
+        $b = $this->blocked(self::scopeIdsFor($user));
+
+        $provider = (string) ($game['provider'] ?? '');
+        if ($provider !== '' && in_array($provider, $b['provider'], true)) {
+            return false;
+        }
+        $vendor = $game['vendor'] ?? null;
+        if (is_string($vendor) && $vendor !== '' && in_array($vendor, $b['vendor'], true)) {
+            return false;
+        }
+        if (in_array((string) $game['id'], $b['game'], true)) {
+            return false;
+        }
+
+        $category = ! empty($game['is_live']) ? 'live' : (($game['category'] ?? null) === 'mini' ? 'mini' : 'slot');
+
+        return ! in_array($category, $b['category'], true);
+    }
+
+    /** Bu üyenin ağacında kapatılmış spor dalları. */
+    public static function closedSports(?User $user): array
+    {
+        $closed = app(self::class)->blocked(self::scopeIdsFor($user))['sport'] ?? [];
+
+        return array_values(array_intersect($closed, self::SPORTS));
+    }
+
     /** Urun (or. Wegas Spor) bu kullanicinin yolunda bir yerde kapatilmis mi? */
     public static function productBlocked(?User $user, string $product): bool
     {
@@ -149,10 +185,11 @@ class GameAvailability
         return $game->category === 'mini' ? 'mini' : 'slot';
     }
 
-    /** Engel eklenince/kaldirilinca cagrilir; tum onbellek anahtarlari gecersiz olur. */
+    /** Engel eklenince/kaldirilinca cagrilir; engel sürümü ve ham liste anahtarları hemen düşer. */
     public function flush(): void
     {
         Cache::forever(self::VERSION_KEY, (int) Cache::get(self::VERSION_KEY, 1) + 1);
+        app(CatalogCache::class)->forget();
     }
 
     public static function cacheVersion(): int

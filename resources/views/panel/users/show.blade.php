@@ -49,12 +49,12 @@
                 [__('panel.member_payout'), $m($sport['payout']), __('panel.today_coupons', ['count' => $sport['wins']])],
                 [__('panel.today_sport_lost'), $m($sport['lost']), __('panel.today_coupons', ['count' => $sport['lost_count']])],
                 [__('panel.today_sport_pending'), $m($sport['pending']), __('panel.today_coupons', ['count' => $sport['pending_count']])],
-                [__('panel.member_ggr'), $m($sport['ggr']), null],
+                ...(auth()->user()?->role === \App\Enums\UserRole::Owner ? [[__('panel.member_ggr'), $m($sport['ggr']), null]] : []),
             ]],
             [__('panel.member_casino'), [
                 [__('panel.member_turnover'), $m($casino['turnover']), null],
                 [__('panel.member_payout'), $m($casino['payout']), null],
-                [__('panel.member_ggr'), $m($casino['ggr']), null],
+                ...(auth()->user()?->role === \App\Enums\UserRole::Owner ? [[__('panel.member_ggr'), $m($casino['ggr']), null]] : []),
             ]],
         ];
     @endphp

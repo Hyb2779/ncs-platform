@@ -15,7 +15,7 @@ return new class extends Migration
             $table->engine('InnoDB');
             $table->id();
             $table->foreignId('user_id')->constrained('users');
-            $table->enum('currency', ['TRY', 'USD', 'EUR']);
+            $table->enum('currency', ['TRY', 'USD', 'EUR', 'AED']);
             $table->decimal('balance', 18, 2)->default(0);
             $table->timestamps();
             $table->unique(['user_id', 'currency']);

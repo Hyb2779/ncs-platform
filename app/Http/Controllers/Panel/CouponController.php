@@ -87,6 +87,21 @@ class CouponController extends Controller
         return back()->with('status', __('sport.coupon.cancelled', ['no' => $coupon->coupon_no]));
     }
 
+    public function refund(Request $request, Coupon $coupon, CouponCanceller $canceller): RedirectResponse
+    {
+        $this->authorizeCoupon($request, $coupon);
+
+        try {
+            $canceller->refund($request->user(), $coupon, (string) $request->input('reason'), $request->ip());
+        } catch (CouponException $exception) {
+            abort_if($exception->translationKey === 'sport.errors.cancel_forbidden', 403);
+
+            return back()->withErrors(['coupon' => __($exception->translationKey, $exception->replace)]);
+        }
+
+        return back()->with('status', __('sport.coupon.refunded', ['no' => $coupon->coupon_no]));
+    }
+
     private function visible(Request $request): Builder
     {
         $ids = User::query()->subtreeOf($request->user())->pluck('id');
@@ -97,6 +112,7 @@ class CouponController extends Controller
     private function authorizeCoupon(Request $request, Coupon $coupon): void
     {
         $coupon->loadMissing('user');
+        abort_if($coupon->user === null, 404);
         abort_unless($coupon->user->isInSubtreeOf($request->user()), 404);
     }
 
@@ -121,7 +137,7 @@ class CouponController extends Controller
         if (in_array($request->query('type'), ['combo', 'single'], true)) {
             $query->where('type', $request->query('type'));
         }
-        if (in_array($request->query('status'), ['pending', 'won', 'lost', 'refunded', 'cancelled', 'void'], true)) {
+        if (in_array($request->query('status'), ['pending', 'won', 'lost', 'refunded', 'cancelled', 'void', 'cashed_out'], true)) {
             $query->where('status', $request->query('status'));
         }
     }

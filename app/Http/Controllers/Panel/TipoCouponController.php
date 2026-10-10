@@ -29,7 +29,8 @@ class TipoCouponController extends Controller
     public function show(Request $request, TipoCoupon $tipoCoupon, NcsBridge $bridge): View
     {
         $tipoCoupon->loadMissing('user');
-        abort_unless($tipoCoupon->user !== null && $tipoCoupon->user->isInSubtreeOf($request->user()), 404);
+        abort_if($tipoCoupon->user === null, 404);
+        abort_unless($tipoCoupon->user->isInSubtreeOf($request->user()), 404);
 
         $tipoCoupon->ensureDetail($bridge);
 
@@ -131,14 +132,18 @@ class TipoCouponController extends Controller
 
         $scope = User::query()->subtreeOf($request->user());
         if (ctype_digit($q)) {
-            $coupon = TipoCoupon::query()->where('bet_id', (int) $q)->whereIn('user_id', (clone $scope)->select('id'))->first();
+            $coupon = TipoCoupon::query()->where('bet_id', (int) $q)->first();
             if ($coupon !== null) {
+                abort_unless($scope->whereKey($coupon->user_id)->exists(), 404);
+
                 return redirect()->route('panel.coupons.tipo', $coupon);
             }
         }
 
-        $member = (clone $scope)->where('username', $q)->first();
+        $member = User::query()->where('username', $q)->first();
         if ($member !== null) {
+            abort_unless($member->isInSubtreeOf($request->user()), 404);
+
             return redirect()->route('panel.coupons.index', ['user' => $member->username]);
         }
 

@@ -23,7 +23,7 @@
                 <div class="flex min-w-0 flex-1 flex-col gap-0.5">
                     <p class="break-words text-[13px] font-bold">{{ sport_name($row['odd']->fixture->home) }}</p>
                     <p class="break-words text-[13px] font-bold">{{ sport_name($row['odd']->fixture->away) }}</p>
-                    <p class="text-xs text-[var(--site-muted)]">{{ __($row['odd']->market->name_key) }}: <span class="font-bold text-[var(--site-text)]">{{ __('sport.outcomes.'.$row['odd']->outcome) }}</span></p>
+                    <p class="text-xs text-[var(--site-muted)]">{{ sport_group_label($row['odd']->group_name, $row['odd']->market->name_key) }}: <span class="font-bold text-[var(--site-text)]">{{ sport_pick_label($row['odd']) }}</span></p>
                 </div>
                 <div class="flex flex-col items-end gap-1">
                     <form method="POST" action="{{ route('site.sport.coupon.remove', $row['odd']) }}">
@@ -56,7 +56,7 @@
             <span class="w-16 text-xs font-bold text-[var(--site-muted)]">{{ __('sport.coupon.stake') }}</span>
             <div class="flex h-11 min-w-0 flex-1 items-center justify-between rounded-lg border border-[var(--site-line-strong)] bg-[var(--site-bg)] px-3.5">
                 <input class="js-stake min-w-0 flex-1 bg-transparent font-numeric text-xl font-bold outline-none" name="stake" value="{{ $coupon['stake'] }}" inputmode="decimal">
-                <span class="font-bold text-[var(--site-muted)]">{{ $coupon['currency'] === 'TRY' ? '₺' : $coupon['currency'] }}</span>
+                <span class="font-bold text-[var(--site-muted)]">{{ \App\Enums\Currency::tryFrom((string) $coupon['currency'])?->symbol() ?? $coupon['currency'] }}</span>
             </div>
         </div>
         <div class="grid grid-cols-5 gap-1.5">

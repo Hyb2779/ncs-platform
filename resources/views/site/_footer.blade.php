@@ -42,6 +42,7 @@
             </a>
             <div class="site-footer-age">{{ __('site.footer_age') }}</div>
         </div>
+        <a class="site-footer-logo" href="{{ route('site.home') }}" aria-label="{{ brand()->name() }}">@include('brand.logo')</a>
     </div>
 </footer>
 @endif

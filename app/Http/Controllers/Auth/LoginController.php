@@ -83,6 +83,16 @@ class LoginController extends Controller
         $request->session()->put('locale', $user->language->value);
         $activity->write($user, 'auth.login', $user);
 
+        if ($user->must_change_password) {
+            $page = $user->role === \App\Enums\UserRole::Uye ? route('site.account') : route('panel.password.edit');
+
+            return redirect()->to($page);
+        }
+
+        if ($user->role === \App\Enums\UserRole::Uye) {
+            return redirect()->to($user->homePath());
+        }
+
         return redirect()->intended($user->homePath());
     }
 

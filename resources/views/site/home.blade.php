@@ -11,9 +11,10 @@
         @include('site._carousel')
     @endif
 
-    <section class="grid grid-cols-2 gap-3 md:gap-4 {{ wegas_sport_available(auth()->user()) ? 'md:grid-cols-4' : 'md:grid-cols-3' }}" data-home-tiles>
+    @php($sportLink = site_sport_link(auth()->user()))
+    <section class="grid grid-cols-2 gap-3 md:gap-4 {{ $sportLink ? 'md:grid-cols-4' : 'md:grid-cols-3' }}" data-home-tiles>
         @foreach ([
-            ...(wegas_sport_available(auth()->user()) ? [['key' => 'sport', 'route' => 'site.wegas_sport', 'title' => brand()->name().' '.__('site.sport'), 'sub' => __('home.live_matches')]] : []),
+            ...($sportLink ? [['key' => 'sport', 'route' => $sportLink['route'], 'title' => $sportLink['label'], 'sub' => __('home.live_matches')]] : []),
             ['key' => 'slot', 'route' => 'site.slots', 'title' => __('home.quick_slot'), 'sub' => __('home.quick_slot_sub', ['count' => \Illuminate\Support\Number::format($quick['slots'], 0, locale: app()->getLocale())])],
             ['key' => 'casino', 'route' => 'site.live_casino', 'title' => __('home.quick_casino'), 'sub' => $quick['casino'] > 0 ? __('home.quick_slot_sub', ['count' => \Illuminate\Support\Number::format($quick['casino'], 0, locale: app()->getLocale())]) : __('home.soon')],
             ['key' => 'mini', 'route' => 'site.mini', 'title' => __('site.mini'), 'sub' => ($quick['mini'] ?? 0) > 0 ? __('home.quick_slot_sub', ['count' => \Illuminate\Support\Number::format($quick['mini'], 0, locale: app()->getLocale())]) : __('home.soon')],
@@ -33,6 +34,10 @@
             </a>
         @endforeach
     </section>
+
+    @if (is_array($homeMatches ?? null) && (($homeMatches['live'] ?? []) !== [] || ($homeMatches['upcoming'] ?? []) !== []))
+        @include('site._home_matches', ['matches' => $homeMatches])
+    @endif
 
     @if ($popularSlots->isNotEmpty())
         <section class="flex flex-col gap-4" data-home-rail="popular">
@@ -103,8 +108,5 @@
         </section>
     @endif
 
-    @if (is_array($homeMatches ?? null) && (($homeMatches['live'] ?? []) !== [] || ($homeMatches['upcoming'] ?? []) !== []))
-        @include('site._home_matches', ['matches' => $homeMatches])
-    @endif
 </div>
 @endsection

@@ -129,11 +129,11 @@ class PeriodReport
 
         return $this->baseQuery($focus, $fromUtc, $toUtc)
             ->whereIn('wt.product', self::PRODUCTS)
-            ->whereIn('wt.type', ['bet', 'win', 'refund', 'adjustment'])
+            ->whereIn('wt.type', ['bet', 'win', 'refund', 'adjustment', 'cashout'])
             ->groupBy('wt.user_id', 'u.path', 'w.currency', 'wt.product')
             ->selectRaw('wt.user_id, u.path, w.currency, wt.product')
             ->selectRaw("SUM(CASE WHEN wt.type IN ('bet','refund') THEN -wt.amount ELSE 0 END) AS turnover")
-            ->selectRaw("SUM(CASE WHEN wt.type = 'win' OR (wt.type = 'adjustment' AND wt.product IN ($adjust)) THEN wt.amount ELSE 0 END) AS payout")
+            ->selectRaw("SUM(CASE WHEN wt.type IN ('win','cashout') OR (wt.type = 'adjustment' AND wt.product IN ($adjust)) THEN wt.amount ELSE 0 END) AS payout")
             ->selectRaw("SUM(CASE WHEN wt.type = 'bet' THEN 1 ELSE 0 END) AS bet_count")
             ->selectRaw("SUM(CASE WHEN wt.type = 'win' THEN 1 ELSE 0 END) AS win_count")
             ->get()

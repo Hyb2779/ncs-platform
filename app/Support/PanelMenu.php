@@ -35,7 +35,9 @@ class PanelMenu
         if ($user->isRootOwner()) {
             $reports[] = self::item(__('panel.volkan_credit'), 'panel.volkan-credit.index', ['panel.volkan-credit.index']);
         }
-        $reports[] = self::item(self::ledgerLabel(), 'panel.transactions', ['panel.transactions']);
+        if ($user->role !== UserRole::Bayi) {
+            $reports[] = self::item(self::ledgerLabel(), 'panel.transactions', ['panel.transactions']);
+        }
         $reports[] = self::item(__('panel.member_movements'), 'panel.member-movements', ['panel.member-movements']);
         $reports[] = self::item(__('panel.player_movements'), 'panel.player-movements', ['panel.player-movements']);
         $reports[] = self::item(__('site.panel_rounds'), 'panel.casino.rounds', ['panel.casino.rounds']);
@@ -45,7 +47,9 @@ class PanelMenu
             $reports[] = self::item(__('panel.logs_logins'), 'panel.logs.logins', ['panel.logs.logins']);
         }
 
-        $betting = [];
+        $betting = [
+            self::item(__('sport.panel.branches'), 'panel.sport.branches', ['panel.sport.branches']),
+        ];
         if ($staff) {
             $betting[] = self::item(__('sport.panel.risky'), 'panel.coupons.risky', ['panel.coupons.risky']);
             $betting[] = self::item(__('sport.panel.overdraft'), 'panel.sport.overdrafts', ['panel.sport.overdrafts']);
@@ -71,6 +75,9 @@ class PanelMenu
         if ($owner) {
             $settings[] = self::item(__('site.panel_providers'), 'panel.casino.providers', ['panel.casino.providers']);
         }
+        if ($user->isRootOwner()) {
+            $settings[] = self::item(__('panel.credit_fees'), 'panel.credit-fees.index', ['panel.credit-fees.index']);
+        }
 
         // Ayarlar > Dil secenegi: tum panel rolleri (04.10, Blackeagle).
         $settings[] = self::item(__('panel.menu_language'), 'panel.preferences.language.edit', ['panel.preferences.language.edit']);
@@ -79,6 +86,7 @@ class PanelMenu
             self::section(__('panel.menu_general'), [
                 self::item(__('panel.overview'), 'panel.dashboard', ['panel.dashboard']),
                 self::item(__('panel.password_title'), 'panel.password.edit', ['panel.password.edit']),
+                self::link(__('panel.menu_app_download'), '/downloads/wegas-panel.apk'),
             ]),
             self::section(__('panel.menu_users'), $users),
             self::section(__('panel.menu_reports'), $reports),
@@ -96,9 +104,11 @@ class PanelMenu
      */
     public static function bottom(User $user): array
     {
-        $fourth = $user->role === UserRole::Owner
-            ? self::item(__('sport.panel.status'), 'panel.sport.status', ['panel.sport.status'])
-            : self::item(self::ledgerLabel(), 'panel.transactions', ['panel.transactions']);
+        $fourth = match ($user->role) {
+            UserRole::Owner => self::item(__('sport.panel.status'), 'panel.sport.status', ['panel.sport.status']),
+            UserRole::Bayi => self::item(__('panel.member_movements'), 'panel.member-movements', ['panel.member-movements']),
+            default => self::item(self::ledgerLabel(), 'panel.transactions', ['panel.transactions']),
+        };
 
         return [
             self::item(__('panel.overview'), 'panel.dashboard', ['panel.dashboard']),
@@ -127,6 +137,19 @@ class PanelMenu
             'label' => $label,
             'route' => $route,
             'active' => $active,
+        ];
+    }
+
+    /**
+     * @return array{label: string, route: null, active: list<empty>, url: string}
+     */
+    private static function link(string $label, string $url): array
+    {
+        return [
+            'label' => $label,
+            'route' => null,
+            'active' => [],
+            'url' => $url,
         ];
     }
 

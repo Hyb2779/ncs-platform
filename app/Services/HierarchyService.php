@@ -110,11 +110,9 @@ class HierarchyService
 
     public function findInSubtree(User $actor, int $id): User
     {
-        $user = User::query()->subtreeOf($actor)->whereKey($id)->first();
-
-        if ($user === null) {
-            abort(404);
-        }
+        $user = User::query()->whereKey($id)->first();
+        abort_if($user === null, 404);
+        abort_unless($user->isInSubtreeOf($actor), 404);
 
         return $user;
     }

@@ -17,8 +17,8 @@
                 <button class="h-10 rounded-md text-sm font-semibold" type="button" :class="direction === 'add' ? 'bg-white text-emerald-700 shadow' : 'text-slate-500'" @click="direction = 'add'">{{ __('wallet.add') }}</button>
                 <button class="h-10 rounded-md text-sm font-semibold" type="button" :class="direction === 'remove' ? 'bg-white text-rose-700 shadow' : 'text-slate-500'" @click="direction = 'remove'">{{ __('wallet.remove') }}</button>
             </div>
-            <div class="grid grid-cols-3 gap-1 rounded-lg bg-slate-100 p-1" x-show="balances">
-                <template x-for="c in ['TRY', 'USD', 'EUR']" :key="c">
+            <div class="grid grid-cols-4 gap-1 rounded-lg bg-slate-100 p-1" x-show="balances">
+                <template x-for="c in @js(\App\Enums\Currency::values())" :key="c">
                     <button class="h-10 rounded-md text-sm font-semibold" type="button" :class="currency === c ? 'bg-white text-slate-900 shadow' : 'text-slate-500'" @click="pickCurrency(c)" x-text="c"></button>
                 </template>
             </div>

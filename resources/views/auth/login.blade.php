@@ -7,7 +7,7 @@
 @section('content')
     <div class="grid w-full max-w-4xl overflow-hidden rounded-2xl border border-[var(--site-line)] bg-[var(--site-panel)] md:grid-cols-2">
         <div class="hidden flex-col justify-between gap-10 bg-[var(--site-panel-2)] p-10 md:flex">
-            <span class="font-numeric text-5xl font-bold text-[var(--site-text)]">{{ brand()->name() }}<span class="text-[var(--accent)]">.</span></span>
+            @include('brand.logo')
             <p class="font-numeric text-4xl font-bold leading-tight text-[var(--site-text)]">{{ __('auth.brand_tagline') }}</p>
             <span class="h-1 w-16 rounded-full bg-[var(--accent)]"></span>
         </div>
@@ -17,7 +17,7 @@
                     <a class="inline-flex h-9 items-center gap-1.5 rounded-lg px-2.5 text-xs font-bold {{ app()->getLocale() === $locale ? 'bg-[var(--accent)] text-[var(--site-on-accent)]' : 'text-[var(--site-muted)]' }}" href="{{ route('login', ['lang' => $locale]) }}" lang="{{ $locale }}" title="{{ __('panel.languages.'.$locale) }}"><img src="/images/flags/{{ ['tr' => 'tr', 'en' => 'gb', 'de' => 'de', 'ar' => 'sa'][$locale] ?? 'tr' }}.svg" alt="" width="20" height="15" style="width:20px;height:15px" class="shrink-0 rounded-sm object-cover">{{ strtoupper($locale) }}</a>
                 @endforeach
             </nav>
-            <img src="/images/brand/wegas-header.png" alt="{{ brand()->name() }}" width="618" height="200" style="height:40px;width:auto" class="self-start md:hidden">
+            <span class="self-start md:hidden">@include('brand.logo')</span>
             <h1 class="text-3xl font-extrabold text-[var(--site-text)]">{{ __('auth.login_title') }}</h1>
             @include('auth._form', ['prefix' => 'page'])
         </div>

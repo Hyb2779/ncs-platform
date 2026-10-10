@@ -2,16 +2,51 @@
 
 namespace App\Http\Controllers\Panel;
 
+use App\Enums\Currency;
 use App\Http\Controllers\Controller;
 use App\Models\User;
+use App\Services\Stats\CreditFees;
+use App\Support\PlatformSetting;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 /** Kök owner'ın alt owner'dan kredi ücreti tahsilatı girmesi. Sadece kök owner. */
 class CreditFeeController extends Controller
 {
+    public function index(Request $request, CreditFees $fees): View
+    {
+        abort_unless($request->user()->isRootOwner(), 404);
+        $zone = $request->user()->timezone ?: 'Europe/Istanbul';
+        $from = $request->filled('fee_from') ? Carbon::parse($request->query('fee_from'), $zone)->startOfDay()->utc() : null;
+        $to = $request->filled('fee_to') ? Carbon::parse($request->query('fee_to'), $zone)->addDay()->startOfDay()->utc() : null;
+
+        return view('panel.credit_fees.index', [
+            'creditFees' => $fees->summary($from, $to),
+            'creditFeeRates' => PlatformSetting::creditFeeRates(),
+            'feeFrom' => $request->query('fee_from'),
+            'feeTo' => $request->query('fee_to'),
+        ]);
+    }
+
+    public function updateRate(Request $request): RedirectResponse
+    {
+        abort_unless($request->user()->isRootOwner(), 404);
+        $rules = ['rates' => ['required', 'array']];
+        foreach (Currency::values() as $currency) {
+            $rules['rates.'.$currency] = ['required', 'numeric', 'gte:0', 'lte:100'];
+        }
+        $data = $request->validate($rules);
+        foreach (Currency::values() as $currency) {
+            PlatformSetting::putCreditFeeRate($currency, (string) $data['rates'][$currency]);
+        }
+
+        return back()->with('status', __('panel.credit_fee_rate_saved'));
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $actor = $request->user();
@@ -19,8 +54,8 @@ class CreditFeeController extends Controller
 
         $request->merge(['amount' => $this->normalize((string) $request->input('amount'))]);
         $data = $request->validate([
-            'sub_owner_id' => ['required', 'integer', Rule::exists('users', 'id')->where('role', 'owner')->whereNotNull('parent_id')->whereNotNull('credit_fee_rate')],
-            'currency' => ['required', Rule::in(['TRY', 'USD', 'EUR'])],
+            'sub_owner_id' => ['required', 'integer', Rule::exists('users', 'id')->where('role', 'owner')->whereNotNull('parent_id')],
+            'currency' => ['required', Rule::in(Currency::values())],
             'amount' => ['required', 'numeric', 'gt:0', 'max:999999999'],
             'note' => ['nullable', 'string', 'max:500'],
         ]);

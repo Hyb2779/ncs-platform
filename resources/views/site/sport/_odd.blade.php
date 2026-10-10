@@ -1,9 +1,9 @@
 @php
-    $odd = $fixture->odds->first(fn ($row) => $row->market->code === $market && $row->outcome === $outcome);
+    $odd = $fixture->odds->first(fn ($row) => ! $row->suspended && $row->market->code === $market && $row->outcome === $outcome);
     $labeled = $labeled ?? false;
     $compact = $compact ?? false;
     $picked = $odd && collect($coupon['rows'] ?? [])->contains(fn ($row) => (int) $row['odd']->id === (int) $odd->id);
-    $blocked = $odd && ! sport_price_open($fixture, (string) $odd->shown_odd);
+    $blocked = $odd && (sport_offer_closed($fixture, $odd) || ! sport_price_open($fixture, (string) $odd->shown_odd));
     $tone = $picked ? 'bg-[var(--accent)] text-[var(--site-on-accent)]' : 'bg-[var(--site-panel-2)] text-[var(--site-text)]';
 @endphp
 @if ($odd && ! $odd->suspended && ! $blocked)

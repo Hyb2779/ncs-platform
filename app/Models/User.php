@@ -54,6 +54,7 @@ class User extends Authenticatable
             'depth' => 'integer',
             'last_login_at' => 'datetime',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
         ];
     }
 

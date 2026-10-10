@@ -29,11 +29,21 @@ class PasswordController extends Controller
             return back()->withErrors(['current_password' => __('panel.password_wrong')]);
         }
 
+        if (Hash::check($data['password'], $user->password)) {
+            return back()->withErrors(['password' => __('panel.password_same')]);
+        }
+
+        $forced = (bool) $user->must_change_password;
         $user->password = $data['password'];
+        $user->must_change_password = false;
         $user->save();
         \App\Http\Middleware\EnsureAccountActive::remember($request, $user);
         $logger->write($user, 'user.password_changed', $user, ['ip' => $request->ip()]);
 
-        return redirect()->route('panel.password.edit')->with('status', __('panel.password_updated'));
+        $redirect = $forced
+            ? redirect()->to($user->homePath())
+            : redirect()->route('panel.password.edit');
+
+        return $redirect->with('status', __('panel.password_updated'));
     }
 }

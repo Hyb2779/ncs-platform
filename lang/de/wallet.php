@@ -52,6 +52,7 @@ return [
         'bet' => 'Wette',
         'win' => 'Gewinn',
         'refund' => 'Erstattung',
+        'cashout' => 'Auszahlung',
         'bonus' => 'Bonus',
         'adjustment' => 'Korrektur',
     ],

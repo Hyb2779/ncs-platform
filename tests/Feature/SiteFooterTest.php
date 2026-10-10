@@ -73,11 +73,37 @@ class SiteFooterTest extends TestCase
 
         $this->get('/?lang=ar')->assertOk()
             ->assertSee('dir="rtl"', false)
-            ->assertSee(__('site.footer_quick', [], 'ar'), false);
+            ->assertSee(__('site.footer_quick', [], 'ar'), false)
+            ->assertSee(__('vendors.pp', [], 'ar'), false)
+            ->assertSee(__('vendors.casino-evolution', [], 'ar'), false)
+            ->assertSee(__('vendors.mini-spribe', [], 'ar'), false)
+            ->assertDontSee('>Pragmatic Play<', false);
         $this->get('/lisans-dogrula?lang=ar')->assertOk()
             ->assertSee(__('site.license_title', [], 'ar'), false)
             ->assertSee(__('site.license_back', [], 'ar'), false)
             ->assertSee('License No: '.GameCatalog::LICENSE_NO, false);
+    }
+
+    public function test_footer_collapses_the_same_brand_to_its_written_name(): void
+    {
+        $active = $this->provider('gold', 'active');
+        $this->game($active, 'ruby-a', 'Ruby A', 'slot-rubyplay', 'slot', false);
+        $this->game($active, 'ruby-b', 'Ruby B', 'rubyplay', 'slot', false);
+        $this->game($active, 'aviator', 'Aviator', 'mini-spribe', 'mini', false);
+        $this->game($active, 'mines', 'Mines', 'spribe', 'mini', false);
+        $this->game($active, 'bg-a', 'Bg A', 'mini-bgaming', 'mini', false);
+        $this->game($active, 'bg-b', 'Bg B', 'bgaming', 'mini', false);
+
+        $html = $this->get('/')->assertOk()->assertSee('data-footer-stat="providers">3+', false)->getContent();
+        $this->assertSame(1, preg_match('/<footer class="site-footer">.*<\\/footer>/s', $html, $match));
+        $footer = $match[0];
+        $this->assertSame(1, substr_count($footer, '>Ruby Play<'));
+        $this->assertSame(0, substr_count($footer, 'RUBYPLAY'));
+        $this->assertSame(1, substr_count($footer, '>Spribe<'));
+        $this->assertSame(1, substr_count($footer, '>BGaming<'));
+        $this->assertStringContainsString('/slots?vendor=slot-rubyplay', $html);
+        $this->assertStringContainsString('/mini?vendor=mini-spribe', $html);
+        $this->assertStringContainsString('/mini?vendor=mini-bgaming', $html);
     }
 
     public function test_empty_groups_stay_hidden_and_global_blocks_drop_the_brand(): void

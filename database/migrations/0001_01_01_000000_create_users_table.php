@@ -18,7 +18,7 @@ return new class extends Migration
             $table->unsignedInteger('depth');
             $table->foreignId('superadmin_id')->nullable()->index();
             $table->enum('language', ['tr', 'en', 'de', 'ar']);
-            $table->enum('currency', ['TRY', 'USD', 'EUR']);
+            $table->enum('currency', ['TRY', 'USD', 'EUR', 'AED']);
             $table->string('timezone');
             $table->decimal('commission_rate', 5, 2)->default(0);
             $table->enum('status', ['active', 'passive', 'banned'])->default('active');

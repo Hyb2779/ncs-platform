@@ -230,9 +230,11 @@ class CasinoTest extends TestCase
 
         $page = $this->actingAs($member)->get('/account');
         $page->assertOk();
-        $page->assertSee(__('wallet.upper_account'));
+        $page->assertDontSee(__('wallet.upper_account'));
         $page->assertDontSee($owner->username);
         $page->assertDontSee('-40', false);
+        $page->assertDontSee('name="from"', false);
+        $page->assertDontSee(__('site.language').':', false);
     }
 
     public function test_player_site_renders_in_four_languages(): void

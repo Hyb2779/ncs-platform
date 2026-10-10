@@ -7,6 +7,7 @@ use App\Enums\WalletTransactionType;
 use App\Models\Coupon;
 use App\Models\CouponSelection;
 use App\Models\SportFixture;
+use App\Models\SportOdd;
 use App\Models\SportWarning;
 use App\Models\User;
 use App\Models\WalletTransaction;
@@ -19,6 +20,7 @@ class CouponSettler
 {
     public function __construct(
         private readonly SelectionEvaluator $evaluator,
+        private readonly OfferEvaluator $offers,
         private readonly CouponCalculator $calculator,
         private readonly WalletService $wallets,
         private readonly ActivityLogger $activity,
@@ -28,7 +30,7 @@ class CouponSettler
     {
         return $this->wallets->within(function () use ($coupon): Coupon {
             $locked = Coupon::query()->whereKey($coupon->id)->lockForUpdate()->firstOrFail();
-            if ($locked->status === 'cancelled') {
+            if (in_array($locked->status, ['cancelled', 'cashed_out'], true)) {
                 return $locked;
             }
 
@@ -67,11 +69,16 @@ class CouponSettler
         });
     }
 
+    public function unwind(Coupon $coupon, User $actor): void
+    {
+        $this->reverse($coupon, $actor);
+    }
+
     public function correct(Coupon $coupon, User $actor, ?int $fixtureId = null): Coupon
     {
         return $this->wallets->within(function () use ($coupon, $actor, $fixtureId): Coupon {
             $locked = Coupon::query()->whereKey($coupon->id)->lockForUpdate()->firstOrFail();
-            if ($locked->status === 'cancelled') {
+            if (in_array($locked->status, ['cancelled', 'cashed_out'], true)) {
                 return $locked;
             }
 
@@ -129,6 +136,13 @@ class CouponSettler
                 $fixture->ht_home !== null ? (int) $fixture->ht_home : null,
                 $fixture->ht_away !== null ? (int) $fixture->ht_away : null,
             );
+            if ($result === null && $selection->market_code === 'BOOK') {
+                $odd = SportOdd::query()
+                    ->where('fixture_id', $selection->fixture_id)
+                    ->where('outcome', $selection->outcome)
+                    ->first();
+                $result = $this->offers->evaluate($odd, $fixture);
+            }
             if ($result === null) {
                 continue;
             }

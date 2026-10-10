@@ -36,11 +36,7 @@ class Money
     public static function format(string $amount, Currency $currency): string
     {
         $value = number_format((float) $amount, 2, '.', '');
-        $symbol = match ($currency) {
-            Currency::Try => '₺',
-            Currency::Usd => '$',
-            Currency::Eur => '€',
-        };
+        $symbol = $currency->symbol();
 
         return match (app()->getLocale()) {
             'tr' => self::grouped($value, ',', '.').' '.$symbol,

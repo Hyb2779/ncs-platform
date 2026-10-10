@@ -7,7 +7,7 @@
     $viewer = auth()->user();
     $isSuper = $viewer->role === \App\Enums\UserRole::Superadmin;
     $isBayi = $viewer->role === \App\Enums\UserRole::Bayi;
-    $symbols = ['USD' => '$', 'EUR' => '€', 'TRY' => '₺'];
+    $symbols = collect(\App\Enums\Currency::cases())->mapWithKeys(fn ($currency) => [$currency->value => $currency->symbol()])->all();
     $dots = ['active' => 'bg-emerald-500', 'passive' => 'bg-amber-400', 'banned' => 'bg-rose-500'];
     $tones = ['active' => 'success', 'passive' => 'warning', 'banned' => 'danger'];
     $badge = function (string $label, string $tone): \Illuminate\Support\HtmlString {
@@ -239,7 +239,7 @@
                 <button class="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-2xl text-slate-500" type="button" @click="password = false" aria-label="{{ __('wallet.cancel') }}">&times;</button>
             </div>
             <label class="grid gap-1 text-sm">{{ __('panel.users_ui.password_new') }}
-                <input class="h-11 w-full rounded-md border border-[#E3E6EB] px-3" type="text" name="password" minlength="8" maxlength="255" autocomplete="new-password" autocapitalize="off" spellcheck="false">
+                <input class="h-11 w-full rounded-md border border-[#E3E6EB] px-3" type="text" name="password" minlength="4" maxlength="255" autocomplete="new-password" autocapitalize="off" spellcheck="false">
             </label>
             <p class="text-xs text-slate-500">{{ __('panel.users_ui.password_hint') }}</p>
             <div class="grid grid-cols-2 gap-2 md:flex md:justify-end">

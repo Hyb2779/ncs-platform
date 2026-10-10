@@ -14,7 +14,7 @@ return new class extends Migration
             $table->uuid('id')->primary();
             $table->foreignId('wallet_id')->constrained('wallets');
             $table->foreignId('user_id')->constrained('users');
-            $table->enum('type', ['mint', 'transfer_in', 'transfer_out', 'bet', 'win', 'refund', 'bonus', 'adjustment']);
+            $table->enum('type', ['mint', 'transfer_in', 'transfer_out', 'bet', 'win', 'refund', 'bonus', 'adjustment', 'cashout']);
             $table->enum('product', ['sport', 'slot', 'live_casino', 'transfer', 'bonus', 'adjustment']);
             $table->decimal('amount', 18, 2);
             $table->decimal('balance_before', 18, 2);
